@@ -1,0 +1,14 @@
+power shell
+luego
+
+Cd \Users\Personal\Desktop\Proyectos\Cloude\src
+luego
+ npm run dev
+y despues copiar la Http en el navergador
+
+---------------
+para  capturar pantalla
+
+Windows + Shift + S, 
+la tecla Imprimir Pantalla, 
+Windows + Alt + Impr Pant
