@@ -15,7 +15,7 @@ const fotoUsuarioPorDefecto = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3
 // nueva actualización. Formato solicitado: DÍA(2 dígitos)+MES(2 dígitos)+AÑO(4 dígitos) - HORA:MINUTO
 // Ejemplo: "27072026-19:05" = 27 de julio de 2026, 19:05. Se muestra, sin
 // ninguna acción asociada, en la esquina superior izquierda de P-01.
-const APP_VERSION = "29082026-05:46";
+const APP_VERSION = "30082026-10:33";
 
 /**
  * APP SÉNIOR - SUITE MÓVIL ACCESIBLE (SIMULADOR DE TELÉFONO)
@@ -844,58 +844,67 @@ const App = () => {
   );
 
   // ============================================================================
-  // ENCABEZADO G — cabecera reutilizable de las pantallas de contenido.
-  // Solo DOS elementos:
-  //   · Izquierda: botón "Menú" (abre el menú rápido).
-  //   · Derecha:   foto del ciudadano. Un toque/clic = ayuda en voz;
-  //                doble toque/clic = ayuda escrita (panel ¿Dónde estoy?).
-  // (Se eliminaron el logo VES y el texto "¿Dónde estoy?" de esta cabecera.)
+  // FOTO DEL CIUDADANO CON AYUDA — elemento reutilizable.
+  //   · 1 toque / clic  -> ayuda EN VOZ de la pantalla actual (speakWhereAmIOnHover).
+  //   · 2 toques / clic  -> ayuda ESCRITA: se abre el panel que indique `onAyudaEscrita`.
+  // Así cada pantalla decide qué explicación escrita mostrar ("la que corresponda").
   // ============================================================================
-  const EncabezadoG = ({ onBack }) => {
-    // Distingue 1 toque (ayuda en voz) de 2 toques (ayuda escrita) en la foto.
-    const tapFotoTimerRef = useRef(null);
-    const ultimoTapFotoRef = useRef(0);
-    const manejarTapFoto = () => {
+  const FotoAyudaCiudadano = ({ onAyudaEscrita, className = "w-16" }) => {
+    const tapTimerRef = useRef(null);
+    const ultimoTapRef = useRef(0);
+    const manejarTap = () => {
       const ahora = Date.now();
-      if (ahora - ultimoTapFotoRef.current < 350) {
-        // Segundo toque dentro de la ventana -> ayuda ESCRITA (panel ¿Dónde estoy?)
-        ultimoTapFotoRef.current = 0;
-        if (tapFotoTimerRef.current) { clearTimeout(tapFotoTimerRef.current); tapFotoTimerRef.current = null; }
-        handleWhereAmI();
+      if (ahora - ultimoTapRef.current < 350) {
+        // Segundo toque dentro de la ventana -> ayuda ESCRITA
+        ultimoTapRef.current = 0;
+        if (tapTimerRef.current) { clearTimeout(tapTimerRef.current); tapTimerRef.current = null; }
+        onAyudaEscrita();
       } else {
         // Primer toque -> si no llega un segundo en 350 ms, ayuda EN VOZ
-        ultimoTapFotoRef.current = ahora;
-        if (tapFotoTimerRef.current) clearTimeout(tapFotoTimerRef.current);
-        tapFotoTimerRef.current = setTimeout(() => {
-          tapFotoTimerRef.current = null;
-          ultimoTapFotoRef.current = 0;
+        ultimoTapRef.current = ahora;
+        if (tapTimerRef.current) clearTimeout(tapTimerRef.current);
+        tapTimerRef.current = setTimeout(() => {
+          tapTimerRef.current = null;
+          ultimoTapRef.current = 0;
           speakWhereAmIOnHover();
         }, 350);
       }
     };
     return (
-      <header className="flex items-center justify-between mt-6 mb-6 bg-white p-5 rounded-3xl shadow-sm border-2 border-gray-100">
-        <button
-          onClick={() => { setQuickMenuBackAction(() => onBack); setIsQuickMenuOpen(true); }}
-          onMouseEnter={() => announceMenuOption('Menú')}
-          className="flex flex-col items-center gap-1 text-blue-950 active:scale-95 transition-transform"
-          aria-label="Abrir menú rápido"
-        >
-          <Menu size={40} />
-          <span className="text-base font-black">Menú</span>
-        </button>
-        <button
-          onClick={manejarTapFoto}
-          onMouseEnter={speakWhereAmIOnHover}
-          onMouseLeave={stopWhereAmIHoverAudio}
-          className="active:scale-95 transition-transform rounded-full"
-          aria-label="Foto del ciudadano. Un toque: ayuda en voz. Dos toques: ayuda escrita."
-        >
-          <UserPhoto className="w-16" />
-        </button>
-      </header>
+      <button
+        onClick={manejarTap}
+        onMouseEnter={speakWhereAmIOnHover}
+        onMouseLeave={stopWhereAmIHoverAudio}
+        className="active:scale-95 transition-transform rounded-full"
+        aria-label="Foto del ciudadano. Un toque: ayuda en voz. Dos toques: ayuda escrita."
+      >
+        <UserPhoto className={className} />
+      </button>
     );
   };
+
+  // ============================================================================
+  // ENCABEZADO G — cabecera reutilizable de las pantallas de contenido.
+  // Solo DOS elementos:
+  //   · Izquierda: botón "Menú" (abre el menú rápido).
+  //   · Derecha:   foto del ciudadano (FotoAyudaCiudadano): 1 toque = ayuda en voz;
+  //                2 toques = ayuda escrita de esta pantalla (handleWhereAmI).
+  // (Se eliminaron el logo VES y el texto "¿Dónde estoy?" de esta cabecera.)
+  // ============================================================================
+  const EncabezadoG = ({ onBack }) => (
+    <header className="flex items-center justify-between mt-6 mb-6 bg-white p-5 rounded-3xl shadow-sm border-2 border-gray-100">
+      <button
+        onClick={() => { setQuickMenuBackAction(() => onBack); setIsQuickMenuOpen(true); }}
+        onMouseEnter={() => announceMenuOption('Menú')}
+        className="flex flex-col items-center gap-1 text-blue-950 active:scale-95 transition-transform"
+        aria-label="Abrir menú rápido"
+      >
+        <Menu size={40} />
+        <span className="text-base font-black">Menú</span>
+      </button>
+      <FotoAyudaCiudadano onAyudaEscrita={handleWhereAmI} />
+    </header>
+  );
 
 
   // ============================================================================
@@ -1935,7 +1944,20 @@ const App = () => {
     // SeccionBtn se usa directamente (definido fuera del componente, a nivel módulo)
     return (
       <div className="flex flex-col p-6 bg-white min-h-full pb-32 animate-in fade-in duration-300 text-left relative">
-        <EncabezadoG onBack={handleBackNavigation} />
+        {/* ENCABEZADO estilo P-28 (línea simple), pero con VOLVER en lugar de la
+            hamburguesa: VOLVER regresa a la pantalla desde la que se entró
+            (handleBackNavigation: al Menú de Perfil si se vino de ahí, o al Panel). */}
+        <div className="flex items-center justify-between w-full mt-6 mb-6">
+          <button
+            onClick={handleBackNavigation}
+            onMouseEnter={() => announceMenuOption('Volver')}
+            className="flex items-center text-blue-950 font-black text-2xl py-2 w-max active:scale-95 transition-transform"
+            aria-label="Volver a la pantalla anterior"
+          >
+            <ArrowLeft size={36} className="mr-2" /> VOLVER
+          </button>
+          <FotoAyudaCiudadano className="w-16" onAyudaEscrita={handleWhereAmI} />
+        </div>
         <h2 className="text-4xl font-black text-blue-900 mb-6">Mi Perfil</h2>
         {hayDatosSinGuardar && (
           <div className="bg-amber-50 border-4 border-amber-400 rounded-2xl p-4 mb-4 flex items-center gap-3">
@@ -3716,8 +3738,10 @@ const App = () => {
 
           {isQuickMenuOpen && (
             <div role="dialog" aria-modal="true" aria-label="Menú Rápido" className="absolute inset-0 bg-blue-950 z-50 p-8 flex flex-col items-center justify-center text-center animate-in zoom-in duration-300 overflow-y-auto">
-              {/* FILA SUPERIOR: Volver (izquierda) + Logo VES/¿Dónde estoy? (derecha) — mismo layout que P-27 */}
-              <div className="flex items-center justify-between w-full mt-3 mb-4">
+              {/* FILA SUPERIOR (estilo Encabezado G): VOLVER a la izquierda + foto del
+                  ciudadano a la derecha. 1 toque en la foto = ayuda en voz del Menú
+                  Rápido; 2 toques = ayuda escrita del Menú Rápido. */}
+              <div className="flex items-center justify-between w-full mt-3 mb-6">
                 <button
                   onClick={() => { setIsQuickMenuOpen(false); quickMenuBackAction(); }}
                   onMouseEnter={() => announceMenuOption('Volver')}
@@ -3725,31 +3749,11 @@ const App = () => {
                 >
                   <ArrowLeft size={36} className="mr-2" /> VOLVER
                 </button>
-                {/* Logo + "¿Dónde estoy?": al pasar el dedo por encima se ESCUCHA la ayuda;
-                    al tocar el logo (o el texto) se ABRE la explicación para leerla. */}
-                <div className="flex flex-col items-center gap-1">
-                  <button
-                    onClick={() => openWhereAmI("Menú Rápido", `${username || 'Hola'}, estás en el menú rápido. Puedes ir al Panel Principal, hablar con iAyuda, Pedir Ayuda si es una emergencia, tocar Volver para regresar, o Cerrar para irme para salir de la aplicación.`)}
-                    onMouseEnter={speakWhereAmIOnHover}
-                    onMouseLeave={stopWhereAmIHoverAudio}
-                    className="active:scale-95 transition-transform"
-                    aria-label="Abrir la explicación del menú rápido"
-                  >
-                    <BrandLogo className="w-10" />
-                  </button>
-                  <button
-                    onClick={() => openWhereAmI("Menú Rápido", `${username || 'Hola'}, estás en el menú rápido. Puedes ir al Panel Principal, hablar con iAyuda, Pedir Ayuda si es una emergencia, tocar Volver para regresar, o Cerrar para irme para salir de la aplicación.`)}
-                    onMouseEnter={speakWhereAmIOnHover}
-                    onMouseLeave={stopWhereAmIHoverAudio}
-                    className="text-base font-bold text-amber-200 underline active:scale-95 transition-transform"
-                    aria-label="¿Dónde estoy? Escuchar la explicación del menú rápido"
-                  >
-                    ¿Dónde estoy?
-                  </button>
-                </div>
+                <FotoAyudaCiudadano
+                  className="w-20"
+                  onAyudaEscrita={() => openWhereAmI("Menú Rápido", `${username || 'Hola'}, estás en el menú rápido. Puedes ir al Panel Principal, hablar con iAyuda, Pedir Ayuda si es una emergencia, tocar Volver para regresar, o Cerrar para irme para salir de la aplicación.`)}
+                />
               </div>
-              {/* SEGUNDA FILA: Foto de usuario centrada. Sin acción al pasar el ratón. */}
-              <UserPhoto className="w-24 mx-auto mb-5" />
               <div className="w-full max-w-sm space-y-4">
                 {/* Atajo: ir directo al Panel Principal desde cualquier pantalla */}
                 <button
@@ -3900,44 +3904,17 @@ const App = () => {
 
           {isMenuOpen && (
             <div role="dialog" aria-modal="true" aria-label="Menú de Perfil" className="absolute inset-0 bg-blue-950 z-50 p-8 flex flex-col animate-in slide-in-from-right duration-300 overflow-y-auto text-white text-left">
-              <div className="flex items-center justify-between w-full mt-3 mb-4">
-                <button onClick={() => setIsMenuOpen(false)} onMouseEnter={() => announceMenuOption('Volver')} className="flex items-center text-white font-black text-2xl py-2 w-max">
-                  <ArrowLeft size={36} className="mr-2" /> VOLVER
-                </button>
-                <button
-                  onClick={() => {
-                    const info = { titulo: "Perfil", texto: `${username || 'Hola'}, estás en tu menú de Perfil. Aquí puedes ver tus datos, tus preferencias, tus talentos, y tus contactos de emergencia.` };
-                    setWhereAmIInfo(info);
-                    setIsWhereAmIOpen(true);
-                    if ('speechSynthesis' in window) {
-                      window.speechSynthesis.cancel();
-                      const utterance = new SpeechSynthesisUtterance(`${info.titulo}. ${info.texto}`);
-                      utterance.lang = 'es-MX';
-                      utterance.rate = 0.9;
-                      window.speechSynthesis.speak(utterance);
-                    }
-                  }}
-                  onMouseEnter={() => announceMenuOption('¿Dónde estoy?')}
-                  className="flex flex-col items-center gap-1 active:scale-95 transition-transform"
-                  aria-label="¿Dónde estoy? Explicación de esta pantalla"
-                >
-                  <div
-                    onMouseEnter={() => speak(`Perfil. ${username || 'Hola'}, estás en tu menú de Perfil. Aquí puedes ver tus datos, tus preferencias, tus talentos, y tus contactos de emergencia.`)}
-                    onMouseLeave={() => window.speechSynthesis.cancel()}
-                  >
-                    <BrandLogo className="w-10" />
-                  </div>
-                  <span className="text-base font-bold text-amber-200 underline">¿Dónde estoy?</span>
-                </button>
+              {/* ENCABEZADO estilo P-26, SIN flecha Volver: este menú de Perfil es una zona
+                  de configuración independiente y no enlaza de vuelta con la app VES.
+                  Se sale por "Salir de la App" o entrando a una de las opciones.
+                  Solo la foto del ciudadano a la derecha: 1 toque = ayuda en voz del
+                  Perfil; 2 toques = ayuda escrita. */}
+              <div className="flex items-center justify-end w-full mt-3 mb-6">
+                <FotoAyudaCiudadano
+                  className="w-20"
+                  onAyudaEscrita={() => openWhereAmI("Perfil", `${username || 'Hola'}, estás en tu menú de Perfil. Aquí puedes ver tus datos, tus preferencias, tus talentos, y tus contactos de emergencia.`)}
+                />
               </div>
-              <button
-                onMouseEnter={speakWhereAmIOnHover}
-                onMouseLeave={stopWhereAmIHoverAudio}
-                className="active:scale-95 transition-transform"
-                aria-label="Escuchar audio de ¿Dónde estoy? al pasar sobre la foto"
-              >
-                <UserPhoto className="w-24 mx-auto mb-6" />
-              </button>
               <nav className="grid grid-cols-2 gap-4">
                 <button onClick={() => { setCurrentView('perfil'); setIsMenuOpen(false); setEnteredFromMenu(true); }} onMouseEnter={() => announceMenuOption('Datos Usuario')} className="flex flex-col items-center justify-center text-center gap-2 p-4 bg-white/10 rounded-2xl hover:bg-white/15 active:scale-95 transition-transform">
                   <Users size={32} className="text-amber-400" />
