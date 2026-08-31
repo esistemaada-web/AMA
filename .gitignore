@@ -22,6 +22,3 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-
-# Fotos personales sueltas (no forman parte de la app)
-Fotos/
