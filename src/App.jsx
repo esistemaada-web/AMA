@@ -7,6 +7,9 @@ import {
   Star, Ticket, Volume2, Filter, Menu, HelpCircle, Check,
   Activity, Brain, Heart, Moon, Mail, UserPlus, BookOpen, Image, Leaf, ChevronDown
 } from 'lucide-react';
+// Foto del ciudadano por defecto: se deja grabada aquí para no tener que subirla
+// en cada sesión. Para cambiarla, reemplaza src/foto-ciudadano.jpg.
+import fotoCiudadano from './foto-ciudadano.jpg';
 // NOTA: logos reemplazados por componentes inline para no depender de archivos externos.
 const fotoUsuarioPorDefecto = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><rect width='200' height='200' fill='%231e3a8a'/><text x='50%' y='50%' fill='white' font-size='14' text-anchor='middle' dy='.3em'>Foto Usuario</text></svg>";
 
@@ -15,7 +18,7 @@ const fotoUsuarioPorDefecto = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3
 // nueva actualización. Formato solicitado: DÍA(2 dígitos)+MES(2 dígitos)+AÑO(4 dígitos) - HORA:MINUTO
 // Ejemplo: "27072026-19:05" = 27 de julio de 2026, 19:05. Se muestra, sin
 // ninguna acción asociada, en la esquina superior izquierda de P-01.
-const APP_VERSION = "30082026-10:33";
+const APP_VERSION = "31082026-08:48";
 
 /**
  * APP SÉNIOR - SUITE MÓVIL ACCESIBLE (SIMULADOR DE TELÉFONO)
@@ -116,7 +119,7 @@ const BrandLogo = ({ className = "w-40" }) => (
     className={`${className} aspect-square rounded-full bg-gradient-to-br from-amber-300 to-emerald-700 flex flex-col items-center justify-center mx-auto shadow-md border-2 border-amber-200`}
     style={{ containerType: "inline-size" }}
     role="img"
-    aria-label="Logotipo de la marca bes: un árbol dorado con raíces visibles, con el texto Energía y Salud"
+    aria-label="Logotipo de la marca VES: un árbol dorado con raíces visibles, con el texto Energía y Salud"
   >
     <Leaf className="text-amber-50" style={{ width: "45%", height: "45%" }} strokeWidth={2.2} />
     <span className="text-amber-50 font-black leading-none" style={{ fontSize: "22cqw" }} aria-hidden="true">VES</span>
@@ -205,7 +208,6 @@ const App = () => {
   const [prefVision, setPrefVision] = useState(false);
   const [prefOido, setPrefOido] = useState(false);
   const [prefVoz, setPrefVoz] = useState(false);
-  const [ordenAccesoPreferido, setOrdenAccesoPreferido] = useState('biometrico'); // 'biometrico' o 'escrito'
   // --- NUEVA VARIABLE: SEGUNDOS PARA LLAMADA AUTOMÁTICA (configurable en Datos Usuario) ---
   const [segundosLlamadaAutomatica, setSegundosLlamadaAutomatica] = useState(10);
   // --- MODAL "PEDIR AYUDA" (P-33) COMPARTIDO ENTRE P-02 (Login) Y P-08 (Panel Principal) ---
@@ -282,7 +284,7 @@ const App = () => {
   const [isListeningExplanation, setIsListeningExplanation] = useState(false);
 
   // --- ESTADOS PARA EL NUEVO PERFIL COMPLETO FORMULARIO ---
-  const [profilePhoto, setProfilePhoto] = useState(fotoUsuarioPorDefecto);
+  const [profilePhoto, setProfilePhoto] = useState(fotoCiudadano);
   const [profileNombre, setProfileNombre] = useState('');
   const [profileApellido, setProfileApellido] = useState('');
   const [profileDireccion, setProfileDireccion] = useState('Calle Castillo, 15');
@@ -315,6 +317,65 @@ const App = () => {
   // Configuración de qué se activa al pulsar "Pedir Ayuda"
   const [emergencia112Activa, setEmergencia112Activa] = useState(true);
   const [emergenciaMasivosActiva, setEmergenciaMasivosActiva] = useState(true);
+
+  // --- LISTA DE CONTACTOS (creada por el usuario en "Crear Contactos", pestaña 1) ---
+  // Cada contacto: { id, nombre, apellido, edad, telefono, correo, direccion, foto, esEmergencia, fijo }
+  // Arranca con 3 contactos FIJOS (no se pueden borrar); 2 ya marcados como emergencia.
+  const [listaContactos, setListaContactos] = useState([
+    { id: 1, nombre: 'Carlos', apellido: 'Rodríguez', edad: '48', telefono: '600123456', correo: 'carlos@correo.com', direccion: '', foto: fotoUsuarioPorDefecto, esEmergencia: true, fijo: true },
+    { id: 2, nombre: 'Ana', apellido: 'Rodríguez', edad: '45', telefono: '600123457', correo: 'ana@correo.com', direccion: '', foto: fotoUsuarioPorDefecto, esEmergencia: true, fijo: true },
+    { id: 3, nombre: 'Lucía', apellido: 'Pérez', edad: '52', telefono: '600123458', correo: 'lucia@correo.com', direccion: '', foto: fotoUsuarioPorDefecto, esEmergencia: false, fijo: true },
+  ]);
+  // Pestaña activa y aviso de "Crear Contactos" — a nivel de App para que sobrevivan
+  // al remontado del componente cuando cambia listaContactos (los Render* son funciones
+  // internas y React los remonta en cada render de App).
+  const [contactosTab, setContactosTab] = useState('lista'); // 'lista' | 'emergencia'
+  const [contactosAviso, setContactosAviso] = useState(null);
+  useEffect(() => {
+    if (!contactosAviso) return;
+    const t = setTimeout(() => setContactosAviso(null), 4000);
+    return () => clearTimeout(t);
+  }, [contactosAviso]);
+  // Mensaje que reciben los contactos de emergencia al pulsar PEDIR AYUDA (pestaña 2).
+  const [mensajeEmergencia, setMensajeEmergencia] = useState('Necesito ayuda. Por favor, contáctame o ven a mi casa lo antes posible.');
+  // Canales por los que se envía ese mensaje: se pueden activar varios a la vez.
+  const [canalesEmergencia, setCanalesEmergencia] = useState({ sms: true, whatsapp: false, correo: false });
+  // Texto legible con los canales activos: "SMS", "SMS y WhatsApp", "SMS, WhatsApp y Correo"...
+  const textoCanales = (canales) => {
+    const l = [];
+    if (canales.sms) l.push('SMS');
+    if (canales.whatsapp) l.push('WhatsApp');
+    if (canales.correo) l.push('Correo');
+    if (l.length === 0) return 'ningún canal';
+    if (l.length === 1) return l[0];
+    return `${l.slice(0, -1).join(', ')} y ${l[l.length - 1]}`;
+  };
+  // Devuelve los datos de emergencia efectivos: si el usuario marcó contactos de
+  // emergencia en su lista, se usan esos; si no, se cae a los 3 contactos fijos.
+  const getEmergenciaEfectiva = () => {
+    const marcados = listaContactos.filter((c) => c.esEmergencia && c.telefono);
+    if (marcados.length > 0) {
+      return {
+        nombres: marcados.map((c) => `${c.nombre} ${c.apellido}`.trim()),
+        primero: { name: `${marcados[0].nombre} ${marcados[0].apellido}`.trim(), phone: marcados[0].telefono },
+        canalesTexto: textoCanales(canalesEmergencia),
+        mensaje: mensajeEmergencia,
+        personalizada: true,
+      };
+    }
+    const nombres = [
+      mensajesMasivosVisible.contact1 && contact1Name,
+      mensajesMasivosVisible.contact2 && contact2Name,
+      mensajesMasivosVisible.contact3 && contact3Name,
+    ].filter(Boolean);
+    return {
+      nombres,
+      primero: { name: contact1Name, phone: contact1Phone },
+      canalesTexto: textoCanales(canalesEmergencia),
+      mensaje: mensajeEmergencia,
+      personalizada: false,
+    };
+  };
   // Contactos habilitados para mostrarse en la pantalla de emergencia (máx. 2)
   const [emergenciaContacto2Activo, setEmergenciaContacto2Activo] = useState(true);
   const [emergenciaContacto3Activo, setEmergenciaContacto3Activo] = useState(true);
@@ -387,13 +448,9 @@ const App = () => {
         if (emergencia112Activa) {
           setCallingContact({ name: '112 (URGENCIA)', phone: '112' });
         } else if (emergenciaMasivosActiva) {
-          const destinatarios = [
-            mensajesMasivosVisible.contact1 && contact1Name,
-            mensajesMasivosVisible.contact2 && contact2Name,
-            mensajesMasivosVisible.contact3 && contact3Name,
-          ].filter(Boolean);
-          speak(`Enviando mensaje a ${destinatarios.join(', ')}, y llamando a Urgencias.`);
-          setCallingContact({ name: contact1Name, phone: contact1Phone });
+          const emerg = getEmergenciaEfectiva();
+          speak(`Enviando mensaje por ${emerg.canalesTexto} a ${emerg.nombres.join(', ')}, y llamando a Urgencias.`);
+          setCallingContact(emerg.primero);
         }
       }
     }, 1000);
@@ -459,8 +516,10 @@ const App = () => {
   };
 
   // --- FUNCIÓN SEGURA PARA SALIR DE LA APP ---
-  const handleOpenExitModal = () => {
-    setIsMenuOpen(false);
+  const handleOpenExitModal = (mantenerMenu = false) => {
+    // Si se abre desde el Menú de Perfil (P-28), NO se cierra ese menú: así, al pulsar
+    // Volver en P-27, se vuelve a ver P-28. Desde el Menú Rápido sí se cierra.
+    if (!mantenerMenu) setIsMenuOpen(false);
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance('¿Seguro que quieres salir?');
@@ -740,22 +799,29 @@ const App = () => {
     rutas: { titulo: "Ruta Segura", texto: "Estás viendo rutas seguras para caminar. Toca Elegir Ruta para indicar de dónde a dónde vas, y avisa cuando llegues al punto seguro." },
     comercio: { titulo: "Comercios", texto: "Estás viendo comercios accesibles cercanos. Toca Ya Estoy Aquí cuando llegues a uno de ellos para hacer Check-in." },
     cultura: { titulo: "Cultura y Ocio", texto: "Estás viendo museos, teatros y eventos culturales cercanos con acceso fácil." },
-    perfil: { titulo: "Mi Perfil", texto: "Estás en tu Perfil. Aquí puedes cambiar tu foto, tus datos personales, y la configuración de tu asistente de Inteligencia Artificial." },
-    preferencias: { titulo: "Mis Preferencias", texto: "Estás en Mis Preferencias. Aquí puedes activar ayudas de vista, oído y voz, y elegir qué opción ver primero al entrar a la aplicación." },
+    perfil: { titulo: "Mi Perfil", texto: "Estás en tu Perfil. En los apartados desplegables puedes cambiar tu foto y tus datos personales, tu contacto y dirección, tu asistente de Inteligencia Artificial, tu seguridad y emergencia, y los usuarios invitados. Recuerda tocar Guardar Perfil al terminar." },
+    preferencias: { titulo: "Mis Preferencias", texto: "Estás en Mis Preferencias. Aquí puedes activar ayudas de vista, oído y habla, con interruptores para adaptar la aplicación a lo que necesitas." },
     modos_asistencia: { titulo: "Modos de Asistencia", texto: "Estás evaluando tus capacidades de vista, oído, habla y escritura, para que la aplicación se adapte mejor a ti." },
     clasificacion_funcional: { titulo: "Clasificación Funcional", texto: "Estás viendo recomendaciones según tu nivel de movilidad: leve, moderado o severo." },
+    configurar_entrada: { titulo: "Acceso a la App", texto: "Aquí eliges qué formas de entrar aparecerán en la pantalla de inicio: reconocer tu rostro, usar tu huella, usar tu voz, acceso escrito con tu nombre y clave, o entrada automática con la del teléfono. Toca cada interruptor para activarlo o apagarlo. Siempre debe quedar al menos uno activo." },
     talento: { titulo: "Mi Talento", texto: "Estás en Mis Talentos. Aquí puedes elegir qué te gustaría enseñar a otras personas y compartir tu experiencia." },
     centro_vitalidad: { titulo: "Centro de Vitalidad", texto: "Estás en el Centro de Vitalidad. Aquí encontrarás ejercicios, juegos mentales, contactos sociales, salud y descanso." },
     buzon: { titulo: "Buzón de Mensajes", texto: "Estás viendo los avisos y mensajes que la aplicación te ha enviado." },
     contactos: { titulo: "Mis Contactos", texto: "Estás viendo tu lista de contactos. Toca el nombre de la persona que quieres llamar." },
-    crear_contactos: { titulo: "Crear Contacto", texto: "Estás creando un nuevo contacto. Completa el nombre, teléfono y los demás datos, y toca Guardar Contacto." },
+    crear_contactos: { titulo: "Crear Contactos", texto: "Tiene dos pestañas. En Crear lista de contactos rellenas los datos de una persona, foto, nombre, apellido, teléfono, y tocas Guardar Contacto. En Contactos de emergencia marcas a quién se llamará y se le enviará un mensaje al pulsar Pedir Ayuda, escribes ese mensaje, y eliges si se envía por SMS, WhatsApp o correo, uno o varios a la vez." },
     guia_digital: { titulo: "Mi Guía Digital", texto: "Estás en tu Guía Digital. Aquí encontrarás cursos sugeridos y consejos diarios de seguridad y bienestar." },
     emergencia: { titulo: "Pedir Ayuda", texto: "Estás en la pantalla de emergencia. Toca el botón rojo para llamar a Urgencias, o el nombre de un familiar para llamarlo a él. Si no haces nada, la app llamará a Urgencias automáticamente." },
+    categoria_detalle: { titulo: "Grupo del Panel Principal", texto: "Estás viendo uno de los tres grupos del Panel Principal: Vitalidad, Energía o Salud Digital. Toca cualquiera de las opciones grandes para abrirla, o toca Volver para regresar al Panel Principal." },
+    centro_tratamiento: { titulo: "Centro de Tratamiento", texto: "Estás viendo tus sesiones de fisioterapia y rehabilitación: las próximas citas, si son a domicilio o en el centro, y el nombre del terapeuta. Cuando una sesión sea a domicilio y llegue el terapeuta, toca El terapeuta ya llegó." },
+    fotos_videos: { titulo: "Fotos y Videos", texto: "Estás viendo tus recuerdos en fotos y videos, agrupados por Familia, Amistades y otros momentos. Toca cualquier imagen para verla más grande." },
+    configurar_menu: { titulo: "Configurar el Menú Principal", texto: "Aquí eliges qué opciones aparecen en tu Panel Principal y cómo se llaman, máximo veinticinco letras, y cuántas caben por fila: una, dos o tres. Pedir Ayuda siempre estará visible. Recuerda tocar Guardar Cambios al terminar." },
+    comentarios: { titulo: "Comentarios y Sugerencias", texto: "Aquí escribes o dictas lo que piensas sobre VES para ayudarnos a mejorar. Escribe tu mensaje y toca Enviar; llegará al equipo de VES." },
+    demo_app: { titulo: "Demo de la App", texto: "Aquí te explicamos paso a paso todo lo que puedes hacer en VES. Toca Reproducir Demo Completa para escucharlo todo seguido, o cada tarjeta para escuchar solo esa parte." },
   };
 
   const handleWhereAmI = () => {
     const claveEfectiva = (step === 'emergencia_login') ? 'emergencia' : currentView;
-    let infoBase = explicacionesPantallas[claveEfectiva] || { titulo: "Esta pantalla", texto: "Estás usando la aplicación bes." };
+    let infoBase = explicacionesPantallas[claveEfectiva] || { titulo: "Esta pantalla", texto: "Estás usando la aplicación VES." };
     if (claveEfectiva === 'mis_talentos_resumen') {
       infoBase = selectedTalents.length === 0
         ? { titulo: "Mis Talentos", texto: "Todavía no has elegido ningún talento para compartir. Toca Elegir Mis Talentos para empezar." }
@@ -783,6 +849,10 @@ const App = () => {
       infoBase = { titulo: "Usuario", texto: "aquí escribes tu nombre y tu código de acceso de 4 dígitos, y luego tocas Entrar Ahora." };
     } else if (isQuickMenuOpen) {
       infoBase = { titulo: "Menú Rápido", texto: "estás en el menú rápido. Puedes ir al Panel Principal, hablar con iAyuda, Pedir Ayuda si es una emergencia, tocar Volver para regresar, o Cerrar para irme para salir de la aplicación." };
+    } else if (step === 'login') {
+      infoBase = { titulo: "Mi Acceso", texto: "estás en la pantalla de acceso a VES. En Mi Acceso, toca la forma con la que quieres entrar: reconocer tu rostro, tu huella, tu voz o el acceso escrito. También puedes tocar Pedir Ayuda si tienes una emergencia." };
+    } else if (isPerfilPasswordOpen) {
+      infoBase = { titulo: "Acceso a Perfil", texto: "estás en la pantalla de acceso protegido al Perfil. Introduce tu nombre y tu contraseña, y toca Entrar, o toca Volver para regresar." };
     } else if (isExitModalOpen) {
       infoBase = { titulo: "Salir de la App", texto: "estás en la pantalla de confirmación para salir. Toca Sí, Salir Ahora para cerrar la aplicación, o Volver para quedarte." };
     } else if (isAssistantOpen) {
@@ -791,7 +861,7 @@ const App = () => {
       infoBase = { titulo: "Perfil", texto: "estás en tu menú de Perfil. Aquí puedes ver tus datos, tus preferencias, tus talentos, y tus contactos de emergencia." };
     } else {
       const claveEfectiva = (step === 'emergencia_login') ? 'emergencia' : currentView;
-      infoBase = explicacionesPantallas[claveEfectiva] || { titulo: "Esta pantalla", texto: "Estás usando la aplicación bes." };
+      infoBase = explicacionesPantallas[claveEfectiva] || { titulo: "Esta pantalla", texto: "Estás usando la aplicación VES." };
       if (claveEfectiva === 'mis_talentos_resumen') {
         infoBase = selectedTalents.length === 0
           ? { titulo: "Mis Talentos", texto: "Todavía no has elegido ningún talento para compartir. Toca Elegir Mis Talentos para empezar." }
@@ -845,11 +915,14 @@ const App = () => {
 
   // ============================================================================
   // FOTO DEL CIUDADANO CON AYUDA — elemento reutilizable.
+  //   · Encima de la foto: la palabra "Ayudas" en amarillo, legible en cualquier
+  //     fondo (pastilla azul oscuro).
   //   · 1 toque / clic  -> ayuda EN VOZ de la pantalla actual (speakWhereAmIOnHover).
   //   · 2 toques / clic  -> ayuda ESCRITA: se abre el panel que indique `onAyudaEscrita`.
-  // Así cada pantalla decide qué explicación escrita mostrar ("la que corresponda").
+  //   · Tamaño de foto fijo (w-20) para que sea idéntico en P-28 y en todos los submenús.
   // ============================================================================
-  const FotoAyudaCiudadano = ({ onAyudaEscrita, className = "w-16" }) => {
+  const FotoAyudaCiudadano = ({ onAyudaEscrita, mostrarNombre = false }) => {
+    const nombreCiudadano = (profileNombre || username || '').trim();
     const tapTimerRef = useRef(null);
     const ultimoTapRef = useRef(0);
     const manejarTap = () => {
@@ -875,36 +948,63 @@ const App = () => {
         onClick={manejarTap}
         onMouseEnter={speakWhereAmIOnHover}
         onMouseLeave={stopWhereAmIHoverAudio}
-        className="active:scale-95 transition-transform rounded-full"
-        aria-label="Foto del ciudadano. Un toque: ayuda en voz. Dos toques: ayuda escrita."
+        className="flex flex-col items-center gap-1 active:scale-95 transition-transform"
+        aria-label="Ayudas. Foto del ciudadano. Un toque: ayuda en voz. Dos toques: ayuda escrita."
       >
-        <UserPhoto className={className} />
+        <span className="text-base font-black text-amber-400 bg-blue-950 px-2.5 py-0.5 rounded-full leading-none tracking-wide">
+          Ayudas
+        </span>
+        <UserPhoto className="w-20" />
+        {mostrarNombre && nombreCiudadano && (
+          <span className="text-sm font-black text-white bg-blue-950 px-2.5 py-0.5 rounded-full leading-none max-w-[7rem] truncate">
+            {nombreCiudadano}
+          </span>
+        )}
       </button>
     );
   };
 
   // ============================================================================
   // ENCABEZADO G — cabecera reutilizable de las pantallas de contenido.
-  // Solo DOS elementos:
-  //   · Izquierda: botón "Menú" (abre el menú rápido).
-  //   · Derecha:   foto del ciudadano (FotoAyudaCiudadano): 1 toque = ayuda en voz;
-  //                2 toques = ayuda escrita de esta pantalla (handleWhereAmI).
-  // (Se eliminaron el logo VES y el texto "¿Dónde estoy?" de esta cabecera.)
+  // Derecha (siempre): foto del ciudadano (FotoAyudaCiudadano): 1 toque = ayuda
+  //                    en voz; 2 toques = ayuda escrita de esta pantalla.
+  // Izquierda (según el contexto):
+  //   · Si se entró desde el Menú de Perfil / P-28 (enteredFromMenu):
+  //       línea simple con "VOLVER" que regresa a la pantalla de origen (onBack).
+  //   · En el flujo normal de VES: botón "Menú" (abre el menú rápido).
+  // (Sin logo VES ni texto "¿Dónde estoy?" en esta cabecera.)
   // ============================================================================
-  const EncabezadoG = ({ onBack }) => (
-    <header className="flex items-center justify-between mt-6 mb-6 bg-white p-5 rounded-3xl shadow-sm border-2 border-gray-100">
-      <button
-        onClick={() => { setQuickMenuBackAction(() => onBack); setIsQuickMenuOpen(true); }}
-        onMouseEnter={() => announceMenuOption('Menú')}
-        className="flex flex-col items-center gap-1 text-blue-950 active:scale-95 transition-transform"
-        aria-label="Abrir menú rápido"
-      >
-        <Menu size={40} />
-        <span className="text-base font-black">Menú</span>
-      </button>
-      <FotoAyudaCiudadano onAyudaEscrita={handleWhereAmI} />
-    </header>
-  );
+  const EncabezadoG = ({ onBack }) => {
+    if (enteredFromMenu) {
+      return (
+        <div className="flex items-center justify-between w-full mt-6 mb-6">
+          <button
+            onClick={onBack}
+            onMouseEnter={() => announceMenuOption('Volver')}
+            className="flex items-center text-blue-950 font-black text-2xl py-2 w-max active:scale-95 transition-transform"
+            aria-label="Volver a la pantalla anterior"
+          >
+            <ArrowLeft size={36} className="mr-2" /> VOLVER
+          </button>
+          <FotoAyudaCiudadano onAyudaEscrita={handleWhereAmI} />
+        </div>
+      );
+    }
+    return (
+      <header className="flex items-center justify-between mt-6 mb-6 bg-white p-5 rounded-3xl shadow-sm border-2 border-gray-100">
+        <button
+          onClick={() => { setQuickMenuBackAction(() => onBack); setIsQuickMenuOpen(true); }}
+          onMouseEnter={() => announceMenuOption('Menú')}
+          className="flex flex-col items-center gap-1 text-blue-950 active:scale-95 transition-transform"
+          aria-label="Abrir menú rápido"
+        >
+          <Menu size={40} />
+          <span className="text-base font-black">Menú</span>
+        </button>
+        <FotoAyudaCiudadano onAyudaEscrita={handleWhereAmI} />
+      </header>
+    );
+  };
 
 
   // ============================================================================
@@ -1063,7 +1163,7 @@ const App = () => {
   // ─── PANTALLA 0: BIENVENIDA (nueva pantalla de entrada) ───
   const RenderInicio = () => {
     useEffect(() => {
-      speak('Bienvenidos a bes. Toca el logo para entrar a la aplicación, o Usuario Administrador para ajustar tus datos y preferencias.');
+      speak('Bienvenidos a VES. Toca el logo para entrar a la aplicación, o Usuario Administrador para ajustar tus datos y preferencias.');
     }, []);
     return (
       <div className="flex flex-col h-full overflow-hidden bg-white animate-in fade-in duration-500 px-6 relative">
@@ -1084,7 +1184,7 @@ const App = () => {
               <BrandLogo className="w-64 mb-1" />
             </button>
           </div>
-          <button onClick={() => openWhereAmI("Pantalla de Bienvenida", "estás en la pantalla de bienvenida de bes. Toca el logo para entrar a la aplicación, o Usuario Administrador para ajustar tus datos y preferencias.")}
+          <button onClick={() => openWhereAmI("Pantalla de Bienvenida", "estás en la pantalla de bienvenida de VES. Toca el logo para entrar a la aplicación, o Usuario Administrador para ajustar tus datos y preferencias.")}
             onMouseEnter={() => announceMenuOption('¿Dónde estoy?')}
             className="text-2xl font-black text-slate-600 underline active:scale-95 transition-transform"
             aria-label="¿Dónde estoy? Explicación de esta pantalla">
@@ -1108,14 +1208,12 @@ const App = () => {
     const [isListening, setIsListening] = useState(false);
     const [enviado, setEnviado] = useState(false);
 
-    const infoPantalla2 = { titulo: "Pantalla de Inicio", texto: `${username || 'Hola'}, estás en la pantalla de inicio de bes. Toca Biométrico o Escrito en Mi Acceso para entrar, o Pedir Ayuda si tienes una emergencia.` };
+    const infoPantalla2 = { titulo: "Mi Acceso", texto: `${username || 'Hola'}, estás en la pantalla de acceso a VES. En Mi Acceso, toca la forma con la que quieres entrar: reconocer tu rostro, tu huella, tu voz o el acceso escrito. También puedes tocar Pedir Ayuda si tienes una emergencia.` };
     const abrirDondeEstoyPantalla2 = () => {
       setWhereAmIInfo(infoPantalla2);
       setIsWhereAmIOpen(true);
       speak(`${infoPantalla2.titulo}. ${infoPantalla2.texto}`);
     };
-    const escucharFotoUsuario = () => speak(`${infoPantalla2.titulo}. ${infoPantalla2.texto}`);
-    const detenerEscuchaFotoUsuario = () => { if ('speechSynthesis' in window) window.speechSynthesis.cancel(); };
 
     const iniciarDictado = () => {
       const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -1138,68 +1236,40 @@ const App = () => {
 
     return (
     <div className="flex flex-col h-full overflow-hidden bg-white animate-in fade-in duration-500 px-4 pt-2 pb-2 relative">
-      <button onClick={() => setStep('inicio')} onMouseEnter={() => announceMenuOption('Inicio')}
-        className="flex items-center text-blue-950 font-black text-lg py-1 w-max" aria-label="Volver al inicio">
-        <ArrowLeft size={24} className="mr-1" /> Inicio
-      </button>
+      {/* Encabezado estilo P-14: VOLVER (regresa a Inicio) + foto "Ayudas". */}
+      <div className="flex items-center justify-between w-full mt-2 mb-4">
+        <button onClick={() => setStep('inicio')} onMouseEnter={() => announceMenuOption('Volver')}
+          className="flex items-center text-blue-950 font-black text-2xl py-2 w-max active:scale-95 transition-transform"
+          aria-label="Volver a la pantalla anterior">
+          <ArrowLeft size={36} className="mr-2" /> VOLVER
+        </button>
+        <FotoAyudaCiudadano onAyudaEscrita={abrirDondeEstoyPantalla2} mostrarNombre />
+      </div>
       <div className="flex flex-col items-center justify-center flex-grow gap-2">
-        {/* LOGO VAS: hover lee ¿Dónde estoy?, clic abre el panel */}
-        <div
-          onMouseEnter={() => speak(`${infoPantalla2.titulo}. ${infoPantalla2.texto}`)}
-          onMouseLeave={() => window.speechSynthesis.cancel()}
-          className="flex flex-col items-center"
-        >
-          <button onClick={abrirDondeEstoyPantalla2} className="active:scale-95 transition-transform" aria-label="¿Dónde estoy?">
-            <BrandLogo className="w-32" />
-          </button>
-          <button
-            onClick={abrirDondeEstoyPantalla2}
-            onMouseEnter={() => announceMenuOption('¿Dónde estoy?')}
-            className="text-base font-bold text-slate-600 underline active:scale-95 transition-transform mt-1"
-            aria-label="¿Dónde estoy? Explicación de esta pantalla"
-          >
-            ¿Dónde estoy?
-          </button>
-        </div>
-        {/* FOTO: imagen estática sin efectos de hover ni clic */}
-        <div className="flex flex-col items-center">
-          <img
-            src={profilePhoto}
-            alt="Foto de usuario"
-            className="w-36 h-36 rounded-full object-cover object-top border-4 border-blue-200 shadow-md"
-            onError={(e) => { e.target.src = fotoUsuarioPorDefecto; }}
-          />
-          {profileNombre && <span className="text-base font-black text-blue-900 mt-1">{profileNombre}</span>}
-        </div>
         <div className="w-full p-3 bg-slate-50 border-4 border-blue-900 rounded-[30px] shadow-md flex flex-col gap-2 text-center">
           <h2 className="text-2xl font-black text-blue-900 uppercase">Mi Acceso</h2>
+          {/* Mismos métodos activados en "Acceso a la App" (P-22): cada uno aparece
+              aquí solo si está encendido en esa pantalla. */}
           <div className="flex flex-col gap-2">
-            {ordenAccesoPreferido === 'escrito' ? (
-              <>
-                {entradaVisible.escrito && (
-                <button onClick={() => setStep('username_entry')} onMouseEnter={() => announceMenuOption('Acceso Escrito')} className="w-full p-3 bg-emerald-700 hover:bg-emerald-600 text-white rounded-[25px] font-black text-xl uppercase shadow-lg border-b-8 border-emerald-900 active:translate-y-1 transition-colors">
-                  Escrito
-                </button>
-                )}
-                {(entradaVisible.rostro || entradaVisible.huella || entradaVisible.voz) && (
-                <button onClick={() => setStep('access_options')} onMouseEnter={() => announceMenuOption('Acceso Biométrico')} className="w-full p-3 bg-blue-900 hover:bg-blue-800 text-white rounded-[25px] font-black text-xl uppercase shadow-lg border-b-8 border-blue-950 active:translate-y-1 transition-colors">
-                  Biométrico
-                </button>
-                )}
-              </>
-            ) : (
-              <>
-                {(entradaVisible.rostro || entradaVisible.huella || entradaVisible.voz) && (
-                <button onClick={() => setStep('access_options')} onMouseEnter={() => announceMenuOption('Acceso Biométrico')} className="w-full p-3 bg-blue-900 hover:bg-blue-800 text-white rounded-[25px] font-black text-xl uppercase shadow-lg border-b-8 border-blue-950 active:translate-y-1 transition-colors">
-                  Biométrico
-                </button>
-                )}
-                {entradaVisible.escrito && (
-                <button onClick={() => setStep('username_entry')} onMouseEnter={() => announceMenuOption('Acceso Escrito')} className="w-full p-3 bg-emerald-700 hover:bg-emerald-600 text-white rounded-[25px] font-black text-xl uppercase shadow-lg border-b-8 border-emerald-900 active:translate-y-1 transition-colors">
-                  Escrito
-                </button>
-                )}
-              </>
+            {entradaVisible.rostro && (
+            <button onClick={() => startBiometric('face')} onMouseEnter={() => announceMenuOption('Reconocer mi rostro')} className="w-full p-3 bg-blue-900 hover:bg-blue-800 text-white rounded-[25px] font-black text-lg uppercase shadow-lg border-b-8 border-blue-950 active:translate-y-1 transition-colors">
+              👤 Reconocer mi rostro
+            </button>
+            )}
+            {entradaVisible.huella && (
+            <button onClick={() => startBiometric('fingerprint')} onMouseEnter={() => announceMenuOption('Usar mi huella')} className="w-full p-3 bg-emerald-700 hover:bg-emerald-600 text-white rounded-[25px] font-black text-lg uppercase shadow-lg border-b-8 border-emerald-900 active:translate-y-1 transition-colors">
+              👆 Usar mi huella
+            </button>
+            )}
+            {entradaVisible.voz && (
+            <button onClick={() => startBiometric('voice')} onMouseEnter={() => announceMenuOption('Usar mi voz')} className="w-full p-3 bg-amber-500 hover:bg-amber-600 text-white rounded-[25px] font-black text-lg uppercase shadow-lg border-b-8 border-amber-700 active:translate-y-1 transition-colors">
+              🎤 Usar mi voz
+            </button>
+            )}
+            {entradaVisible.escrito && (
+            <button onClick={() => setStep('username_entry')} onMouseEnter={() => announceMenuOption('Acceso Escrito')} className="w-full p-3 bg-blue-800 hover:bg-blue-700 text-white rounded-[25px] font-black text-lg uppercase shadow-lg border-b-8 border-blue-950 active:translate-y-1 transition-colors">
+              ✍️ Acceso Escrito
+            </button>
             )}
           </div>
         </div>
@@ -1739,21 +1809,27 @@ const App = () => {
     }, []);
     return (
       <div className={`flex flex-col p-5 min-h-full pb-5 relative ${isEditingEmergencia ? 'bg-blue-950' : 'bg-red-50'}`}>
-        <div className="flex items-center justify-between mt-3 mb-3">
-          <button onClick={() => { setIsEditingEmergencia(false); step === 'emergencia_login' ? setStep('login') : handleBackNavigation(); }} className={`flex items-center font-black text-2xl py-2 w-max ${isEditingEmergencia ? 'text-white' : 'text-blue-950'}`}>
+        <div className={`flex items-center justify-between mt-3 ${isEditingEmergencia ? 'mb-8' : 'mb-3'}`}>
+          <button onClick={() => { setIsEditingEmergencia(false); step === 'emergencia_login' ? setStep('login') : handleBackNavigation(); }} onMouseEnter={() => announceMenuOption('Volver')} className={`flex items-center font-black text-2xl py-2 w-max ${isEditingEmergencia ? 'text-white' : 'text-blue-950'}`}>
             <ArrowLeft size={36} className="mr-2" /> VOLVER
           </button>
-          <button
-            onClick={handleWhereAmI}
-            onMouseEnter={() => announceMenuOption('¿Dónde estoy?')}
-            className="flex flex-col items-center gap-1 active:scale-95 transition-transform"
-            aria-label="¿Dónde estoy? Explicación de esta pantalla"
-          >
-            <BrandLogo className="w-10" />
-            <span className="text-base font-bold text-slate-600 underline">¿Dónde estoy?</span>
-          </button>
+          {isEditingEmergencia ? (
+            /* Contexto de configuración (desde P-28): mismo encabezado que las demás
+               opciones de Perfil — solo la foto del ciudadano con ayuda. */
+            <FotoAyudaCiudadano onAyudaEscrita={handleWhereAmI} />
+          ) : (
+            <button
+              onClick={handleWhereAmI}
+              onMouseEnter={() => announceMenuOption('¿Dónde estoy?')}
+              className="flex flex-col items-center gap-1 active:scale-95 transition-transform"
+              aria-label="¿Dónde estoy? Explicación de esta pantalla"
+            >
+              <BrandLogo className="w-10" />
+              <span className="text-base font-bold text-slate-600 underline">¿Dónde estoy?</span>
+            </button>
+          )}
         </div>
-        <UserPhoto className="w-14 mx-auto mb-1" />
+        {!isEditingEmergencia && <UserPhoto className="w-14 mx-auto mb-1" />}
         {!isEditingEmergencia ? (
           <div className="flex flex-col items-center justify-center text-center flex-grow">
             <AlertTriangle size={56} className="text-red-600 mb-2 animate-bounce" />
@@ -1944,20 +2020,7 @@ const App = () => {
     // SeccionBtn se usa directamente (definido fuera del componente, a nivel módulo)
     return (
       <div className="flex flex-col p-6 bg-white min-h-full pb-32 animate-in fade-in duration-300 text-left relative">
-        {/* ENCABEZADO estilo P-28 (línea simple), pero con VOLVER en lugar de la
-            hamburguesa: VOLVER regresa a la pantalla desde la que se entró
-            (handleBackNavigation: al Menú de Perfil si se vino de ahí, o al Panel). */}
-        <div className="flex items-center justify-between w-full mt-6 mb-6">
-          <button
-            onClick={handleBackNavigation}
-            onMouseEnter={() => announceMenuOption('Volver')}
-            className="flex items-center text-blue-950 font-black text-2xl py-2 w-max active:scale-95 transition-transform"
-            aria-label="Volver a la pantalla anterior"
-          >
-            <ArrowLeft size={36} className="mr-2" /> VOLVER
-          </button>
-          <FotoAyudaCiudadano className="w-16" onAyudaEscrita={handleWhereAmI} />
-        </div>
+        <EncabezadoG onBack={handleBackNavigation} />
         <h2 className="text-4xl font-black text-blue-900 mb-6">Mi Perfil</h2>
         {hayDatosSinGuardar && (
           <div className="bg-amber-50 border-4 border-amber-400 rounded-2xl p-4 mb-4 flex items-center gap-3">
@@ -2181,25 +2244,6 @@ const App = () => {
           >
             <div className={`bg-white w-9 h-9 rounded-full shadow-md transform transition-transform duration-200 ${prefVoz ? 'translate-x-11' : 'translate-x-0'}`}></div>
           </button>
-        </div>
-        {/* NUEVA PREFERENCIA: Orden de acceso preferido en la Pantalla de Inicio */}
-        <div className="p-6 bg-slate-50 rounded-[35px] border-4 border-slate-200 text-left">
-          <span className="text-2xl font-black text-slate-900 flex items-center gap-2 mb-1">🔑 Acceso preferido</span>
-          <p className="text-lg text-slate-600 font-bold mb-4">¿Qué quieres ver primero al entrar a la app?</p>
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              onClick={() => setOrdenAccesoPreferido('biometrico')}
-              className={`p-4 rounded-2xl text-lg font-black border-4 transition-all active:scale-95 ${ordenAccesoPreferido === 'biometrico' ? 'bg-blue-900 border-blue-950 text-white shadow-md' : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'}`}
-            >
-              Biométrico primero
-            </button>
-            <button
-              onClick={() => setOrdenAccesoPreferido('escrito')}
-              className={`p-4 rounded-2xl text-lg font-black border-4 transition-all active:scale-95 ${ordenAccesoPreferido === 'escrito' ? 'bg-emerald-700 border-emerald-900 text-white shadow-md' : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'}`}
-            >
-              Escrito primero
-            </button>
-          </div>
         </div>
       </div>
       <div className="absolute bottom-2 left-0 right-0 text-center text-[10px] text-black font-bold">P-12</div>
@@ -2764,12 +2808,20 @@ const App = () => {
   );
 
   const RenderCrearContactos = () => {
-    const [fotoContacto, setFotoContacto] = useState('https://via.placeholder.com/150?text=Foto');
+    // Pestaña activa y aviso viven en App (contactosTab / contactosAviso) para no
+    // perderse cuando el componente se remonta al cambiar la lista.
+    const tab = contactosTab;
+    const setTab = setContactosTab;
+    const aviso = contactosAviso;
+    const [fotoContacto, setFotoContacto] = useState('');
     const [errores, setErrores] = useState({});
     const refsContacto = {
       nombre: useRef(null),
       apellido: useRef(null),
+      edad: useRef(null),
       telefono: useRef(null),
+      correo: useRef(null),
+      direccion: useRef(null),
     };
     const handleFotoChange = (e) => {
       const file = e.target.files[0];
@@ -2778,6 +2830,10 @@ const App = () => {
         reader.onloadend = () => { setFotoContacto(reader.result); };
         reader.readAsDataURL(file);
       }
+    };
+    const mostrarAviso = (texto) => {
+      setContactosAviso(texto);
+      speak(texto);
     };
     const handleGuardarContacto = (e) => {
       e.preventDefault();
@@ -2790,68 +2846,245 @@ const App = () => {
         speak('Faltan datos por completar. Revisa los campos marcados en rojo.');
         return;
       }
-      setSelectedItem({ nombre: "Nuevo Contacto" });
-      setShowSuccess(true);
+      const nuevo = {
+        id: Date.now(),
+        nombre: refsContacto.nombre.current.value.trim(),
+        apellido: refsContacto.apellido.current.value.trim(),
+        edad: refsContacto.edad.current?.value || '',
+        telefono: refsContacto.telefono.current.value.trim(),
+        correo: refsContacto.correo.current?.value || '',
+        direccion: refsContacto.direccion.current?.value || '',
+        foto: fotoContacto || fotoUsuarioPorDefecto,
+        esEmergencia: false,
+      };
+      setListaContactos((prev) => [...prev, nuevo]);
+      Object.values(refsContacto).forEach((r) => { if (r.current) r.current.value = ''; });
+      setFotoContacto('');
+      setErrores({});
+      mostrarAviso(`Contacto ${nuevo.nombre} guardado en tu lista.`);
     };
+    const toggleEmergencia = (id) => {
+      setListaContactos((prev) => prev.map((c) => (c.id === id ? { ...c, esEmergencia: !c.esEmergencia } : c)));
+    };
+    const eliminarContacto = (id) => {
+      setListaContactos((prev) => prev.filter((c) => c.id !== id || c.fijo));
+    };
+    const marcados = listaContactos.filter((c) => c.esEmergencia);
+    const canalesTxt = textoCanales(canalesEmergencia);
+    const algunCanal = canalesEmergencia.sms || canalesEmergencia.whatsapp || canalesEmergencia.correo;
+    const toggleCanal = (key) => setCanalesEmergencia((prev) => ({ ...prev, [key]: !prev[key] }));
+    const probarEnvio = () => {
+      if (marcados.length === 0) { speak('Primero marca al menos un contacto de emergencia.'); return; }
+      if (!algunCanal) { speak('Elige al menos un canal de envío: SMS, WhatsApp o Correo.'); return; }
+      mostrarAviso(`Mensaje enviado por ${canalesTxt} a: ${marcados.map((c) => c.nombre).join(', ')}`);
+    };
+
+    const campo = (id, label, refKey, type = 'text', placeholder = '', requerido = false) => (
+      <div className="flex flex-col gap-1">
+        <label htmlFor={id} className="text-xl font-bold text-slate-700">{label}</label>
+        <input
+          id={id}
+          ref={refsContacto[refKey]}
+          type={type}
+          required={requerido}
+          aria-invalid={!!errores[refKey]}
+          aria-describedby={errores[refKey] ? `${id}-error` : undefined}
+          className={`w-full p-4 text-xl border-4 rounded-2xl font-bold bg-slate-50 outline-none ${errores[refKey] ? 'border-red-500 focus:border-red-600' : 'border-slate-300 focus:border-blue-900'}`}
+          placeholder={placeholder}
+        />
+        {errores[refKey] && <p id={`${id}-error`} role="alert" className="text-red-600 font-bold text-base">⚠️ {errores[refKey]}</p>}
+      </div>
+    );
+
     return (
       <div className="flex flex-col p-6 bg-slate-50 min-h-full pb-32 relative">
         <EncabezadoG onBack={handleBackNavigation} />
-        <div className="flex items-center gap-4 mb-6">
+        <div className="flex items-center gap-4 mb-5">
           <div className="p-4 rounded-full bg-amber-100 text-amber-600 shadow-lg">
             <UserPlus size={36} />
           </div>
-          <h2 className="text-4xl font-black text-amber-600 leading-tight">Crear Contacto</h2>
+          <h2 className="text-4xl font-black text-amber-600 leading-tight">Crear Contactos</h2>
         </div>
-        <p className="text-xl font-bold text-slate-600 mb-6 leading-relaxed">
-          Rellena los datos para añadir a una nueva persona a tu lista:
-        </p>
-        <form onSubmit={handleGuardarContacto} className="space-y-6">
-          <div className="bg-white p-6 rounded-3xl border-4 border-slate-200 text-center flex flex-col items-center">
-            <img src={fotoContacto} alt="Foto del nuevo contacto" className="w-32 h-32 rounded-full object-cover border-4 border-blue-900 shadow-md mb-4" />
-            <label htmlFor="contacto-foto" className="cursor-pointer bg-blue-900 text-white px-6 py-3 rounded-2xl font-black text-lg shadow-md active:bg-blue-950 inline-block">
-              SUBIR FOTO 📷
-              <input id="contacto-foto" type="file" accept="image/*" onChange={handleFotoChange} className="hidden" />
-            </label>
-          </div>
-          <div className="bg-white p-5 rounded-3xl border-4 border-slate-200 space-y-4 text-left">
-            <div className="flex flex-col gap-1">
-              <label htmlFor="contacto-nombre" className="text-xl font-bold text-slate-700">Nombre:</label>
-              <input id="contacto-nombre" ref={refsContacto.nombre} type="text" required
-                aria-invalid={!!errores.nombre} aria-describedby={errores.nombre ? 'contacto-nombre-error' : undefined}
-                className={`w-full p-4 text-xl border-4 rounded-2xl font-bold bg-slate-50 outline-none ${errores.nombre ? 'border-red-500 focus:border-red-600' : 'border-slate-300 focus:border-blue-900'}`} placeholder="Ej. María" />
-              {errores.nombre && <p id="contacto-nombre-error" role="alert" className="text-red-600 font-bold text-base">⚠️ {errores.nombre}</p>}
-            </div>
-            <div className="flex flex-col gap-1">
-              <label htmlFor="contacto-apellido" className="text-xl font-bold text-slate-700">Apellido:</label>
-              <input id="contacto-apellido" ref={refsContacto.apellido} type="text" required
-                aria-invalid={!!errores.apellido} aria-describedby={errores.apellido ? 'contacto-apellido-error' : undefined}
-                className={`w-full p-4 text-xl border-4 rounded-2xl font-bold bg-slate-50 outline-none ${errores.apellido ? 'border-red-500 focus:border-red-600' : 'border-slate-300 focus:border-blue-900'}`} placeholder="Ej. González" />
-              {errores.apellido && <p id="contacto-apellido-error" role="alert" className="text-red-600 font-bold text-base">⚠️ {errores.apellido}</p>}
-            </div>
-            <div className="flex flex-col gap-1">
-              <label htmlFor="contacto-edad" className="text-xl font-bold text-slate-700">Edad:</label>
-              <input id="contacto-edad" type="number" className="w-full p-4 text-xl border-4 border-slate-300 rounded-2xl font-bold bg-slate-50 focus:border-blue-900 outline-none" placeholder="Ej. 65" />
-            </div>
-            <div className="flex flex-col gap-1">
-              <label htmlFor="contacto-telefono" className="text-xl font-bold text-slate-700">Teléfono(s):</label>
-              <input id="contacto-telefono" ref={refsContacto.telefono} type="tel" required
-                aria-invalid={!!errores.telefono} aria-describedby={errores.telefono ? 'contacto-telefono-error' : undefined}
-                className={`w-full p-4 text-xl border-4 rounded-2xl font-bold bg-slate-50 outline-none ${errores.telefono ? 'border-red-500 focus:border-red-600' : 'border-slate-300 focus:border-blue-900'}`} placeholder="Ej. 600 123 456" />
-              {errores.telefono && <p id="contacto-telefono-error" role="alert" className="text-red-600 font-bold text-base">⚠️ {errores.telefono}</p>}
-            </div>
-            <div className="flex flex-col gap-1">
-              <label htmlFor="contacto-correo" className="text-xl font-bold text-slate-700">Correo Electrónico:</label>
-              <input id="contacto-correo" type="email" className="w-full p-4 text-xl border-4 border-slate-300 rounded-2xl font-bold bg-slate-50 focus:border-blue-900 outline-none" placeholder="correo@ejemplo.com" />
-            </div>
-            <div className="flex flex-col gap-1">
-              <label htmlFor="contacto-direccion" className="text-xl font-bold text-slate-700">Dirección:</label>
-              <input id="contacto-direccion" type="text" className="w-full p-4 text-xl border-4 border-slate-300 rounded-2xl font-bold bg-slate-50 focus:border-blue-900 outline-none" placeholder="Ej. Calle Principal 1" />
-            </div>
-          </div>
-          <button type="submit" className="w-full py-6 bg-blue-900 text-white rounded-3xl font-black text-2xl shadow-lg border-b-8 border-blue-950 active:translate-y-1 mt-6">
-            GUARDAR CONTACTO
+
+        {/* PESTAÑAS */}
+        <div className="grid grid-cols-2 gap-2 mb-6">
+          <button
+            type="button"
+            onClick={() => setTab('lista')}
+            onMouseEnter={() => announceMenuOption('Crear lista de contactos')}
+            aria-pressed={tab === 'lista'}
+            className={`py-4 px-2 rounded-2xl font-black text-base leading-tight border-4 transition-colors ${tab === 'lista' ? 'bg-blue-900 border-blue-950 text-white' : 'bg-white border-slate-200 text-slate-700'}`}
+          >
+            📇 Crear lista de contactos
           </button>
-        </form>
+          <button
+            type="button"
+            onClick={() => setTab('emergencia')}
+            onMouseEnter={() => announceMenuOption('Crear contactos de emergencia')}
+            aria-pressed={tab === 'emergencia'}
+            className={`py-4 px-2 rounded-2xl font-black text-base leading-tight border-4 transition-colors ${tab === 'emergencia' ? 'bg-red-700 border-red-900 text-white' : 'bg-white border-slate-200 text-slate-700'}`}
+          >
+            🆘 Contactos de emergencia
+          </button>
+        </div>
+
+        {aviso && (
+          <div role="alert" className="bg-emerald-50 border-4 border-emerald-400 p-4 rounded-2xl mb-5 flex items-center gap-3">
+            <CheckCircle2 size={28} className="text-emerald-600 shrink-0" />
+            <p className="text-lg font-black text-emerald-900 leading-tight">{aviso}</p>
+          </div>
+        )}
+
+        {tab === 'lista' ? (
+          <>
+            <p className="text-lg font-bold text-slate-600 mb-4 leading-relaxed">
+              Rellena los datos para añadir a una persona a tu lista:
+            </p>
+            <form onSubmit={handleGuardarContacto} className="space-y-6">
+              <div className="bg-white p-6 rounded-3xl border-4 border-slate-200 text-center flex flex-col items-center">
+                <img src={fotoContacto || fotoUsuarioPorDefecto} alt="Foto del nuevo contacto" className="w-32 h-32 rounded-full object-cover border-4 border-blue-900 shadow-md mb-4" />
+                <label htmlFor="contacto-foto" className="cursor-pointer bg-blue-900 text-white px-6 py-3 rounded-2xl font-black text-lg shadow-md active:bg-blue-950 inline-block">
+                  SUBIR FOTO 📷
+                  <input id="contacto-foto" type="file" accept="image/*" onChange={handleFotoChange} className="hidden" />
+                </label>
+              </div>
+              <div className="bg-white p-5 rounded-3xl border-4 border-slate-200 space-y-4 text-left">
+                {campo('contacto-nombre', 'Nombre:', 'nombre', 'text', 'Ej. María', true)}
+                {campo('contacto-apellido', 'Apellido:', 'apellido', 'text', 'Ej. González', true)}
+                {campo('contacto-edad', 'Edad:', 'edad', 'number', 'Ej. 65')}
+                {campo('contacto-telefono', 'Teléfono(s):', 'telefono', 'tel', 'Ej. 600 123 456', true)}
+                {campo('contacto-correo', 'Correo Electrónico:', 'correo', 'email', 'correo@ejemplo.com')}
+                {campo('contacto-direccion', 'Dirección:', 'direccion', 'text', 'Ej. Calle Principal 1')}
+              </div>
+              <button type="submit" className="w-full py-6 bg-blue-900 text-white rounded-3xl font-black text-2xl shadow-lg border-b-8 border-blue-950 active:translate-y-1 mt-2">
+                GUARDAR CONTACTO
+              </button>
+            </form>
+
+            {listaContactos.length > 0 && (
+              <div className="mt-8">
+                <h3 className="text-2xl font-black text-slate-800 mb-3">Tus contactos ({listaContactos.length})</h3>
+                <div className="space-y-3">
+                  {listaContactos.map((c) => (
+                    <div key={c.id} className="bg-white p-4 rounded-2xl border-4 border-slate-200 flex items-center gap-3">
+                      <img src={c.foto} alt="" className="w-14 h-14 rounded-full object-cover border-2 border-slate-300 shrink-0" />
+                      <div className="flex-grow text-left overflow-hidden">
+                        <span className="block text-lg font-black text-slate-800 truncate">{c.nombre} {c.apellido}</span>
+                        <span className="block text-base font-bold text-slate-500 truncate">{c.telefono}</span>
+                      </div>
+                      {c.esEmergencia && <span className="text-xs font-black text-red-700 bg-red-100 px-2 py-1 rounded-full shrink-0">EMERGENCIA</span>}
+                      {c.fijo ? (
+                        <span className="text-xs font-black text-slate-500 bg-slate-100 px-2 py-1 rounded-full shrink-0" title="Contacto fijo, no se puede borrar">🔒 FIJO</span>
+                      ) : (
+                        <button type="button" onClick={() => eliminarContacto(c.id)} aria-label={`Eliminar a ${c.nombre}`} className="text-red-600 shrink-0 p-2 active:scale-90">
+                          <X size={24} />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        ) : (
+          <>
+            {listaContactos.length === 0 ? (
+              <div className="bg-amber-50 border-4 border-amber-300 p-6 rounded-[25px] text-center">
+                <p className="text-xl font-bold text-amber-900 leading-relaxed">
+                  Primero crea contactos en la pestaña <b>"Crear lista de contactos"</b>. Luego vuelve aquí para elegir cuáles son de emergencia.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                <p className="text-lg font-bold text-slate-700 leading-relaxed">
+                  Marca a las personas a las que se <b>llamará</b> y se les <b>enviará un mensaje</b> cuando pulses <b>PEDIR AYUDA</b>.
+                </p>
+                <div className="space-y-3">
+                  {listaContactos.map((c) => (
+                    <div key={c.id} className={`p-4 rounded-2xl border-4 flex items-center gap-3 ${c.esEmergencia ? 'bg-red-50 border-red-300' : 'bg-white border-slate-200'}`}>
+                      <img src={c.foto} alt="" className="w-14 h-14 rounded-full object-cover border-2 border-slate-300 shrink-0" />
+                      <div className="flex-grow text-left overflow-hidden">
+                        <span className="block text-lg font-black text-slate-800 truncate">{c.nombre} {c.apellido}</span>
+                        <span className="block text-base font-bold text-slate-500 truncate">{c.telefono}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => toggleEmergencia(c.id)}
+                        role="switch"
+                        aria-checked={c.esEmergencia}
+                        aria-label={`${c.esEmergencia ? 'Quitar de' : 'Añadir a'} contactos de emergencia a ${c.nombre}`}
+                        className={`w-16 h-9 rounded-full p-1 transition-colors shrink-0 border-2 ${c.esEmergencia ? 'bg-red-600 border-red-800' : 'bg-slate-300 border-slate-400'}`}
+                      >
+                        <div className={`bg-white w-6 h-6 rounded-full shadow transform transition-transform ${c.esEmergencia ? 'translate-x-7' : 'translate-x-0'}`}></div>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                <div>
+                  <label htmlFor="msg-emergencia" className="block text-xl font-black text-slate-800 mb-2">Mensaje que recibirán:</label>
+                  <textarea
+                    id="msg-emergencia"
+                    value={mensajeEmergencia}
+                    onChange={(e) => setMensajeEmergencia(e.target.value)}
+                    rows={3}
+                    className="w-full p-4 text-lg border-4 border-slate-300 rounded-2xl font-bold bg-white focus:border-red-600 outline-none resize-none"
+                  />
+                </div>
+
+                <div>
+                  <span className="block text-xl font-black text-slate-800 mb-2">
+                    Enviar por: <span className="text-base font-bold text-slate-500">(puedes elegir varios)</span>
+                  </span>
+                  <div className="space-y-3">
+                    {[
+                      { key: 'sms', label: '💬 Mensaje de texto (SMS)', on: 'bg-blue-900 border-blue-950 text-white', voz: 'Mensaje de texto' },
+                      { key: 'whatsapp', label: '🟢 WhatsApp', on: 'bg-emerald-600 border-emerald-800 text-white', voz: 'WhatsApp' },
+                      { key: 'correo', label: '✉️ Correo electrónico', on: 'bg-purple-700 border-purple-900 text-white', voz: 'Correo electrónico' },
+                    ].map((canal) => (
+                      <button
+                        key={canal.key}
+                        type="button"
+                        onClick={() => toggleCanal(canal.key)}
+                        onMouseEnter={() => announceMenuOption(canal.voz)}
+                        role="switch"
+                        aria-checked={canalesEmergencia[canal.key]}
+                        className={`w-full py-4 px-4 rounded-2xl font-black text-lg leading-tight border-4 transition-colors flex items-center justify-between gap-3 ${canalesEmergencia[canal.key] ? canal.on : 'bg-white border-slate-300 text-slate-700'}`}
+                      >
+                        <span className="text-left">{canal.label}</span>
+                        {canalesEmergencia[canal.key]
+                          ? <Check size={28} className="shrink-0" />
+                          : <span className="w-7 h-7 rounded-full border-2 border-slate-400 shrink-0" aria-hidden="true" />}
+                      </button>
+                    ))}
+                  </div>
+                  {!algunCanal && (
+                    <p role="alert" className="text-red-600 font-bold text-base mt-2">⚠️ Elige al menos un canal de envío.</p>
+                  )}
+                </div>
+
+                <div className="bg-blue-50 border-4 border-blue-200 p-4 rounded-2xl">
+                  <p className="text-base font-bold text-blue-900 leading-relaxed">
+                    {marcados.length === 0
+                      ? 'Aún no has marcado ningún contacto de emergencia.'
+                      : !algunCanal
+                        ? `Marcaste ${marcados.length} contacto${marcados.length > 1 ? 's' : ''}, pero falta elegir al menos un canal de envío.`
+                        : `Al pulsar PEDIR AYUDA se llamará a ${marcados[0].nombre} y se enviará el mensaje por ${canalesTxt} a ${marcados.length} persona${marcados.length > 1 ? 's' : ''}.`}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={probarEnvio}
+                  onMouseEnter={() => announceMenuOption('Probar envío del mensaje')}
+                  className="w-full py-5 bg-red-700 text-white rounded-3xl font-black text-xl shadow-lg border-b-8 border-red-900 active:translate-y-1 flex items-center justify-center gap-3"
+                >
+                  <Send size={26} /> PROBAR ENVÍO DEL MENSAJE
+                </button>
+              </div>
+            )}
+          </>
+        )}
       </div>
     );
   };
@@ -3255,7 +3488,7 @@ const App = () => {
 
   const RenderConfigurarEntrada = () => {
     const metodosEntrada = [
-      { key: 'rostro',            nombre: 'Reconocer mi rostro',   emoji: '🫣' },
+      { key: 'rostro',            nombre: 'Reconocer mi rostro',   emoji: '👤' },
       { key: 'huella',            nombre: 'Usar mi huella',        emoji: '👆' },
       { key: 'voz',               nombre: 'Usar mi voz',           emoji: '🎤' },
       { key: 'escrito',           nombre: 'Acceso Escrito',        emoji: '✍️' },
@@ -3488,14 +3721,10 @@ const App = () => {
               {emergenciaMasivosActiva && (
                 <button
                   onClick={() => {
-                    const destinatarios = [
-                      mensajesMasivosVisible.contact1 && contact1Name,
-                      mensajesMasivosVisible.contact2 && contact2Name,
-                      mensajesMasivosVisible.contact3 && contact3Name,
-                    ].filter(Boolean);
-                    speak(`Enviando mensaje a ${destinatarios.join(', ')}, y llamando a Urgencias.`);
+                    const emerg = getEmergenciaEfectiva();
+                    speak(`Enviando mensaje por ${emerg.canalesTexto} a ${emerg.nombres.join(', ')}, y llamando a Urgencias.`);
                     setShowPedirAyudaModal(false);
-                    setCallingContact({ name: contact1Name, phone: contact1Phone });
+                    setCallingContact(emerg.primero);
                   }}
                   onMouseEnter={() => announceMenuOption('Mensajes Masivos')}
                   className="w-full min-h-[80px] flex items-center justify-center gap-4 bg-purple-700 hover:bg-purple-800 text-white rounded-[35px] font-black text-2xl shadow-2xl border-b-8 border-purple-900 active:translate-y-2 transition-colors"
@@ -3656,22 +3885,16 @@ const App = () => {
 
           {isPerfilPasswordOpen && (
             <div className="absolute inset-0 bg-blue-950 z-[150] p-8 flex flex-col items-center justify-center text-center animate-in zoom-in duration-300 overflow-y-auto">
+              {/* Encabezado igual que P-14 (submenús de Perfil): VOLVER + foto "Ayudas". */}
               <div className="flex items-center justify-between w-full mb-6">
                 <button onClick={() => { setIsPerfilPasswordOpen(false); setStep(origenPerfil); }} onMouseEnter={() => announceMenuOption('Volver')}
-                  className="flex items-center text-white font-black text-2xl py-2 w-max">
+                  className="flex items-center text-white font-black text-2xl py-2 w-max active:scale-95 transition-transform"
+                  aria-label="Volver a la pantalla anterior">
                   <ArrowLeft size={36} className="mr-2" /> VOLVER
                 </button>
-                <button onClick={() => openWhereAmI("Acceso a Perfil", "estás en la pantalla de acceso protegido al Perfil. Introduce tu nombre y tu contraseña, y toca Entrar, o toca Volver para regresar.")}
-                  onMouseEnter={() => announceMenuOption('¿Dónde estoy?')}
-                  className="flex flex-col items-center gap-1 active:scale-95 transition-transform" aria-label="¿Dónde estoy?">
-                  <div
-                    onMouseEnter={() => speak('Acceso a Perfil. estás en la pantalla de acceso protegido al Perfil. Introduce tu nombre y tu contraseña, y toca Entrar, o toca Volver para regresar.')}
-                    onMouseLeave={() => window.speechSynthesis.cancel()}
-                  >
-                    <BrandLogo className="w-10" />
-                  </div>
-                  <span className="text-base font-bold text-amber-200 underline">¿Dónde estoy?</span>
-                </button>
+                <FotoAyudaCiudadano
+                  onAyudaEscrita={() => openWhereAmI("Acceso a Perfil", "estás en la pantalla de acceso protegido al Perfil. Introduce tu nombre y tu contraseña, y toca Entrar, o toca Volver para regresar.")}
+                />
               </div>
               <div className="bg-white/10 p-6 rounded-full mb-4">
                 <Lock size={56} className="text-amber-400" />
@@ -3750,7 +3973,6 @@ const App = () => {
                   <ArrowLeft size={36} className="mr-2" /> VOLVER
                 </button>
                 <FotoAyudaCiudadano
-                  className="w-20"
                   onAyudaEscrita={() => openWhereAmI("Menú Rápido", `${username || 'Hola'}, estás en el menú rápido. Puedes ir al Panel Principal, hablar con iAyuda, Pedir Ayuda si es una emergencia, tocar Volver para regresar, o Cerrar para irme para salir de la aplicación.`)}
                 />
               </div>
@@ -3854,47 +4076,25 @@ const App = () => {
 
           {isExitModalOpen && (
             <div role="dialog" aria-modal="true" aria-label="¿Quieres salir de la aplicación?" className="absolute inset-0 bg-blue-950 z-[100] p-8 flex flex-col items-center justify-center text-center animate-in zoom-in duration-300 overflow-y-auto">
-              <div className="flex items-center justify-between w-full mt-3 mb-4">
+              {/* Encabezado igual que P-28 (foto "Ayudas"), pero con VOLVER activo:
+                  VOLVER cierra esta confirmación y regresa al menú anterior. */}
+              <div className="flex items-center justify-between w-full mt-3 mb-6">
                 <button
                   onClick={() => setIsExitModalOpen(false)}
                   onMouseEnter={() => announceMenuOption('Volver')}
-                  className="flex items-center text-white font-black text-2xl py-2 w-max"
+                  className="flex items-center text-white font-black text-2xl py-2 w-max active:scale-95 transition-transform"
+                  aria-label="Volver a la pantalla anterior"
                 >
                   <ArrowLeft size={36} className="mr-2" /> VOLVER
                 </button>
-                <button
-                  onClick={() => {
-                    const info = { titulo: "Salir de la App", texto: `${username || 'Hola'}, estás en la pantalla de confirmación para salir. Toca Sí, Salir Ahora para cerrar la aplicación, o Volver para quedarte.` };
-                    setWhereAmIInfo(info);
-                    setIsWhereAmIOpen(true);
-                    if ('speechSynthesis' in window) {
-                      window.speechSynthesis.cancel();
-                      const utterance = new SpeechSynthesisUtterance(`${info.titulo}. ${info.texto}`);
-                      utterance.lang = 'es-MX';
-                      utterance.rate = 0.9;
-                      window.speechSynthesis.speak(utterance);
-                    }
-                  }}
-                  onMouseEnter={() => announceMenuOption('¿Dónde estoy?')}
-                  className="flex flex-col items-center gap-1 active:scale-95 transition-transform"
-                  aria-label="¿Dónde estoy? Explicación de esta pantalla"
-                >
-                  <BrandLogo className="w-10" />
-                  <span className="text-base font-bold text-amber-200 underline">¿Dónde estoy?</span>
-                </button>
+                <FotoAyudaCiudadano
+                  onAyudaEscrita={() => openWhereAmI("Salir de la App", `${username || 'Hola'}, estás en la pantalla de confirmación para salir. Toca Sí, Salir Ahora para cerrar la aplicación, o Volver para quedarte.`)}
+                />
               </div>
-              <button
-                onMouseEnter={speakWhereAmIOnHover}
-                onMouseLeave={stopWhereAmIHoverAudio}
-                className="active:scale-95 transition-transform"
-                aria-label="Escuchar audio de ¿Dónde estoy? al pasar sobre la foto"
-              >
-                <UserPhoto className="w-24 mx-auto mb-6" />
-              </button>
               <h2 className="text-4xl font-black text-white mb-6 leading-tight">¿Deseas salir de la aplicación?</h2>
               <p className="text-2xl font-bold text-blue-200 mb-12">Tendrás que volver a ingresar tu nombre para entrar.</p>
               <div className="w-full mt-auto space-y-4 mb-10">
-                <button onClick={() => { setIsExitModalOpen(false); setStep('inicio'); }} className="w-full py-6 bg-red-600 text-white rounded-[30px] font-black text-2xl shadow-xl active:scale-95 transition-colors border-4 border-red-800">
+                <button onClick={() => { setIsExitModalOpen(false); setIsMenuOpen(false); setStep('inicio'); }} className="w-full py-6 bg-red-600 text-white rounded-[30px] font-black text-2xl shadow-xl active:scale-95 transition-colors border-4 border-red-800">
                   SÍ, SALIR AHORA
                 </button>
               </div>
@@ -3911,7 +4111,6 @@ const App = () => {
                   Perfil; 2 toques = ayuda escrita. */}
               <div className="flex items-center justify-end w-full mt-3 mb-6">
                 <FotoAyudaCiudadano
-                  className="w-20"
                   onAyudaEscrita={() => openWhereAmI("Perfil", `${username || 'Hola'}, estás en tu menú de Perfil. Aquí puedes ver tus datos, tus preferencias, tus talentos, y tus contactos de emergencia.`)}
                 />
               </div>
@@ -3958,7 +4157,7 @@ const App = () => {
                 </button>
                 <button
                   type="button"
-                  onClick={handleOpenExitModal}
+                  onClick={() => handleOpenExitModal(true)}
                   onMouseEnter={() => announceMenuOption('Salir de la App')}
                   className="flex flex-col items-center justify-center text-center gap-2 p-4 bg-red-900/40 border-2 border-red-500 rounded-2xl hover:bg-red-900/60 active:scale-95 transition-transform"
                 >
