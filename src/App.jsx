@@ -5,11 +5,15 @@ import {
   Send, X, Sparkles, CheckCircle2, Navigation, Info,
   AlertTriangle, Fingerprint, ScanFace, Lock,
   Star, Ticket, Volume2, Filter, Menu, HelpCircle, Check,
-  Activity, Brain, Heart, Moon, Mail, UserPlus, BookOpen, Image, Leaf, ChevronDown
+  Activity, Brain, Heart, Moon, Mail, UserPlus, BookOpen, Image, Leaf, ChevronDown, LayoutGrid
 } from 'lucide-react';
 // Foto del ciudadano por defecto: se deja grabada aquí para no tener que subirla
 // en cada sesión. Para cambiarla, reemplaza src/foto-ciudadano.jpg.
 import fotoCiudadano from './foto-ciudadano.jpg';
+// Logo de AMA (solo en P-01). El resto de la app usa el logo "VES" inline.
+import logoAma from './logo-ama.png';
+// Logo de TAM (selector posterior a P-02 y menú TAM).
+import logoTam from './logo-tam.png';
 // NOTA: logos reemplazados por componentes inline para no depender de archivos externos.
 const fotoUsuarioPorDefecto = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><rect width='200' height='200' fill='%231e3a8a'/><text x='50%' y='50%' fill='white' font-size='14' text-anchor='middle' dy='.3em'>Foto Usuario</text></svg>";
 
@@ -18,7 +22,7 @@ const fotoUsuarioPorDefecto = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3
 // nueva actualización. Formato solicitado: DÍA(2 dígitos)+MES(2 dígitos)+AÑO(4 dígitos) - HORA:MINUTO
 // Ejemplo: "27072026-19:05" = 27 de julio de 2026, 19:05. Se muestra, sin
 // ninguna acción asociada, en la esquina superior izquierda de P-01.
-const APP_VERSION = "31082026-08:48";
+const APP_VERSION = "03092026-14:40";
 
 /**
  * APP SÉNIOR - SUITE MÓVIL ACCESIBLE (SIMULADOR DE TELÉFONO)
@@ -113,16 +117,16 @@ const OpcionMenuEditable = ({ item, value, isCustom, visible, onToggleVisible, o
   );
 };
 
-// --- LOGO VAS (antes VES) ---
-const BrandLogo = ({ className = "w-40" }) => (
+// --- LOGO DE MARCA --- (texto configurable; "VES" en toda la app salvo P-01, que usa "AMA")
+const BrandLogo = ({ className = "w-40", texto = "VES" }) => (
   <div
     className={`${className} aspect-square rounded-full bg-gradient-to-br from-amber-300 to-emerald-700 flex flex-col items-center justify-center mx-auto shadow-md border-2 border-amber-200`}
     style={{ containerType: "inline-size" }}
     role="img"
-    aria-label="Logotipo de la marca VES: un árbol dorado con raíces visibles, con el texto Energía y Salud"
+    aria-label={`Logotipo de la marca ${texto}: un árbol dorado con raíces visibles, con el texto Energía y Salud`}
   >
     <Leaf className="text-amber-50" style={{ width: "45%", height: "45%" }} strokeWidth={2.2} />
-    <span className="text-amber-50 font-black leading-none" style={{ fontSize: "22cqw" }} aria-hidden="true">VES</span>
+    <span className="text-amber-50 font-black leading-none" style={{ fontSize: "22cqw" }} aria-hidden="true">{texto}</span>
   </div>
 );
 
@@ -167,9 +171,9 @@ const MENU_ITEMS = [
 // Vitalidad primero (lo más motivador/social), Energía después, Salud Digital
 // al final — refuerza que VES es ante todo una app social, no "una app técnica".
 const CONTENEDORES = [
-  { id: 'vitalidad',     titulo: 'Vitalidad',     frase: 'Para no estar solo: personas, lazos y salidas',        emoji: '💗', headerBg: 'bg-rose-50',    headerBorder: 'border-rose-300',    headerText: 'text-rose-900',   activeBg: 'bg-rose-600',    activeBorder: 'border-rose-800' },
-  { id: 'energia',       titulo: 'Energía',       frase: 'Para moverte con seguridad, dentro y fuera de casa',   emoji: '🟠', headerBg: 'bg-amber-50',   headerBorder: 'border-amber-300',   headerText: 'text-amber-900',  activeBg: 'bg-amber-500',   activeBorder: 'border-amber-700' },
-  { id: 'salud_digital', titulo: 'Salud Digital', frase: 'La tecnología, ya explicada y lista para ti',          emoji: '🔵', headerBg: 'bg-blue-50',    headerBorder: 'border-blue-300',    headerText: 'text-blue-900',   activeBg: 'bg-blue-700',    activeBorder: 'border-blue-900' },
+  { id: 'vitalidad',     titulo: 'Soledad',     frase: 'Para no estar solo: personas, lazos y salidas',        emoji: '💗', headerBg: 'bg-rose-50',    headerBorder: 'border-rose-300',    headerText: 'text-rose-900',   activeBg: 'bg-rose-600',    activeBorder: 'border-rose-800' },
+  { id: 'energia',       titulo: 'Movilidad',   frase: 'Para moverte con seguridad, dentro y fuera de casa',   emoji: '🟠', headerBg: 'bg-amber-50',   headerBorder: 'border-amber-300',   headerText: 'text-amber-900',  activeBg: 'bg-amber-500',   activeBorder: 'border-amber-700' },
+  { id: 'salud_digital', titulo: 'Tecnología',  frase: 'La tecnología, ya explicada y lista para ti',          emoji: '🔵', headerBg: 'bg-blue-50',    headerBorder: 'border-blue-300',    headerText: 'text-blue-900',   activeBg: 'bg-blue-700',    activeBorder: 'border-blue-900' },
 ];
 
 const App = () => {
@@ -241,6 +245,10 @@ const App = () => {
   });
   // Número de opciones por fila en P-08 (1, 2 o 3). Por defecto 3.
   const [colsMenuPrincipal, setColsMenuPrincipal] = useState(3);
+  // --- VISIBILIDAD DE LAS 2 OPCIONES DEL SELECTOR P-06 ("Configura Menú Principal") ---
+  // Si el usuario solo deja activa una, tras el acceso se salta P-06 y entra
+  // directo a P-08 (VES) o P-40 (TAM). Nunca se permite dejar las dos apagadas.
+  const [selectorVisible, setSelectorVisible] = useState({ ves: true, tam: true });
   // --- NOMBRES PERSONALIZADOS DE LAS OPCIONES DEL MENÚ PRINCIPAL (P-21) ---
   // Solo se guarda la clave si el usuario cambió el nombre por defecto (máx. 25 caracteres).
   // Los subtítulos NO son editables y siempre vienen de MENU_ITEMS.
@@ -285,7 +293,7 @@ const App = () => {
 
   // --- ESTADOS PARA EL NUEVO PERFIL COMPLETO FORMULARIO ---
   const [profilePhoto, setProfilePhoto] = useState(fotoCiudadano);
-  const [profileNombre, setProfileNombre] = useState('');
+  const [profileNombre, setProfileNombre] = useState('Mari');
   const [profileApellido, setProfileApellido] = useState('');
   const [profileDireccion, setProfileDireccion] = useState('Calle Castillo, 15');
   const [profileZonaPostal, setProfileZonaPostal] = useState('38002');
@@ -330,6 +338,9 @@ const App = () => {
   // al remontado del componente cuando cambia listaContactos (los Render* son funciones
   // internas y React los remonta en cada render de App).
   const [contactosTab, setContactosTab] = useState('lista'); // 'lista' | 'emergencia'
+  // Apartado abierto en el menú TAM ('ama' | 'entorno' | null) — a nivel de App
+  // para que no se cierre al remontarse el componente.
+  const [tamAbierto, setTamAbierto] = useState(null);
   const [contactosAviso, setContactosAviso] = useState(null);
   useEffect(() => {
     if (!contactosAviso) return;
@@ -401,6 +412,23 @@ const App = () => {
   useEffect(() => {
     setActiveFilter('Todos');
   }, [currentView]);
+
+  // Cada vez que se ENTRA a P-40 (menú TAM), los dos apartados empiezan cerrados.
+  // Se hace aquí (y no en un efecto de montaje dentro de RenderTam) porque ese
+  // componente se vuelve a montar en cada render y reabriría/cerraría sin control.
+  useEffect(() => {
+    if (currentView === 'tam') setTamAbierto(null);
+  }, [currentView]);
+
+  // Mensaje de bienvenida del selector (P-06): se dice UNA sola vez, justo al
+  // entrar a esa pantalla. Antes vivía en un useEffect dentro de RenderSelector,
+  // que al re-montarse en cada render repetía el audio incluso tras elegir una
+  // opción. Al depender solo de [currentView, step] no se repite al navegar.
+  useEffect(() => {
+    if (step === 'dashboard' && currentView === 'selector') {
+      speak('Elige qué quieres abrir. Toca el logo VES para tu Panel Principal, o el logo TAM para los programas de ayuda al adulto mayor. Abajo tienes el botón rojo de Pedir Ayuda para una emergencia.');
+    }
+  }, [currentView, step]);
 
   // Sincronizar nombre de usuario con el perfil
   useEffect(() => {
@@ -489,10 +517,13 @@ const App = () => {
 
   // --- GESTOR DE DIRECCIONAMIENTO TRAS BOTÓN VOLVER ---
   // --- UTILIDAD ÚNICA DE VOZ ---
+  // Para que la voz lea "VES" y "TAM" como palabras y no deletreadas (uve-e-ese / te-a-eme).
+  const normalizarVoz = (t) => String(t).replace(/\bVES\b/g, 'ves').replace(/\bTAM\b/g, 'tam');
+
   const speak = (text, rate = 0.9) => {
     if (!('speechSynthesis' in window)) return false;
     window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
+    const utterance = new SpeechSynthesisUtterance(normalizarVoz(text));
     utterance.lang = 'es-MX';
     utterance.rate = rate;
     window.speechSynthesis.speak(utterance);
@@ -532,6 +563,7 @@ const App = () => {
 
   // --- ACCESO PROTEGIDO A PERFIL (requiere contraseña exclusiva) ---
   const requestPerfilAccess = () => {
+    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
     setOrigenPerfil(step);
     setPerfilPasswordInput('');
     setPerfilNombreInput('');
@@ -558,6 +590,15 @@ const App = () => {
     }
   };
 
+  // Destino tras un acceso correcto: si en "Configura Menú Principal" solo quedó
+  // activo VES o solo TAM, se entra directo a esa app y se salta el selector P-06.
+  const getVistaTrasAcceso = () => {
+    const { ves, tam } = selectorVisible;
+    if (ves && !tam) return 'dashboard';
+    if (tam && !ves) return 'tam';
+    return 'selector';
+  };
+
   const startBiometric = (type) => {
     setBiometricType(type);
     setStep('biometric_scan');
@@ -566,7 +607,7 @@ const App = () => {
       setUsername(name);
       setProfileNombre(name);
       setStep('dashboard');
-      setCurrentView('dashboard');
+      setCurrentView(getVistaTrasAcceso());
     }, 3000);
   };
 
@@ -674,7 +715,7 @@ const App = () => {
     } catch (e) { /* el navegador no soporta audio, se omite el tono */ }
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(texto);
+      const utterance = new SpeechSynthesisUtterance(normalizarVoz(texto));
       utterance.lang = 'es-MX';
       utterance.rate = 0.95;
       window.speechSynthesis.speak(utterance);
@@ -776,6 +817,10 @@ const App = () => {
   // El ref evita un doble tañido por el doble montaje de efectos de React StrictMode
   // en modo desarrollo; suena una sola vez por cada apertura del modal.
   const campanaSonadaRef = useRef(false);
+  // La bienvenida de P-01 solo debe locutarse una vez por carga: los Render* son
+  // funciones internas y React remonta RenderInicio en cada render de App (por
+  // ejemplo al abrir el panel de Usuario Administrador), lo que repetía el audio.
+  const bienvenidaP01Ref = useRef(false);
   useEffect(() => {
     if (showPedirAyudaModal) {
       if (!campanaSonadaRef.current) { playCampana(); campanaSonadaRef.current = true; }
@@ -783,6 +828,15 @@ const App = () => {
       campanaSonadaRef.current = false;
     }
   }, [showPedirAyudaModal]);
+
+  // Al llegar al Panel Principal desde el acceso (huella, rostro, voz, escrito, etc.)
+  // y NO desde el Menú de Perfil, se limpia la memoria de "vengo de un submenú"
+  // para que P-08 muestre siempre la hamburguesa (y por tanto la opción de salir).
+  useEffect(() => {
+    if (step === 'dashboard' && !isMenuOpen && !isPerfilPasswordOpen) {
+      setEnteredFromMenu(false);
+    }
+  }, [step]);
 
   // Timbre de teléfono antiguo mientras está abierta la pantalla "Llamando a...".
   useEffect(() => {
@@ -811,12 +865,15 @@ const App = () => {
     crear_contactos: { titulo: "Crear Contactos", texto: "Tiene dos pestañas. En Crear lista de contactos rellenas los datos de una persona, foto, nombre, apellido, teléfono, y tocas Guardar Contacto. En Contactos de emergencia marcas a quién se llamará y se le enviará un mensaje al pulsar Pedir Ayuda, escribes ese mensaje, y eliges si se envía por SMS, WhatsApp o correo, uno o varios a la vez." },
     guia_digital: { titulo: "Mi Guía Digital", texto: "Estás en tu Guía Digital. Aquí encontrarás cursos sugeridos y consejos diarios de seguridad y bienestar." },
     emergencia: { titulo: "Pedir Ayuda", texto: "Estás en la pantalla de emergencia. Toca el botón rojo para llamar a Urgencias, o el nombre de un familiar para llamarlo a él. Si no haces nada, la app llamará a Urgencias automáticamente." },
-    categoria_detalle: { titulo: "Grupo del Panel Principal", texto: "Estás viendo uno de los tres grupos del Panel Principal: Vitalidad, Energía o Salud Digital. Toca cualquiera de las opciones grandes para abrirla, o toca Volver para regresar al Panel Principal." },
+    categoria_detalle: { titulo: "Grupo del Panel Principal", texto: "Estás viendo uno de los tres grupos del Panel Principal: Soledad, Movilidad o Tecnología. Toca cualquiera de las opciones grandes para abrirla, o toca Volver para regresar al Panel Principal." },
     centro_tratamiento: { titulo: "Centro de Tratamiento", texto: "Estás viendo tus sesiones de fisioterapia y rehabilitación: las próximas citas, si son a domicilio o en el centro, y el nombre del terapeuta. Cuando una sesión sea a domicilio y llegue el terapeuta, toca El terapeuta ya llegó." },
     fotos_videos: { titulo: "Fotos y Videos", texto: "Estás viendo tus recuerdos en fotos y videos, agrupados por Familia, Amistades y otros momentos. Toca cualquier imagen para verla más grande." },
-    configurar_menu: { titulo: "Configurar el Menú Principal", texto: "Aquí eliges qué opciones aparecen en tu Panel Principal y cómo se llaman, máximo veinticinco letras, y cuántas caben por fila: una, dos o tres. Pedir Ayuda siempre estará visible. Recuerda tocar Guardar Cambios al terminar." },
+    configurar_menu: { titulo: "Configura el Menú VES", texto: "Aquí eliges qué opciones aparecen en tu Panel Principal de VES y cómo se llaman, máximo veinticinco letras, y cuántas caben por fila: una, dos o tres. Pedir Ayuda siempre estará visible. Recuerda tocar Guardar Cambios al terminar." },
+    configurar_menu_principal: { titulo: "Configura Menú Principal", texto: "Aquí eliges qué aparece en la pantalla de inicio: el logo VES para tu Panel Principal y el logo TAM para los programas de ayuda. Debes dejar activo al menos uno. Si dejas solo uno, al entrar irás directamente a esa pantalla sin pasar por el selector." },
     comentarios: { titulo: "Comentarios y Sugerencias", texto: "Aquí escribes o dictas lo que piensas sobre VES para ayudarnos a mejorar. Escribe tu mensaje y toca Enviar; llegará al equipo de VES." },
     demo_app: { titulo: "Demo de la App", texto: "Aquí te explicamos paso a paso todo lo que puedes hacer en VES. Toca Reproducir Demo Completa para escucharlo todo seguido, o cada tarjeta para escuchar solo esa parte." },
+    selector: { titulo: "Elige qué abrir", texto: "acabas de entrar. Toca el logo VES para ir al Panel Principal con tus opciones de siempre, o el logo TAM para ver los programas de ayuda al adulto mayor del ayuntamiento, el cabildo, centros de día y organizaciones. Abajo tienes el botón rojo de Pedir Ayuda para cualquier emergencia." },
+    tam: { titulo: "Programas TAM", texto: "aquí están los programas presenciales de ayuda al adulto mayor, organizados en tres grupos: Soledad, Movilidad y Tecnología. Toca un grupo para desplegar sus programas. En cada grupo aparecen primero, en azul, los del equipo AMA, y después los del entorno: ayuntamiento, cabildo, centros de día y organizaciones. Abajo tienes el botón rojo de Pedir Ayuda para una emergencia." },
   };
 
   const handleWhereAmI = () => {
@@ -845,10 +902,12 @@ const App = () => {
     let infoBase;
     if (step === 'access_options') {
       infoBase = { titulo: "Elige tu Acceso", texto: "estás eligiendo cómo entrar a la aplicación. Puedes tocar Reconocer mi rostro, Usar mi huella, Usar mi voz, o Certificado digital." };
+    } else if (step === 'biometric_scan') {
+      infoBase = { titulo: "Verificando tu identidad", texto: "la aplicación está comprobando tu rostro, tu huella o tu voz. Espera un momento; en unos segundos entrarás sola. Si quieres, toca Volver para elegir otra forma de entrar." };
     } else if (step === 'username_entry') {
       infoBase = { titulo: "Usuario", texto: "aquí escribes tu nombre y tu código de acceso de 4 dígitos, y luego tocas Entrar Ahora." };
     } else if (isQuickMenuOpen) {
-      infoBase = { titulo: "Menú Rápido", texto: "estás en el menú rápido. Puedes ir al Panel Principal, hablar con iAyuda, Pedir Ayuda si es una emergencia, tocar Volver para regresar, o Cerrar para irme para salir de la aplicación." };
+      infoBase = { titulo: "Menú Rápido", texto: "estás en el menú rápido. Puedes hablar con iAyuda, Pedir Ayuda si es una emergencia, tocar Volver para regresar, o Cerrar para irme para salir de la aplicación." };
     } else if (step === 'login') {
       infoBase = { titulo: "Mi Acceso", texto: "estás en la pantalla de acceso a VES. En Mi Acceso, toca la forma con la que quieres entrar: reconocer tu rostro, tu huella, tu voz o el acceso escrito. También puedes tocar Pedir Ayuda si tienes una emergencia." };
     } else if (isPerfilPasswordOpen) {
@@ -921,7 +980,7 @@ const App = () => {
   //   · 2 toques / clic  -> ayuda ESCRITA: se abre el panel que indique `onAyudaEscrita`.
   //   · Tamaño de foto fijo (w-20) para que sea idéntico en P-28 y en todos los submenús.
   // ============================================================================
-  const FotoAyudaCiudadano = ({ onAyudaEscrita, mostrarNombre = false }) => {
+  const FotoAyudaCiudadano = ({ onAyudaEscrita }) => {
     const nombreCiudadano = (profileNombre || username || '').trim();
     const tapTimerRef = useRef(null);
     const ultimoTapRef = useRef(0);
@@ -955,7 +1014,7 @@ const App = () => {
           Ayudas
         </span>
         <UserPhoto className="w-20" />
-        {mostrarNombre && nombreCiudadano && (
+        {nombreCiudadano && (
           <span className="text-sm font-black text-white bg-blue-950 px-2.5 py-0.5 rounded-full leading-none max-w-[7rem] truncate">
             {nombreCiudadano}
           </span>
@@ -969,40 +1028,40 @@ const App = () => {
   // Derecha (siempre): foto del ciudadano (FotoAyudaCiudadano): 1 toque = ayuda
   //                    en voz; 2 toques = ayuda escrita de esta pantalla.
   // Izquierda (según el contexto):
-  //   · Si se entró desde el Menú de Perfil / P-28 (enteredFromMenu):
-  //       línea simple con "VOLVER" que regresa a la pantalla de origen (onBack).
-  //   · En el flujo normal de VES: botón "Menú" (abre el menú rápido).
+  //   · Por defecto: línea simple con "VOLVER" que ejecuta `onBack`.
+  //   · Solo si se pasa `conMenu` (P-08, Panel Principal): botón "Menú" que abre
+  //       el menú rápido, con tarjeta blanca.
   // (Sin logo VES ni texto "¿Dónde estoy?" en esta cabecera.)
   // ============================================================================
-  const EncabezadoG = ({ onBack }) => {
-    if (enteredFromMenu) {
+  const EncabezadoG = ({ onBack, conMenu = false }) => {
+    if (conMenu && !enteredFromMenu) {
       return (
-        <div className="flex items-center justify-between w-full mt-6 mb-6">
+        <header className="flex items-center justify-between mt-6 mb-6 bg-white p-5 rounded-3xl shadow-sm border-2 border-gray-100">
           <button
-            onClick={onBack}
-            onMouseEnter={() => announceMenuOption('Volver')}
-            className="flex items-center text-blue-950 font-black text-2xl py-2 w-max active:scale-95 transition-transform"
-            aria-label="Volver a la pantalla anterior"
+            onClick={() => { setQuickMenuBackAction(() => onBack); setIsQuickMenuOpen(true); }}
+            onMouseEnter={() => announceMenuOption('Menú')}
+            className="flex flex-col items-center gap-1 text-blue-950 active:scale-95 transition-transform"
+            aria-label="Abrir menú rápido"
           >
-            <ArrowLeft size={36} className="mr-2" /> VOLVER
+            <Menu size={40} />
+            <span className="text-base font-black">Menú</span>
           </button>
           <FotoAyudaCiudadano onAyudaEscrita={handleWhereAmI} />
-        </div>
+        </header>
       );
     }
     return (
-      <header className="flex items-center justify-between mt-6 mb-6 bg-white p-5 rounded-3xl shadow-sm border-2 border-gray-100">
+      <div className="flex items-center justify-between w-full mt-6 mb-6">
         <button
-          onClick={() => { setQuickMenuBackAction(() => onBack); setIsQuickMenuOpen(true); }}
-          onMouseEnter={() => announceMenuOption('Menú')}
-          className="flex flex-col items-center gap-1 text-blue-950 active:scale-95 transition-transform"
-          aria-label="Abrir menú rápido"
+          onClick={onBack}
+          onMouseEnter={() => announceMenuOption('Volver')}
+          className="flex items-center text-blue-950 font-black text-2xl py-2 w-max active:scale-95 transition-transform"
+          aria-label="Volver a la pantalla anterior"
         >
-          <Menu size={40} />
-          <span className="text-base font-black">Menú</span>
+          <ArrowLeft size={36} className="mr-2" /> VOLVER
         </button>
         <FotoAyudaCiudadano onAyudaEscrita={handleWhereAmI} />
-      </header>
+      </div>
     );
   };
 
@@ -1011,13 +1070,162 @@ const App = () => {
   // VISTAS INTERNAS (Sin envolturas absolutas ni fixed, adaptadas al móvil)
   // ============================================================================
 
+  // ─── SELECTOR posterior al acceso: elegir VES (Panel Principal) o TAM (programas) ───
+  const RenderSelector = () => {
+    // Solo se muestran los logos activados en "Configura Menú Principal" (P-29).
+    // Si por algún motivo quedaran los dos apagados, se muestran ambos como respaldo.
+    const verVes = selectorVisible.ves || (!selectorVisible.ves && !selectorVisible.tam);
+    const verTam = selectorVisible.tam || (!selectorVisible.ves && !selectorVisible.tam);
+    // El mensaje de bienvenida del selector se dispara desde un efecto a nivel de
+    // App (una sola vez al ENTRAR a P-06), no aquí: este componente se re-monta en
+    // cada render y repetiría el audio. Al pulsar una opción se corta el audio.
+    const irA = (accion) => { if ('speechSynthesis' in window) window.speechSynthesis.cancel(); accion(); };
+    return (
+      <div className="flex flex-col p-6 bg-white min-h-full pb-10 animate-in fade-in duration-300 relative">
+        <EncabezadoG onBack={() => setCurrentView('selector')} conMenu />
+        <div className="flex flex-col gap-6 flex-grow justify-center">
+          {verVes && (
+          <button
+            onClick={() => irA(() => setCurrentView('dashboard'))}
+            onMouseEnter={() => announceMenuOption('Abrir VES, tu Panel Principal')}
+            className="w-full flex flex-col items-center p-6 bg-emerald-50 border-4 border-emerald-600 rounded-[35px] shadow-md active:scale-95 transition-transform"
+            aria-label="Abrir VES, tu Panel Principal"
+          >
+            <BrandLogo className="w-44" />
+          </button>
+          )}
+          {verTam && (
+          <button
+            onClick={() => irA(() => setCurrentView('tam'))}
+            onMouseEnter={() => announceMenuOption('Abrir TAM, programas de ayuda al adulto mayor')}
+            className="w-full flex flex-col items-center p-6 bg-[#f6e3d4] border-4 border-[#d9a884] rounded-[35px] shadow-md active:scale-95 transition-transform"
+            aria-label="Abrir TAM, programas de ayuda al adulto mayor"
+          >
+            <img src={logoTam} alt="Logotipo de TAM" className="w-44 rounded-full" />
+          </button>
+          )}
+        </div>
+        <div className="mt-6">
+          <button
+            onClick={() => irA(() => setShowPedirAyudaModal(true))}
+            onMouseEnter={() => announceMenuOption('Pedir Ayuda')}
+            className="w-full flex items-center justify-center p-7 bg-red-700 hover:bg-red-800 text-white rounded-[35px] shadow-xl border-b-8 border-red-900 animate-pulse transition-colors gap-4"
+            aria-label="Pedir Ayuda"
+          >
+            <PhoneCall size={40} />
+            <span className="text-3xl font-black uppercase">PEDIR AYUDA</span>
+          </button>
+        </div>
+        <div className="absolute bottom-2 left-0 right-0 text-center text-[10px] text-black font-bold">P-06</div>
+      </div>
+    );
+  };
+
+  // ─── MENÚ TAM: programas presenciales de ayuda al adulto mayor ───
+  // Mismo criterio que P-08: 3 categorías (Soledad / Movilidad / Tecnología).
+  // Dentro de cada una, los programas de AMA van SIEMPRE primero y se pintan en
+  // AZUL; después irán los del Entorno (ayuntamiento, cabildo, etc.), que se
+  // añadirán poco a poco. Fuente: Continente TAM (Territorio Adultos Mayores),
+  // Ecosistema Presencial — Proyecto AMA Fase 4.
+  const RenderTam = () => {
+    useEffect(() => {
+      speak('Programas TAM. Están organizados en tres grupos: Soledad, Movilidad y Tecnología. En cada grupo aparecen primero, en azul, los programas del equipo AMA. Abajo tienes el botón rojo de Pedir Ayuda para una emergencia.');
+    }, []);
+    const TAM_CATEGORIAS = [
+      { id: 'soledad',    titulo: 'Soledad',    headerBg: 'bg-rose-50',  headerBorder: 'border-rose-300',  headerText: 'text-rose-900' },
+      { id: 'movilidad',  titulo: 'Movilidad',  headerBg: 'bg-amber-50', headerBorder: 'border-amber-300', headerText: 'text-amber-900' },
+      { id: 'tecnologia', titulo: 'Tecnología', headerBg: 'bg-blue-50',  headerBorder: 'border-blue-300',  headerText: 'text-blue-900' },
+    ];
+    const TAM_PROGRAMAS = [
+      // origen: 'ama' (azul, primero) | 'entorno' (se añadirán más adelante)
+      { origen: 'ama', cat: 'soledad',    nombre: 'Comedores Comunitarios de Convivencia',   detalle: 'Comidas grupales accesibles que generan lazos comunitarios y fortalecen el apoyo social diario.' },
+      { origen: 'ama', cat: 'soledad',    nombre: 'Bancos de Tiempo Comunitario para Mayores', detalle: 'Intercambio recíproco de servicios entre vecinos: ayudarse y cooperar unos con otros.' },
+      { origen: 'ama', cat: 'soledad',    nombre: 'Espacios de Silencio, Paz y Lectura',     detalle: 'Salones cívicos para disfrutar de compañía en un entorno tranquilo y de calma.' },
+      { origen: 'ama', cat: 'soledad',    nombre: 'Programa "Abuelos en la Escuela"',        detalle: 'Los mayores comparten su experiencia de vida en las aulas: propósito, utilidad y pertenencia.' },
+      { origen: 'ama', cat: 'soledad',    nombre: 'Brigadas de Ayuda a Desconocidos',        detalle: 'Grupos que realizan actos altruistas en favor de otras personas de la comunidad.' },
+      { origen: 'ama', cat: 'soledad',    nombre: 'Tardes de Cultura, Música y Baile',       detalle: 'Eventos lúdicos periódicos para socializar, reír y disfrutar en compañía.' },
+      { origen: 'ama', cat: 'movilidad',  nombre: 'Baños de Bosque y Paseos Adaptados',      detalle: 'Rutas guiadas en entornos naturales; el contacto con la naturaleza cuida el cuerpo y la mente.' },
+      { origen: 'ama', cat: 'movilidad',  nombre: 'Red de Transporte Solidario "Movilidad AMA"', detalle: 'Vehículos adaptados conducidos por voluntarios para el traslado seguro de los mayores.' },
+      { origen: 'ama', cat: 'movilidad',  nombre: 'Gimnasia en Plazas y Parques Bio-saludables', detalle: 'Actividad física en grupo con supervisión, al aire libre, para mantenerse en forma.' },
+      { origen: 'ama', cat: 'tecnologia', nombre: 'Puntos Físicos de Apoyo Tecnológico',     detalle: 'Puestos en plazas o centros de salud donde recibir ayuda directa con el móvil y sus dudas.' },
+    ];
+    const tarjeta = (p, i) => {
+      const esAma = p.origen === 'ama';
+      return (
+        <div key={i} className={`p-4 rounded-2xl border-4 shadow-sm ${esAma ? 'bg-blue-50 border-blue-200' : 'bg-white border-slate-200'}`}>
+          <div className="flex items-start justify-between gap-2">
+            <span className={`text-lg font-black leading-tight ${esAma ? 'text-blue-800' : 'text-slate-800'}`}>{p.nombre}</span>
+            {esAma
+              ? <span className="shrink-0 text-xs font-black px-2 py-1 rounded-full bg-blue-800 text-white">AMA</span>
+              : p.proveedor && <span className="shrink-0 text-xs font-black px-2 py-1 rounded-full bg-slate-200 text-slate-700">{p.proveedor}</span>}
+          </div>
+          <p className={`text-base font-bold mt-2 leading-snug ${esAma ? 'text-blue-700' : 'text-slate-600'}`}>{p.detalle}</p>
+        </div>
+      );
+    };
+    const cabecera = (cat) => (
+      <button type="button" onClick={() => setTamAbierto(a => a === cat.id ? null : cat.id)}
+        onMouseEnter={() => announceMenuOption(cat.titulo)}
+        aria-expanded={tamAbierto === cat.id}
+        className={`w-full flex items-center justify-between p-5 rounded-[25px] border-4 font-black transition-colors active:scale-95 ${cat.headerBg} ${cat.headerBorder} ${cat.headerText}`}>
+        <span className="text-2xl leading-none"><span className="text-3xl">{cat.titulo.charAt(0)}</span>{cat.titulo.slice(1)}</span>
+        <ChevronDown size={28} className={`shrink-0 transition-transform ${tamAbierto === cat.id ? 'rotate-180' : ''}`} />
+      </button>
+    );
+    // Igual que P-08: si en P-29 están marcadas VES y TAM se pasa por el selector
+    // P-06 (que lleva el hamburguesa) y aquí basta VOLVER; si solo hay una marcada,
+    // P-06 se salta y P-40 necesita el hamburguesa para llegar al Perfil y salir.
+    const dosOpcionesSelector = selectorVisible.ves && selectorVisible.tam;
+    return (
+      // Fondo color carne suave: identifica visualmente que estás en el mundo TAM
+      // (el mundo VES usa fondo gris claro / blanco).
+      <div className="flex flex-col p-6 bg-[#f6e3d4] min-h-full pb-32 animate-in fade-in duration-300 relative">
+        <EncabezadoG onBack={() => setCurrentView('selector')} conMenu={!dosOpcionesSelector} />
+        <h2 className="text-3xl font-black text-blue-900 mb-2 leading-tight">Programas</h2>
+        <p className="text-base font-bold text-slate-600 mb-5 leading-relaxed">Ayudas presenciales para el adulto mayor en soledad, movilidad y tecnología.</p>
+        <div className="space-y-4">
+          {TAM_CATEGORIAS.map((cat) => {
+            const progs = TAM_PROGRAMAS
+              .filter((p) => p.cat === cat.id)
+              .sort((a, b) => (a.origen === 'ama' ? 0 : 1) - (b.origen === 'ama' ? 0 : 1));
+            return (
+              <div key={cat.id}>
+                {cabecera(cat)}
+                {tamAbierto === cat.id && (
+                  <div className="space-y-3 mt-3 animate-in fade-in duration-200">
+                    {progs.map(tarjeta)}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        <div className="mt-6">
+          <button
+            onClick={() => setShowPedirAyudaModal(true)}
+            onMouseEnter={() => announceMenuOption('Pedir Ayuda')}
+            className="w-full flex items-center justify-center p-7 bg-red-700 hover:bg-red-800 text-white rounded-[35px] shadow-xl border-b-8 border-red-900 animate-pulse transition-colors gap-4"
+            aria-label="Pedir Ayuda"
+          >
+            <PhoneCall size={40} />
+            <span className="text-3xl font-black uppercase">PEDIR AYUDA</span>
+          </button>
+        </div>
+        <div className="absolute bottom-2 left-0 right-0 text-center text-[10px] text-black font-bold">P-40</div>
+      </div>
+    );
+  };
+
   const RenderBiometricScan = () => (
     <div className="flex flex-col p-6 bg-blue-950 min-h-full pb-32 animate-in zoom-in duration-300 relative">
-      <div className="flex items-center justify-between mt-6 mb-6">
-        <button onClick={() => setStep('login')} className="flex items-center text-white/80 font-black text-2xl py-2 w-max">
+      {/* Encabezado igual que P-02: VOLVER + foto "Ayudas". */}
+      <div className="flex items-center justify-between w-full mt-2 mb-4">
+        <button onClick={() => setStep('login')} onMouseEnter={() => announceMenuOption('Volver')}
+          className="flex items-center text-white font-black text-2xl py-2 w-max active:scale-95 transition-transform"
+          aria-label="Volver a la pantalla anterior">
           <ArrowLeft size={36} className="mr-2" /> VOLVER
         </button>
-        <UserPhoto className="w-12" />
+        <FotoAyudaCiudadano onAyudaEscrita={() => openWhereAmI("Verificando tu identidad", "la aplicación está comprobando tu rostro, tu huella o tu voz. Espera un momento; en unos segundos entrarás sola. Si quieres, toca Volver para elegir otra forma de entrar.")} />
       </div>
       <div className="flex flex-col items-center justify-center text-center flex-grow">
         <div className="relative mb-12 mt-12">
@@ -1058,7 +1266,7 @@ const App = () => {
           clearInterval(intervalo);
           setTimeout(() => {
             setStep('dashboard');
-            setCurrentView('dashboard');
+            setCurrentView(getVistaTrasAcceso());
           }, 400);
         }
       }, 50);
@@ -1120,7 +1328,7 @@ const App = () => {
             setUsername(name);
             setProfileNombre(name);
             setStep('dashboard');
-            setCurrentView('dashboard');
+            setCurrentView(getVistaTrasAcceso());
           }, 400);
         }
       }, 50);
@@ -1163,7 +1371,9 @@ const App = () => {
   // ─── PANTALLA 0: BIENVENIDA (nueva pantalla de entrada) ───
   const RenderInicio = () => {
     useEffect(() => {
-      speak('Bienvenidos a VES. Toca el logo para entrar a la aplicación, o Usuario Administrador para ajustar tus datos y preferencias.');
+      if (bienvenidaP01Ref.current) return;
+      bienvenidaP01Ref.current = true;
+      speak('Bienvenidos a AMA. Toca el logo para entrar a la aplicación, o Usuario Administrador para ajustar tus datos y preferencias.');
     }, []);
     return (
       <div className="flex flex-col h-full overflow-hidden bg-white animate-in fade-in duration-500 px-6 relative">
@@ -1181,10 +1391,10 @@ const App = () => {
               className="cursor-pointer active:scale-95 transition-transform focus:outline-none focus:ring-4 focus:ring-blue-300 rounded-3xl"
               aria-label="Entrar a la App"
             >
-              <BrandLogo className="w-64 mb-1" />
+              <img src={logoAma} alt="Logotipo de AMA: una paloma con una rama de olivo sobre un círculo verde y amarillo" className="w-64 mb-1 mx-auto" />
             </button>
           </div>
-          <button onClick={() => openWhereAmI("Pantalla de Bienvenida", "estás en la pantalla de bienvenida de VES. Toca el logo para entrar a la aplicación, o Usuario Administrador para ajustar tus datos y preferencias.")}
+          <button onClick={() => openWhereAmI("Pantalla de Bienvenida", "estás en la pantalla de bienvenida de AMA. Toca el logo para entrar a la aplicación, o Usuario Administrador para ajustar tus datos y preferencias.")}
             onMouseEnter={() => announceMenuOption('¿Dónde estoy?')}
             className="text-2xl font-black text-slate-600 underline active:scale-95 transition-transform"
             aria-label="¿Dónde estoy? Explicación de esta pantalla">
@@ -1243,7 +1453,7 @@ const App = () => {
           aria-label="Volver a la pantalla anterior">
           <ArrowLeft size={36} className="mr-2" /> VOLVER
         </button>
-        <FotoAyudaCiudadano onAyudaEscrita={abrirDondeEstoyPantalla2} mostrarNombre />
+        <FotoAyudaCiudadano onAyudaEscrita={abrirDondeEstoyPantalla2} />
       </div>
       <div className="flex flex-col items-center justify-center flex-grow gap-2">
         <div className="w-full p-3 bg-slate-50 border-4 border-blue-900 rounded-[30px] shadow-md flex flex-col gap-2 text-center">
@@ -1394,7 +1604,7 @@ const App = () => {
       if (username.trim() && code.trim()) {
         setProfileNombre(username);
         setStep('dashboard');
-        setCurrentView('dashboard');
+        setCurrentView(getVistaTrasAcceso());
       }
     };
     // El input de nombre usa username (estado global) directamente.
@@ -1402,25 +1612,14 @@ const App = () => {
     // ningún componente anidado dentro de este render — todo es JSX plano.
     return (
       <div className="flex flex-col p-5 bg-white min-h-full animate-in fade-in duration-500 pb-5 relative">
-        <div className="flex items-center justify-between mt-3 mb-3">
-          <button onClick={() => setStep('login')} onMouseEnter={() => announceMenuOption('Volver')} aria-label="Volver" className="text-blue-950 active:scale-95 transition-transform">
-            <ArrowLeft size={40} />
+        {/* Encabezado igual que P-02: VOLVER + foto "Ayudas". */}
+        <div className="flex items-center justify-between w-full mt-2 mb-4">
+          <button onClick={() => setStep('login')} onMouseEnter={() => announceMenuOption('Volver')}
+            className="flex items-center text-blue-950 font-black text-2xl py-2 w-max active:scale-95 transition-transform"
+            aria-label="Volver a la pantalla anterior">
+            <ArrowLeft size={36} className="mr-2" /> VOLVER
           </button>
-          <div className="flex flex-col items-center gap-1">
-            <BrandLogo className="w-12" />
-            <button
-              onClick={() => openWhereAmI("Usuario", `${username || 'Hola'}, aquí escribes tu nombre y tu código de acceso de 4 dígitos, y luego tocas Entrar Ahora.`)}
-              onMouseEnter={() => announceMenuOption('¿Dónde estoy?')}
-              className="text-base font-bold text-slate-600 underline active:scale-95 transition-transform"
-              aria-label="¿Dónde estoy? Explicación de esta pantalla"
-            >
-              ¿Dónde estoy?
-            </button>
-          </div>
-        </div>
-        <div className="flex flex-col items-center mb-3">
-          <UserPhoto className="w-32" />
-          {profileNombre && <span className="text-lg font-black text-blue-900 mt-2">{profileNombre}</span>}
+          <FotoAyudaCiudadano onAyudaEscrita={() => openWhereAmI("Usuario", `${username || 'Hola'}, aquí escribes tu nombre y tu código de acceso de 4 dígitos, y luego tocas Entrar Ahora.`)} />
         </div>
         <div className="flex flex-col flex-grow justify-center gap-3">
           <h2 className="text-2xl font-black text-emerald-800 text-center leading-tight">Usuario</h2>
@@ -1473,7 +1672,7 @@ const App = () => {
       if (code.trim()) {
         setProfileNombre(username);
         setStep('dashboard');
-        setCurrentView('dashboard');
+        setCurrentView(getVistaTrasAcceso());
       }
     };
     return (
@@ -1510,7 +1709,7 @@ const App = () => {
   };
 
   const RenderModeSelection = () => (
-    <div className="flex flex-col p-6 bg-slate-50 min-h-full pb-32 animate-in fade-in duration-300 relative">
+    <div className="flex flex-col p-6 bg-emerald-50 min-h-full pb-32 animate-in fade-in duration-300 relative">
       <EncabezadoG onBack={() => setStep('login')} />
       <p className="text-xl font-bold text-emerald-700 mb-4 flex items-center gap-1">
         <CheckCircle2 size={20} /> Hola, {username || "Amigo"}
@@ -1546,12 +1745,14 @@ const App = () => {
       icon: <it.Icon size={iconSize} color="white" />,
     }));
 
+    // Si en P-29 están marcadas las dos opciones (VES y TAM), se pasa por el selector
+    // P-06, que ya lleva el menú de hamburguesa: aquí basta con VOLVER a P-06.
+    // Si solo hay una marcada, P-06 se salta, así que P-08 necesita el hamburguesa
+    // para poder llegar al Perfil y salir de la app.
+    const dosOpcionesSelector = selectorVisible.ves && selectorVisible.tam;
     return (
-      <div className="flex flex-col p-6 bg-slate-50 min-h-full pb-32 animate-in fade-in duration-300 relative">
-        <EncabezadoG onBack={() => setCurrentView('dashboard')} />
-        <p className="text-xl font-bold text-emerald-700 mb-4 flex items-center gap-1">
-          <CheckCircle2 size={20} /> Hola, {username || "Amigo"}
-        </p>
+      <div className="flex flex-col p-6 bg-emerald-50 min-h-full pb-32 animate-in fade-in duration-300 relative">
+        <EncabezadoG onBack={() => setCurrentView('selector')} conMenu={!dosOpcionesSelector} />
         <div className="space-y-4">
           {CONTENEDORES.map((cont) => {
             const itemsDelContenedor = itemsTodos.filter((item) => item.categoria === cont.id && menuVisible[item.key]);
@@ -1565,8 +1766,10 @@ const App = () => {
                 className={`w-full text-left ${cont.headerBg} border-4 ${cont.headerBorder} ${cont.headerText} rounded-[25px] px-5 py-4 transition-colors active:scale-95 flex items-center justify-between gap-3`}
               >
                 <span>
-                  <span className="text-2xl font-black flex items-center gap-2">
-                    <span aria-hidden="true">{cont.emoji}</span> {cont.titulo}
+                  <span className="flex items-center gap-2">
+                    <span className="text-2xl font-black leading-none">
+                      <span className="text-3xl">{cont.titulo.charAt(0)}</span>{cont.titulo.slice(1)}
+                    </span>
                     <span className="text-sm font-bold opacity-70">· {itemsDelContenedor.length} {itemsDelContenedor.length !== 1 ? 'opciones' : 'opción'}</span>
                   </span>
                   <span className="block text-base font-bold mt-1 opacity-80">{cont.frase}</span>
@@ -1578,7 +1781,7 @@ const App = () => {
         </div>
         {itemsTodos.every(item => !menuVisible[item.key]) && (
           <div className="bg-amber-50 border-4 border-amber-300 p-6 rounded-[30px] text-center my-4">
-            <p className="text-xl font-bold text-amber-900 leading-relaxed">No tienes opciones activadas. Ve a Perfil → Configurar el Menú Principal para activar algunas.</p>
+            <p className="text-xl font-bold text-amber-900 leading-relaxed">No tienes opciones activadas. Ve a Perfil → Configura el Menú VES para activar algunas.</p>
           </div>
         )}
         <div className="mt-6">
@@ -1616,11 +1819,11 @@ const App = () => {
     }, [cont.id]);
 
     return (
-      <div className="flex flex-col p-6 bg-slate-50 min-h-full pb-32 animate-in fade-in duration-300 relative">
+      <div className="flex flex-col p-6 bg-emerald-50 min-h-full pb-32 animate-in fade-in duration-300 relative">
         <EncabezadoG onBack={() => setCurrentView('dashboard')} />
         <div className={`${cont.activeBg} ${cont.activeBorder} border-4 text-white rounded-[25px] px-5 py-4 mb-6`}>
-          <h2 className="text-2xl font-black flex items-center gap-2">
-            <span aria-hidden="true">{cont.emoji}</span> {cont.titulo}
+          <h2 className="text-2xl font-black leading-none">
+            <span className="text-3xl">{cont.titulo.charAt(0)}</span>{cont.titulo.slice(1)}
           </h2>
           <p className="text-base font-bold text-white/90 mt-1">{cont.frase}</p>
         </div>
@@ -1639,13 +1842,6 @@ const App = () => {
             </button>
           ))}
         </div>
-        <button
-          onClick={() => setCurrentView('dashboard')}
-          onMouseEnter={() => announceMenuOption('Volver')}
-          className="w-full mt-8 py-5 bg-white border-4 border-slate-300 text-slate-700 rounded-[30px] font-black text-xl active:scale-95 transition-transform flex items-center justify-center gap-3"
-        >
-          <ArrowLeft size={28} /> VOLVER
-        </button>
         <div className="absolute bottom-2 left-0 right-0 text-center text-[10px] text-black font-bold">P-35</div>
       </div>
     );
@@ -1655,7 +1851,7 @@ const App = () => {
     const filteredData = activeFilter === 'Todos' ? data : data.filter(item => item.zona === activeFilter);
     const isRutaSegura = title === "Ruta Segura";
     return (
-      <div className="flex flex-col p-6 bg-white min-h-full pb-36 relative">
+      <div className="flex flex-col p-6 bg-emerald-50 min-h-full pb-36 relative">
         <EncabezadoG onBack={handleBackNavigation} />
         <div className="flex items-center gap-4 mb-6">
           <div className={`p-4 rounded-full ${colorClass.replace('text-', 'bg-').split(' ')[0]} text-white shadow-lg`}>
@@ -1777,7 +1973,7 @@ const App = () => {
       const speak = (texto) => {
         if ('speechSynthesis' in window) {
           window.speechSynthesis.cancel();
-          const utterance = new SpeechSynthesisUtterance(texto);
+          const utterance = new SpeechSynthesisUtterance(normalizarVoz(texto));
           utterance.lang = 'es-MX';
           utterance.rate = 0.95;
           window.speechSynthesis.speak(utterance);
@@ -1891,47 +2087,13 @@ const App = () => {
               </div>
             </div>
 
-            {/* SELECCIÓN DE CONTACTOS (máx. 2 de la lista registrada) */}
-            <div className="p-5 bg-white rounded-[25px] border-4 border-slate-200 space-y-4 shadow-sm">
-              <h3 className="text-xl font-black text-slate-900">Contactos visibles en emergencia</h3>
-              <p className="text-base font-bold text-slate-500">Elige hasta 2 contactos (de tu lista ya registrada) que aparecerán en la pantalla de emergencia.</p>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between gap-4">
-                  <span className="text-lg font-black text-blue-800">👤 {contact2Name}</span>
-                  <button onClick={() => setEmergenciaContacto2Activo(v => !v)}
-                    role="switch" aria-checked={emergenciaContacto2Activo} aria-label={`Mostrar a ${contact2Name} en emergencia`}
-                    className={`w-20 h-11 rounded-full p-1 transition-colors duration-200 shrink-0 border-2 ${emergenciaContacto2Activo ? 'bg-blue-700 border-blue-900' : 'bg-slate-300 border-slate-400'}`}>
-                    <div className={`bg-white w-8 h-8 rounded-full shadow-md transform transition-transform duration-200 ${emergenciaContacto2Activo ? 'translate-x-9' : 'translate-x-0'}`}></div>
-                  </button>
-                </div>
-                <div className="flex items-center justify-between gap-4">
-                  <span className="text-lg font-black text-emerald-800">👤 {contact3Name}</span>
-                  <button onClick={() => setEmergenciaContacto3Activo(v => !v)}
-                    role="switch" aria-checked={emergenciaContacto3Activo} aria-label={`Mostrar a ${contact3Name} en emergencia`}
-                    className={`w-20 h-11 rounded-full p-1 transition-colors duration-200 shrink-0 border-2 ${emergenciaContacto3Activo ? 'bg-emerald-700 border-emerald-900' : 'bg-slate-300 border-slate-400'}`}>
-                    <div className={`bg-white w-8 h-8 rounded-full shadow-md transform transition-transform duration-200 ${emergenciaContacto3Activo ? 'translate-x-9' : 'translate-x-0'}`}></div>
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* EDICIÓN DE NOMBRES Y TELÉFONOS */}
+            {/* EDICIÓN DEL CONTACTO PRINCIPAL DE EMERGENCIA */}
             <form onSubmit={handleSave} className="space-y-4">
-              <h3 className="text-2xl font-black text-red-900">Editar datos de contactos</h3>
+              <h3 className="text-2xl font-black text-red-900">Contacto principal de emergencia</h3>
               <div className="bg-white p-5 rounded-3xl border-4 border-red-200 space-y-3">
                 <h4 className="text-xl font-black text-red-700">🚨 Contacto Principal (Botón Rojo)</h4>
                 <input type="text" value={contact1Name} onChange={(e) => setContact1Name(e.target.value)} placeholder="Nombre / Título" aria-label="Nombre del contacto principal" className="w-full p-4 text-xl border-4 border-slate-300 rounded-2xl font-bold bg-slate-50 focus:border-red-700 outline-none" required />
                 <input type="text" value={contact1Phone} onChange={(e) => setContact1Phone(e.target.value)} placeholder="Número de Teléfono" aria-label="Teléfono del contacto principal" className="w-full p-4 text-xl border-4 border-slate-300 rounded-2xl font-bold bg-slate-50 focus:border-red-700 outline-none" required />
-              </div>
-              <div className="bg-white p-5 rounded-3xl border-4 border-blue-200 space-y-3">
-                <h4 className="text-xl font-black text-blue-800">👤 Contacto Secundario</h4>
-                <input type="text" value={contact2Name} onChange={(e) => setContact2Name(e.target.value)} placeholder="Nombre / Título" aria-label="Nombre del contacto secundario" className="w-full p-4 text-xl border-4 border-slate-300 rounded-2xl font-bold bg-slate-50 focus:border-blue-800 outline-none" required />
-                <input type="text" value={contact2Phone} onChange={(e) => setContact2Phone(e.target.value)} placeholder="Número de Teléfono" aria-label="Teléfono del contacto secundario" className="w-full p-4 text-xl border-4 border-slate-300 rounded-2xl font-bold bg-slate-50 focus:border-blue-800 outline-none" required />
-              </div>
-              <div className="bg-white p-5 rounded-3xl border-4 border-emerald-200 space-y-3">
-                <h4 className="text-xl font-black text-emerald-800">👤 Contacto Opcional</h4>
-                <input type="text" value={contact3Name} onChange={(e) => setContact3Name(e.target.value)} placeholder="Nombre / Título" aria-label="Nombre del contacto opcional" className="w-full p-4 text-xl border-4 border-slate-300 rounded-2xl font-bold bg-slate-50 focus:border-emerald-800 outline-none" required />
-                <input type="text" value={contact3Phone} onChange={(e) => setContact3Phone(e.target.value)} placeholder="Número de Teléfono" aria-label="Teléfono del contacto opcional" className="w-full p-4 text-xl border-4 border-slate-300 rounded-2xl font-bold bg-slate-50 focus:border-emerald-800 outline-none" required />
               </div>
               <button type="submit" className="w-full py-6 bg-red-700 text-white rounded-3xl font-black text-2xl shadow-lg border-b-8 border-red-950 active:translate-y-1">
                 GUARDAR CAMBIOS
@@ -2422,7 +2584,7 @@ const App = () => {
       }
     };
     return (
-      <div className="flex flex-col p-6 bg-white min-h-full pb-36 animate-in fade-in duration-300 relative">
+      <div className="flex flex-col p-6 bg-emerald-50 min-h-full pb-36 animate-in fade-in duration-300 relative">
         <EncabezadoG onBack={handleBackNavigation} />
         <div className="flex items-center gap-4 mb-6">
           <div className="p-4 rounded-full bg-emerald-600 text-white shadow-lg">
@@ -2512,7 +2674,7 @@ const App = () => {
       </div>
     );
     return (
-      <div className="flex flex-col p-6 bg-white min-h-full pb-36 animate-in fade-in duration-300 text-left relative">
+      <div className="flex flex-col p-6 bg-emerald-50 min-h-full pb-36 animate-in fade-in duration-300 text-left relative">
         <EncabezadoG onBack={handleBackNavigation} />
         <div className="flex items-center gap-4 mb-6">
           <div className="p-4 rounded-full bg-red-100 text-red-600 shadow-lg">
@@ -2677,7 +2839,7 @@ const App = () => {
     ];
     const sesionHoy = sesiones.find((s) => s.fecha === 'Hoy');
     return (
-      <div className="flex flex-col p-6 bg-white min-h-full pb-32 relative">
+      <div className="flex flex-col p-6 bg-emerald-50 min-h-full pb-32 relative">
         <EncabezadoG onBack={handleBackNavigation} />
         <div className="flex items-center gap-4 mb-4">
           <div className="p-4 rounded-full bg-teal-600 text-white shadow-lg">
@@ -2737,7 +2899,7 @@ const App = () => {
       { id: 3, icono: <ShieldCheck size={24} className="text-blue-600" />, titulo: "Perfil Actualizado", texto: "Tus preferencias de asistencia y modos de vista se guardaron con éxito.", tiempo: "Lunes", bg: "bg-blue-50", border: "border-blue-200" }
     ];
     return (
-      <div className="flex flex-col p-6 bg-white min-h-full pb-36 animate-in fade-in duration-300 text-left relative">
+      <div className="flex flex-col p-6 bg-emerald-50 min-h-full pb-36 animate-in fade-in duration-300 text-left relative">
         <EncabezadoG onBack={handleBackNavigation} />
         <div className="flex items-center gap-4 mb-6">
           <div className="p-4 rounded-full bg-amber-100 text-amber-600 shadow-lg">
@@ -2768,7 +2930,7 @@ const App = () => {
   };
 
   const RenderContactos = () => (
-    <div className="flex flex-col p-6 bg-slate-50 min-h-full pb-32 relative">
+    <div className="flex flex-col p-6 bg-emerald-50 min-h-full pb-32 relative">
       <EncabezadoG onBack={handleBackNavigation} />
       <div className="flex items-center gap-4 mb-6">
         <div className="p-4 rounded-full bg-blue-100 text-blue-600 shadow-lg">
@@ -3090,7 +3252,7 @@ const App = () => {
   };
 
   const RenderGuiaDigital = () => (
-    <div className="flex flex-col p-6 bg-slate-50 min-h-full pb-32 relative">
+    <div className="flex flex-col p-6 bg-emerald-50 min-h-full pb-32 relative">
       <EncabezadoG onBack={handleBackNavigation} />
       <div className="flex items-center gap-4 mb-6">
         <div className="p-4 rounded-full bg-purple-200 text-purple-800 shadow-lg">
@@ -3136,7 +3298,7 @@ const App = () => {
       { id: 4, tipo: 'foto', categoria: 'Otros', titulo: 'Paseo por la Rambla', img: 'https://images.unsplash.com/photo-1505765050516-f72dcac9c60e?w=300&auto=format&fit=crop&q=60' },
     ];
     return (
-      <div className="flex flex-col p-6 bg-white min-h-full pb-32 relative">
+      <div className="flex flex-col p-6 bg-emerald-50 min-h-full pb-32 relative">
         <EncabezadoG onBack={handleBackNavigation} />
         <div className="flex items-center gap-4 mb-6">
           <div className="p-4 rounded-full bg-amber-600 text-white shadow-lg">
@@ -3215,7 +3377,7 @@ const App = () => {
     return (
       <div className="flex flex-col p-6 bg-white min-h-full pb-32 relative">
         <EncabezadoG onBack={handleBackNavigation} />
-        <h2 className="text-3xl font-black text-blue-900 mb-2">Configurar el Menú Principal</h2>
+        <h2 className="text-3xl font-black text-blue-900 mb-2">Configura el Menú VES</h2>
         <p className="text-lg font-bold text-slate-600 mb-4 leading-relaxed">
           Elige qué opciones quieres ver en tu Panel Principal y cómo se llaman (máx. 25 caracteres, solo el nombre). "Pedir Ayuda" siempre estará visible.
         </p>
@@ -3270,8 +3432,8 @@ const App = () => {
                   className={`w-full text-left border-4 rounded-[25px] px-5 py-4 transition-colors active:scale-95 flex items-center justify-between gap-3 ${abierto ? `${cont.activeBg} ${cont.activeBorder} text-white` : `${cont.headerBg} ${cont.headerBorder} ${cont.headerText}`}`}
                 >
                   <span>
-                    <span className="text-2xl font-black flex items-center gap-2">
-                      <span aria-hidden="true">{cont.emoji}</span> {cont.titulo}
+                    <span className="text-2xl font-black leading-none">
+                      <span className="text-3xl">{cont.titulo.charAt(0)}</span>{cont.titulo.slice(1)}
                     </span>
                     <span className={`block text-base font-bold mt-1 ${abierto ? 'text-white/90' : 'opacity-80'}`}>{cont.frase}</span>
                   </span>
@@ -3372,7 +3534,7 @@ const App = () => {
     };
 
     return (
-      <div className="flex flex-col p-6 bg-white min-h-full pb-32 relative">
+      <div className="flex flex-col p-6 bg-emerald-50 min-h-full pb-32 relative">
         <EncabezadoG onBack={handleBackNavigation} />
         <h2 className="text-3xl font-black text-blue-900 mb-2">💬 Comentarios y Sugerencias</h2>
         <p className="text-lg font-bold text-slate-500 mb-5 leading-relaxed">
@@ -3447,7 +3609,7 @@ const App = () => {
       speak('Demo de la App. Aquí te explicamos, paso a paso, todo lo que puedes hacer en VES.');
     }, []);
     return (
-      <div className="flex flex-col p-6 bg-white min-h-full pb-32 relative">
+      <div className="flex flex-col p-6 bg-emerald-50 min-h-full pb-32 relative">
         <EncabezadoG onBack={handleBackNavigation} />
         <div className="flex items-center gap-4 mb-4">
           <div className="p-4 rounded-full bg-indigo-600 text-white shadow-lg">
@@ -3482,6 +3644,64 @@ const App = () => {
         </div>
 
         <div className="absolute bottom-2 left-0 right-0 text-center text-[10px] text-black font-bold">P-34</div>
+      </div>
+    );
+  };
+
+  // ─── CONFIGURA MENÚ PRINCIPAL (P-29): activa/desactiva las 2 opciones de P-06 ───
+  const RenderConfigurarMenuPrincipal = () => {
+    const opciones = [
+      { key: 'ves', nombre: 'Usar VES', sub: 'Tu Panel Principal (P-08)' },
+      { key: 'tam', nombre: 'Usar TAM', sub: 'Programas de ayuda (P-40)' },
+    ];
+    // Nunca se permite dejar las dos apagadas: siempre debe quedar al menos una.
+    const toggleOpcion = (key) => {
+      setSelectorVisible((prev) => {
+        const siguiente = { ...prev, [key]: !prev[key] };
+        if (!siguiente.ves && !siguiente.tam) {
+          speak('Debes dejar activa al menos una opción.');
+          return prev;
+        }
+        return siguiente;
+      });
+    };
+    const soloUna = selectorVisible.ves !== selectorVisible.tam;
+    return (
+      <div className="flex flex-col p-6 bg-white min-h-full pb-32 relative">
+        <EncabezadoG onBack={handleBackNavigation} />
+        <h2 className="text-3xl font-black text-blue-900 mb-2">Configura Menú Principal</h2>
+        <p className="text-lg font-bold text-slate-600 mb-6 leading-relaxed">
+          Elige qué aparece al entrar en la aplicación. Debes dejar activa al menos una.
+          Si dejas solo una, al entrar irás directo a esa pantalla sin pasar por el selector.
+        </p>
+        <div className="space-y-4">
+          {opciones.map((o) => (
+            <div key={o.key} className="p-5 bg-slate-50 rounded-[30px] border-4 border-slate-200 flex items-center justify-between gap-4 shadow-sm">
+              <span className="leading-tight">
+                <span className="block text-xl font-black text-slate-900">{o.nombre}</span>
+                <span className="block text-sm font-bold text-slate-500 mt-1">{o.sub}</span>
+              </span>
+              <button
+                onClick={() => toggleOpcion(o.key)}
+                role="switch"
+                aria-checked={selectorVisible[o.key]}
+                className={`w-20 h-11 rounded-full p-1 transition-colors duration-200 focus:outline-none shrink-0 border-2 ${selectorVisible[o.key] ? 'bg-emerald-600 border-emerald-800' : 'bg-slate-300 border-slate-400'}`}
+                aria-label={`${selectorVisible[o.key] ? 'Desactivar' : 'Activar'} ${o.nombre}`}
+              >
+                <div className={`bg-white w-8 h-8 rounded-full shadow-md transform transition-transform duration-200 ${selectorVisible[o.key] ? 'translate-x-9' : 'translate-x-0'}`}></div>
+              </button>
+            </div>
+          ))}
+        </div>
+        {soloUna && (
+          <div className="mt-6 bg-blue-50 border-4 border-blue-200 rounded-2xl p-4 flex items-start gap-3">
+            <Info size={24} className="text-blue-700 shrink-0 mt-0.5" />
+            <p className="text-base font-bold text-blue-900 leading-snug">
+              Al entrar irás directo a {selectorVisible.ves ? 'tu Panel Principal (VES)' : 'los Programas de ayuda (TAM)'}.
+            </p>
+          </div>
+        )}
+        <div className="absolute bottom-2 left-0 right-0 text-center text-[10px] text-black font-bold">P-29</div>
       </div>
     );
   };
@@ -3556,7 +3776,7 @@ const App = () => {
       });
     };
     return (
-    <div className="flex flex-col p-6 bg-white min-h-full pb-32 relative">
+    <div className="flex flex-col p-6 bg-emerald-50 min-h-full pb-32 relative">
       <EncabezadoG onBack={handleBackNavigation} />
       <div className="flex items-center gap-4 mb-6">
         <div className="p-4 rounded-full bg-emerald-600 text-white shadow-lg">
@@ -3638,6 +3858,8 @@ const App = () => {
     if (step === 'emergencia_login') return <RenderEmergencia />;
 
     switch(currentView) {
+      case 'selector': return <RenderSelector />;
+      case 'tam': return <RenderTam />;
       case 'mode_selection': return <RenderDashboard />; // P-07 sin función, redirige al Panel Principal
       case 'compania': return RenderListView("Buscar Compañía", centrosMayores, "text-blue-900", <Users size={36}/>);
       case 'rutas': return RenderListView("Ruta Segura", rutasSeguras, "text-emerald-800", <MapPin size={36}/>, "¡LLEGUÉ AL PUNTO SEGURO!");
@@ -3659,6 +3881,7 @@ const App = () => {
       case 'guia_digital': return <RenderGuiaDigital />;
       case 'fotos_videos': return <RenderFotosVideos />;
       case 'configurar_menu': return RenderConfigurarMenu();
+      case 'configurar_menu_principal': return <RenderConfigurarMenuPrincipal />;
       case 'comentarios': return <RenderComentarios />;
       case 'demo_app': return <RenderDemoApp />;
       case 'configurar_entrada': return <RenderConfigurarEntrada />;
@@ -3698,6 +3921,27 @@ const App = () => {
           <div className={`absolute inset-0 bg-slate-50 scroll-smooth ${step === 'login' ? 'overflow-hidden' : 'overflow-y-auto'}`}>
             {renderCurrentScreen()}
           </div>
+
+          {/* INDICADOR DE CONTINENTE (VES / TAM) — WCAG 3.2.6 (ayuda consistente:
+              misma posición exacta en todas las pantallas) y 1.4.1 (no depender solo
+              del color: además del fondo, un logo + texto dicen dónde estás).
+              Se muestra en todo el mundo VES y en el mundo TAM, no en el selector
+              P-06 ni antes de entrar. Queda por debajo de los modales (z-50). */}
+          {step === 'dashboard' && currentView !== 'selector' && (() => {
+            const esTam = currentView === 'tam';
+            return (
+              <div
+                className="absolute top-1.5 left-1.5 z-40 flex items-center gap-1.5 bg-white/95 border-2 border-slate-300 rounded-full pl-1 pr-2.5 py-0.5 shadow-md pointer-events-none"
+                role="img"
+                aria-label={esTam ? 'Estás en el continente TAM' : 'Estás en el continente VES'}
+              >
+                {esTam
+                  ? <img src={logoTam} alt="" className="w-6 h-6 rounded-full" />
+                  : <BrandLogo className="w-6" />}
+                <span className="text-xs font-black text-slate-700" aria-hidden="true">{esTam ? 'TAM' : 'VES'}</span>
+              </div>
+            );
+          })()}
 
           {/* MODAL GLOBAL "PEDIR AYUDA" (P-33) — compartido entre P-02 (Login) y P-08 (Panel Principal) */}
           {showPedirAyudaModal && (
@@ -3788,7 +4032,7 @@ const App = () => {
                 <div className="bg-emerald-50 p-6 rounded-3xl border-4 border-emerald-200 mb-10 w-full animate-pulse">
                   <Sparkles size={48} className="text-emerald-600 mx-auto mb-4" />
                   <p className="text-2xl font-bold text-gray-700 leading-tight">
-                    ¡Hemos guardado tu Menú Principal!<br/>
+                    ¡Hemos guardado tu Menú VES!<br/>
                     <span className="text-emerald-800 text-2xl font-black mt-2 block">Tus opciones y nombres quedaron guardados.</span>
                   </p>
                 </div>
@@ -3960,56 +4204,51 @@ const App = () => {
           )}
 
           {isQuickMenuOpen && (
-            <div role="dialog" aria-modal="true" aria-label="Menú Rápido" className="absolute inset-0 bg-blue-950 z-50 p-8 flex flex-col items-center justify-center text-center animate-in zoom-in duration-300 overflow-y-auto">
-              {/* FILA SUPERIOR (estilo Encabezado G): VOLVER a la izquierda + foto del
-                  ciudadano a la derecha. 1 toque en la foto = ayuda en voz del Menú
-                  Rápido; 2 toques = ayuda escrita del Menú Rápido. */}
+            <div role="dialog" aria-modal="true" aria-label="Menú Rápido" className="absolute inset-0 bg-blue-950 z-50 p-8 flex flex-col animate-in slide-in-from-right duration-300 overflow-y-auto text-white text-left">
+              {/* Encabezado en la misma posición que los demás menús: VOLVER + foto "Ayudas". */}
               <div className="flex items-center justify-between w-full mt-3 mb-6">
                 <button
                   onClick={() => { setIsQuickMenuOpen(false); quickMenuBackAction(); }}
                   onMouseEnter={() => announceMenuOption('Volver')}
-                  className="flex items-center text-white font-black text-2xl py-2 w-max"
+                  className="flex items-center text-white font-black text-2xl py-2 w-max active:scale-95 transition-transform"
+                  aria-label="Volver a la pantalla anterior"
                 >
                   <ArrowLeft size={36} className="mr-2" /> VOLVER
                 </button>
                 <FotoAyudaCiudadano
-                  onAyudaEscrita={() => openWhereAmI("Menú Rápido", `${username || 'Hola'}, estás en el menú rápido. Puedes ir al Panel Principal, hablar con iAyuda, Pedir Ayuda si es una emergencia, tocar Volver para regresar, o Cerrar para irme para salir de la aplicación.`)}
+                  onAyudaEscrita={() => openWhereAmI("Menú Rápido", `${username || 'Hola'}, estás en el menú rápido. Puedes hablar con iAyuda, Pedir Ayuda si es una emergencia, tocar Volver para regresar, o Cerrar para irme para salir de la aplicación.`)}
                 />
               </div>
-              <div className="w-full max-w-sm space-y-4">
-                {/* Atajo: ir directo al Panel Principal desde cualquier pantalla */}
-                <button
-                  onClick={() => { setIsQuickMenuOpen(false); setCurrentView('dashboard'); }}
-                  onMouseEnter={() => announceMenuOption('Ir al Panel Principal')}
-                  className="w-full py-6 bg-white text-blue-950 rounded-[30px] font-black text-2xl shadow-xl active:scale-95 transition-transform flex items-center justify-center gap-3"
-                >
-                  <Menu size={32} /> Panel Principal
-                </button>
-                {/* Atajo: abrir el asistente iAyuda */}
-                <button
-                  onClick={() => { setIsQuickMenuOpen(false); setIsAssistantOpen(true); }}
-                  onMouseEnter={() => announceMenuOption('Hablar con iAyuda')}
-                  className="w-full py-6 bg-amber-400 text-blue-950 rounded-[30px] font-black text-2xl shadow-xl active:scale-95 transition-transform flex items-center justify-center gap-3"
-                >
-                  <HelpCircle size={32} /> Hablar con iAyuda
-                </button>
-                {/* Atajo: pedir ayuda de emergencia sin volver al Panel */}
-                <button
-                  onClick={() => { setIsQuickMenuOpen(false); setShowPedirAyudaModal(true); }}
-                  onMouseEnter={() => announceMenuOption('Pedir Ayuda')}
-                  className="w-full py-6 bg-red-700 text-white rounded-[30px] font-black text-2xl shadow-xl border-b-8 border-red-900 active:translate-y-1 transition-transform flex items-center justify-center gap-3"
-                >
-                  <PhoneCall size={32} /> Pedir Ayuda
-                </button>
-                <div className="h-px bg-white/20 my-2" aria-hidden="true"></div>
-                {/* Salir de la aplicación */}
-                <button
-                  onClick={() => { setIsQuickMenuOpen(false); handleOpenExitModal(); }}
-                  onMouseEnter={() => announceMenuOption('Cerrar para irme')}
-                  className="w-full py-6 bg-blue-900 text-white rounded-[30px] font-black text-2xl shadow-xl active:scale-95 transition-transform flex items-center justify-center gap-3"
-                >
-                  <X size={32} /> Cerrar para irme
-                </button>
+              <div className="w-full max-w-sm mx-auto flex flex-col flex-grow">
+                {/* Menús principales, centrados verticalmente en el espacio disponible */}
+                <div className="flex-grow flex flex-col justify-center space-y-4">
+                  {/* Atajo: abrir el asistente iAyuda */}
+                  <button
+                    onClick={() => { setIsQuickMenuOpen(false); setIsAssistantOpen(true); }}
+                    onMouseEnter={() => announceMenuOption('Hablar con iAyuda')}
+                    className="w-full py-6 bg-amber-400 text-blue-950 rounded-[30px] font-black text-2xl shadow-xl active:scale-95 transition-transform flex items-center justify-center gap-3"
+                  >
+                    <HelpCircle size={32} /> Hablar con iAyuda
+                  </button>
+                  {/* Atajo: pedir ayuda de emergencia sin volver al Panel */}
+                  <button
+                    onClick={() => { setIsQuickMenuOpen(false); setShowPedirAyudaModal(true); }}
+                    onMouseEnter={() => announceMenuOption('Pedir Ayuda')}
+                    className="w-full py-6 bg-red-700 hover:bg-red-800 text-white rounded-[30px] font-black text-2xl uppercase shadow-xl border-b-8 border-red-900 animate-pulse transition-colors flex items-center justify-center gap-3"
+                  >
+                    <PhoneCall size={32} /> Pedir Ayuda
+                  </button>
+                </div>
+                {/* Salir de la aplicación: separado, al fondo */}
+                <div className="mt-10 pt-6 border-t-2 border-white/20 mb-10">
+                  <button
+                    onClick={() => { setIsQuickMenuOpen(false); handleOpenExitModal(); }}
+                    onMouseEnter={() => announceMenuOption('Cerrar para irme')}
+                    className="w-full py-6 bg-blue-900 text-white rounded-[30px] font-black text-2xl shadow-xl active:scale-95 transition-transform flex items-center justify-center gap-3"
+                  >
+                    <X size={32} /> Cerrar para irme
+                  </button>
+                </div>
               </div>
               <div className="absolute bottom-2 left-0 right-0 text-center text-[10px] text-white/60 font-bold">P-26</div>
             </div>
@@ -4091,9 +4330,12 @@ const App = () => {
                   onAyudaEscrita={() => openWhereAmI("Salir de la App", `${username || 'Hola'}, estás en la pantalla de confirmación para salir. Toca Sí, Salir Ahora para cerrar la aplicación, o Volver para quedarte.`)}
                 />
               </div>
-              <h2 className="text-4xl font-black text-white mb-6 leading-tight">¿Deseas salir de la aplicación?</h2>
-              <p className="text-2xl font-bold text-blue-200 mb-12">Tendrás que volver a ingresar tu nombre para entrar.</p>
-              <div className="w-full mt-auto space-y-4 mb-10">
+              {/* Mensaje centrado verticalmente entre el encabezado y el botón */}
+              <div className="flex-grow flex flex-col items-center justify-center gap-4">
+                <h2 className="text-4xl font-black text-white leading-tight">¿Deseas salir de la aplicación?</h2>
+                <p className="text-2xl font-bold text-blue-200">Tendrás que volver a ingresar tu nombre para entrar.</p>
+              </div>
+              <div className="w-full space-y-4 mb-10">
                 <button onClick={() => { setIsExitModalOpen(false); setIsMenuOpen(false); setStep('inicio'); }} className="w-full py-6 bg-red-600 text-white rounded-[30px] font-black text-2xl shadow-xl active:scale-95 transition-colors border-4 border-red-800">
                   SÍ, SALIR AHORA
                 </button>
@@ -4115,6 +4357,18 @@ const App = () => {
                 />
               </div>
               <nav className="grid grid-cols-2 gap-4">
+                <button onClick={() => { setCurrentView('configurar_entrada'); setIsMenuOpen(false); setEnteredFromMenu(true); }} onMouseEnter={() => announceMenuOption('Acceso a la App')} className="flex flex-col items-center justify-center text-center gap-2 p-4 bg-white/10 rounded-2xl hover:bg-white/15 active:scale-95 transition-transform">
+                  <Fingerprint size={32} className="text-amber-400" />
+                  <span className="text-lg font-bold leading-tight">Acceso a la App</span>
+                </button>
+                <button onClick={() => { setCurrentView('configurar_menu_principal'); setIsMenuOpen(false); setEnteredFromMenu(true); }} onMouseEnter={() => announceMenuOption('Configura Menú Principal')} className="flex flex-col items-center justify-center text-center gap-2 p-4 bg-white/10 rounded-2xl hover:bg-white/15 active:scale-95 transition-transform">
+                  <LayoutGrid size={32} className="text-amber-400" />
+                  <span className="text-lg font-bold leading-tight">Configura Menú Principal</span>
+                </button>
+                <button onClick={() => { setCurrentView('configurar_menu'); setIsMenuOpen(false); setEnteredFromMenu(true); }} onMouseEnter={() => announceMenuOption('Configura el Menú VES')} className="flex flex-col items-center justify-center text-center gap-2 p-4 bg-white/10 rounded-2xl hover:bg-white/15 active:scale-95 transition-transform">
+                  <Menu size={32} className="text-amber-400" />
+                  <span className="text-lg font-bold leading-tight">Configura el Menú VES</span>
+                </button>
                 <button onClick={() => { setCurrentView('perfil'); setIsMenuOpen(false); setEnteredFromMenu(true); }} onMouseEnter={() => announceMenuOption('Datos Usuario')} className="flex flex-col items-center justify-center text-center gap-2 p-4 bg-white/10 rounded-2xl hover:bg-white/15 active:scale-95 transition-transform">
                   <Users size={32} className="text-amber-400" />
                   <span className="text-lg font-bold leading-tight">Datos Usuario</span>
@@ -4131,9 +4385,9 @@ const App = () => {
                   <HelpCircle size={32} className="text-amber-400" />
                   <span className="text-lg font-bold leading-tight">Modos de Asistencia</span>
                 </button>
-                <button onClick={() => { setCurrentView('talento'); setIsMenuOpen(false); setEnteredFromMenu(true); }} onMouseEnter={() => announceMenuOption('Talentos')} className="flex flex-col items-center justify-center text-center gap-2 p-4 bg-white/10 rounded-2xl hover:bg-white/15 active:scale-95 transition-transform">
+                <button onClick={() => { setCurrentView('talento'); setIsMenuOpen(false); setEnteredFromMenu(true); }} onMouseEnter={() => announceMenuOption('Mis Talentos')} className="flex flex-col items-center justify-center text-center gap-2 p-4 bg-white/10 rounded-2xl hover:bg-white/15 active:scale-95 transition-transform">
                   <Star size={32} className="text-amber-400" />
-                  <span className="text-lg font-bold leading-tight">Talentos</span>
+                  <span className="text-lg font-bold leading-tight">Mis Talentos</span>
                 </button>
                 <button onClick={() => { setCurrentView('centro_vitalidad'); setIsMenuOpen(false); setEnteredFromMenu(true); }} onMouseEnter={() => announceMenuOption('Centro de Vitalidad')} className="flex flex-col items-center justify-center text-center gap-2 p-4 bg-white/10 rounded-2xl hover:bg-white/15 active:scale-95 transition-transform">
                   <Heart size={32} className="text-rose-400 animate-pulse" />
@@ -4147,19 +4401,13 @@ const App = () => {
                   <UserPlus size={32} className="text-amber-400" />
                   <span className="text-lg font-bold leading-tight">Crear Contactos</span>
                 </button>
-                <button onClick={() => { setCurrentView('configurar_menu'); setIsMenuOpen(false); setEnteredFromMenu(true); }} onMouseEnter={() => announceMenuOption('Configurar el Menú Principal')} className="flex flex-col items-center justify-center text-center gap-2 p-4 bg-white/10 rounded-2xl hover:bg-white/15 active:scale-95 transition-transform">
-                  <Menu size={32} className="text-amber-400" />
-                  <span className="text-lg font-bold leading-tight">Configurar el Menú Principal</span>
-                </button>
-                <button onClick={() => { setCurrentView('configurar_entrada'); setIsMenuOpen(false); setEnteredFromMenu(true); }} onMouseEnter={() => announceMenuOption('Acceso a la App')} className="flex flex-col items-center justify-center text-center gap-2 p-4 bg-white/10 rounded-2xl hover:bg-white/15 active:scale-95 transition-transform">
-                  <Fingerprint size={32} className="text-amber-400" />
-                  <span className="text-lg font-bold leading-tight">Acceso a la App</span>
-                </button>
+                {/* "Salir de la App" siempre sola y a todo el ancho al final:
+                    acción destructiva, separada del resto de opciones. */}
                 <button
                   type="button"
                   onClick={() => handleOpenExitModal(true)}
                   onMouseEnter={() => announceMenuOption('Salir de la App')}
-                  className="flex flex-col items-center justify-center text-center gap-2 p-4 bg-red-900/40 border-2 border-red-500 rounded-2xl hover:bg-red-900/60 active:scale-95 transition-transform"
+                  className="col-span-2 mt-2 flex flex-row items-center justify-center gap-3 p-4 bg-red-900/40 border-2 border-red-500 rounded-2xl hover:bg-red-900/60 active:scale-95 transition-transform"
                 >
                   <X size={32} className="text-red-400" />
                   <span className="text-lg font-black text-red-200 leading-tight">Salir de la App</span>
