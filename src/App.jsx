@@ -22,7 +22,7 @@ const fotoUsuarioPorDefecto = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3
 // nueva actualización. Formato solicitado: DÍA(2 dígitos)+MES(2 dígitos)+AÑO(4 dígitos) - HORA:MINUTO
 // Ejemplo: "27072026-19:05" = 27 de julio de 2026, 19:05. Se muestra, sin
 // ninguna acción asociada, en la esquina superior izquierda de P-01.
-const APP_VERSION = "03092026-14:40";
+const APP_VERSION = "04092026-20:31";
 
 /**
  * APP SÉNIOR - SUITE MÓVIL ACCESIBLE (SIMULADOR DE TELÉFONO)
@@ -473,12 +473,15 @@ const App = () => {
         clearInterval(intervalId);
         setSegundosRestantesAyuda(0);
         setShowPedirAyudaModal(false);
-        if (emergencia112Activa) {
-          setCallingContact({ name: '112 (URGENCIA)', phone: '112' });
-        } else if (emergenciaMasivosActiva) {
+        if (emergenciaMasivosActiva) {
           const emerg = getEmergenciaEfectiva();
           speak(`Enviando mensaje por ${emerg.canalesTexto} a ${emerg.nombres.join(', ')}, y llamando a Urgencias.`);
           setCallingContact(emerg.primero);
+        } else {
+          // El 112 es el respaldo universal: si el usuario desactivó los mensajes
+          // masivos (o también el 112 automático), "Pedir Ayuda" debe seguir
+          // desembocando en una llamada real en vez de cerrarse sin hacer nada.
+          setCallingContact({ name: '112 (URGENCIA)', phone: '112' });
         }
       }
     }, 1000);
@@ -572,8 +575,15 @@ const App = () => {
   };
   const handleValidatePerfilPassword = (e) => {
     e.preventDefault();
-    // Solo verifica que los campos no estén en blanco — sin validar credenciales
-    if (perfilNombreInput.trim() && perfilPasswordInput.trim()) {
+    const claveIntroducida = perfilPasswordInput.trim();
+    const claveInvitada = profileInvitadoClave.trim();
+    // Acepta la contraseña del perfil principal o, si existe, la del invitado
+    // (esta pantalla sirve para ambos, ver subtítulo "Usuario principal o invitado").
+    const claveValida = claveIntroducida.length > 0 && (
+      claveIntroducida === perfilPassword.trim() ||
+      (claveInvitada.length > 0 && claveIntroducida === claveInvitada)
+    );
+    if (perfilNombreInput.trim() && claveValida) {
       setIsPerfilPasswordOpen(false);
       setStep('dashboard');
       setIsMenuOpen(true);
@@ -3953,15 +3963,16 @@ const App = () => {
                 <span className="text-6xl font-black text-white tabular-nums">{segundosRestantesAyuda}</span>
                 <span className="text-sm font-bold text-red-200 uppercase tracking-wide">Llamando automáticamente...</span>
               </div>
-              {emergencia112Activa && (
-                <button
-                  onClick={() => { setShowPedirAyudaModal(false); setCallingContact({ name: '112 (URGENCIA)', phone: '112' }); }}
-                  onMouseEnter={() => announceMenuOption('Llamar al 112')}
-                  className="w-full min-h-[80px] flex items-center justify-center gap-4 bg-red-600 hover:bg-red-700 text-white rounded-[35px] font-black text-2xl shadow-2xl border-b-8 border-red-900 active:translate-y-2 transition-colors"
-                >
-                  <PhoneCall size={36} /> LLAMAR AL 112
-                </button>
-              )}
+              {/* El 112 es el respaldo universal: se ofrece siempre como opción manual,
+                  independientemente de si la llamada automática al 112 está activa,
+                  para que nunca quede como único botón visible el de Cancelar. */}
+              <button
+                onClick={() => { setShowPedirAyudaModal(false); setCallingContact({ name: '112 (URGENCIA)', phone: '112' }); }}
+                onMouseEnter={() => announceMenuOption('Llamar al 112')}
+                className="w-full min-h-[80px] flex items-center justify-center gap-4 bg-red-600 hover:bg-red-700 text-white rounded-[35px] font-black text-2xl shadow-2xl border-b-8 border-red-900 active:translate-y-2 transition-colors"
+              >
+                <PhoneCall size={36} /> LLAMAR AL 112
+              </button>
               {emergenciaMasivosActiva && (
                 <button
                   onClick={() => {
@@ -4164,7 +4175,7 @@ const App = () => {
                   className="w-full p-5 text-3xl border-4 border-amber-400 rounded-[25px] focus:border-amber-300 outline-none font-black bg-white text-blue-950 text-center tracking-[0.3em]"
                 />
                 {perfilPasswordError && (
-                  <p className="text-lg font-bold text-red-300">Por favor completa ambos campos para continuar.</p>
+                  <p className="text-lg font-bold text-red-300">Nombre o contraseña incorrectos.</p>
                 )}
                 <button type="submit" className="w-full py-5 bg-amber-400 text-blue-950 rounded-[30px] font-black text-2xl shadow-xl active:scale-95 transition-transform">
                   ENTRAR
