@@ -22,7 +22,7 @@ const fotoUsuarioPorDefecto = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3
 // nueva actualización. Formato solicitado: DÍA(2 dígitos)+MES(2 dígitos)+AÑO(4 dígitos) - HORA:MINUTO
 // Ejemplo: "27072026-19:05" = 27 de julio de 2026, 19:05. Se muestra, sin
 // ninguna acción asociada, en la esquina superior izquierda de P-01.
-const APP_VERSION = "05092026-14:20";
+const APP_VERSION = "05092026-16:35";
 
 /**
  * APP SÉNIOR - SUITE MÓVIL ACCESIBLE (SIMULADOR DE TELÉFONO)
@@ -171,9 +171,21 @@ const MENU_ITEMS = [
 // Vitalidad primero (lo más motivador/social), Energía después, Salud Digital
 // al final — refuerza que VES es ante todo una app social, no "una app técnica".
 const CONTENEDORES = [
-  { id: 'vitalidad',     titulo: 'Soledad',     frase: 'Para no estar solo: personas, lazos y salidas',        emoji: '💗', headerBg: 'bg-rose-50',    headerBorder: 'border-rose-300',    headerText: 'text-rose-900',   activeBg: 'bg-rose-600',    activeBorder: 'border-rose-800' },
-  { id: 'energia',       titulo: 'Movilidad',   frase: 'Para moverte con seguridad, dentro y fuera de casa',   emoji: '🟠', headerBg: 'bg-amber-50',   headerBorder: 'border-amber-300',   headerText: 'text-amber-900',  activeBg: 'bg-amber-500',   activeBorder: 'border-amber-700' },
-  { id: 'salud_digital', titulo: 'Tecnología',  frase: 'La tecnología, ya explicada y lista para ti',          emoji: '🔵', headerBg: 'bg-blue-50',    headerBorder: 'border-blue-300',    headerText: 'text-blue-900',   activeBg: 'bg-blue-700',    activeBorder: 'border-blue-900' },
+  // `titulo`: nombre corto usado en P-21 (Configura el Menú VES) y P-35 (detalle
+  // de categoría) — ahí sí se sigue mostrando "Soledad"/"Movilidad"/"Tecnología".
+  // `corto`: nombre que aparece bajo el logo VES (indicador de continente) cuando
+  // estás dentro de esa categoría o alguna de sus opciones.
+  // `fraseP08`: la frase que reemplaza al título en los contenedores de P-08,
+  // con la parte en mayúsculas resaltada más grande.
+  { id: 'vitalidad',     titulo: 'Soledad',     corto: 'No Estar Solo(a)',
+    fraseP08: { pre: 'Para ', highlight: 'NO ESTAR SOLO (A)', post: ': buscar personas, lazos y salidas.' },
+    frase: 'Para no estar solo: personas, lazos y salidas',        emoji: '💗', headerBg: 'bg-rose-50',    headerBorder: 'border-rose-300',    headerText: 'text-rose-900',   activeBg: 'bg-rose-600',    activeBorder: 'border-rose-800' },
+  { id: 'energia',       titulo: 'Movilidad',   corto: 'Moverte',
+    fraseP08: { pre: 'Para ', highlight: 'MOVERTE', post: ' con seguridad, dentro y fuera de casa' },
+    frase: 'Para moverte con seguridad, dentro y fuera de casa',   emoji: '🟠', headerBg: 'bg-amber-50',   headerBorder: 'border-amber-300',   headerText: 'text-amber-900',  activeBg: 'bg-amber-500',   activeBorder: 'border-amber-700' },
+  { id: 'salud_digital', titulo: 'Tecnología',  corto: 'Tecnología',
+    fraseP08: { pre: 'La ', highlight: 'TECNOLOGÍA', post: ', ya explicada para ti' },
+    frase: 'La tecnología, ya explicada y lista para ti',          emoji: '🔵', headerBg: 'bg-blue-50',    headerBorder: 'border-blue-300',    headerText: 'text-blue-900',   activeBg: 'bg-blue-700',    activeBorder: 'border-blue-900' },
 ];
 
 // --- AJUSTE AUTOMÁTICO SIN SCROLL (P-01, P-06, P-08, P-40) ---
@@ -596,20 +608,36 @@ const App = () => {
     return true;
   };
 
+  // Nota fija que se lee y se muestra en TODAS las pantallas de ayuda ("¿Dónde
+  // estoy?"): explica el gesto de la foto/botón "Ayudas" (1 toque = voz, 2 toques
+  // = abre este mismo panel escrito). Una sola constante para que el texto en
+  // pantalla y lo que se lee en voz alta digan siempre lo mismo.
+  const NOTA_GESTOS_AYUDA = 'Toca 1 vez el botón "Ayudas" o tu foto para escucharlo; tócalo 2 veces para volver a leerlo aquí.';
+
   // --- ABRE EL PANEL "¿DÓNDE ESTOY?" Y LO ANUNCIA POR VOZ ---
   const openWhereAmI = (titulo, texto) => {
     setWhereAmIInfo({ titulo, texto });
     setIsWhereAmIOpen(true);
-    speak(`${titulo}. ${texto}`);
+    speak(`${titulo}. ${texto} ${NOTA_GESTOS_AYUDA}`);
   };
 
   const handleBackNavigation = () => {
     if (enteredFromMenu) {
       setCurrentView('dashboard');
       setIsMenuOpen(true);
-    } else {
-      setCurrentView('dashboard');
+      return;
     }
+    // Si la pantalla actual es una opción de una de las 3 categorías de P-08
+    // (Buscar Compañía, Ruta Segura, etc.) y esa categoría sigue "abierta",
+    // se vuelve a su detalle (P-35) en vez de saltar directo al Panel
+    // Principal — así el indicador de continente puede volver a mostrar el
+    // nombre de la categoría (p. ej. "No Estar Solo(a)") al regresar.
+    const itemActual = MENU_ITEMS.find((it) => it.view === currentView);
+    if (itemActual && categoriaAbiertaId && itemActual.categoria === categoriaAbiertaId) {
+      setCurrentView('categoria_detalle');
+      return;
+    }
+    setCurrentView('dashboard');
   };
 
   // --- FUNCIÓN SEGURA PARA SALIR DE LA APP ---
@@ -938,7 +966,9 @@ const App = () => {
     crear_contactos: { titulo: "Crear Contactos", texto: "Tiene dos pestañas. En Crear lista de contactos rellenas los datos de una persona, foto, nombre, apellido, teléfono, y tocas Guardar Contacto. En Contactos de emergencia marcas a quién se llamará y se le enviará un mensaje al pulsar Pedir Ayuda, escribes ese mensaje, y eliges si se envía por SMS, WhatsApp o correo, uno o varios a la vez." },
     guia_digital: { titulo: "Mi Guía Digital", texto: "Estás en tu Guía Digital. Aquí encontrarás cursos sugeridos y consejos diarios de seguridad y bienestar." },
     emergencia: { titulo: "Pedir Ayuda", texto: "Estás en la pantalla de emergencia. Toca el botón rojo para llamar a Urgencias, o el nombre de un familiar para llamarlo a él. Si no haces nada, la app llamará a Urgencias automáticamente." },
-    categoria_detalle: { titulo: "Grupo del Panel Principal", texto: "Estás viendo uno de los tres grupos del Panel Principal: Soledad, Movilidad o Tecnología. Toca cualquiera de las opciones grandes para abrirla, o toca Volver para regresar al Panel Principal." },
+    // categoria_detalle NO usa un texto fijo aquí: handleWhereAmI arma el texto
+    // según la categoría que esté realmente abierta (categoriaAbiertaId), para
+    // no anunciar un grupo distinto al que se está viendo.
     centro_tratamiento: { titulo: "Centro de Tratamiento", texto: "Estás viendo tus sesiones de fisioterapia y rehabilitación: las próximas citas, si son a domicilio o en el centro, y el nombre del terapeuta. Cuando una sesión sea a domicilio y llegue el terapeuta, toca El terapeuta ya llegó." },
     fotos_videos: { titulo: "Fotos y Videos", texto: "Estás viendo tus recuerdos en fotos y videos, agrupados por Familia, Amistades y otros momentos. Toca cualquier imagen para verla más grande." },
     configurar_menu: { titulo: "Configura el Menú VES", texto: "Aquí eliges qué opciones aparecen en tu Panel Principal de VES y cómo se llaman, máximo veinticinco letras, y cuántas caben por fila: una, dos o tres. Pedir Ayuda siempre estará visible. Recuerda tocar Guardar Cambios al terminar." },
@@ -957,12 +987,17 @@ const App = () => {
         ? { titulo: "Mis Talentos", texto: "Todavía no has elegido ningún talento para compartir. Toca Elegir Mis Talentos para empezar." }
         : { titulo: "Mis Talentos", texto: `Has elegido compartir: ${selectedTalents.join(', ')}. Puedes tocar Modificar Mis Talentos para cambiarlos.` };
     }
+    if (claveEfectiva === 'categoria_detalle') {
+      // Usa la categoría realmente abierta, no un texto genérico de las tres.
+      const cont = CONTENEDORES.find((c) => c.id === categoriaAbiertaId) || CONTENEDORES[0];
+      infoBase = { titulo: cont.corto, texto: `Estás en ${cont.corto}. ${cont.frase}. Toca cualquiera de las opciones grandes para abrirla, o toca Volver para regresar al Panel Principal.` };
+    }
     const info = { titulo: infoBase.titulo, texto: `${username || 'Hola'}, ${infoBase.texto}` };
     setWhereAmIInfo(info);
     setIsWhereAmIOpen(true);
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(`${info.titulo}. ${info.texto}`);
+      const utterance = new SpeechSynthesisUtterance(`${info.titulo}. ${info.texto} ${NOTA_GESTOS_AYUDA}`);
       utterance.lang = 'es-MX';
       utterance.rate = 0.9;
       window.speechSynthesis.speak(utterance);
@@ -1055,24 +1090,26 @@ const App = () => {
   // ============================================================================
   const FotoAyudaCiudadano = ({ onAyudaEscrita }) => {
     const nombreCiudadano = (profileNombre || username || '').trim();
-    const tapTimerRef = useRef(null);
     const ultimoTapRef = useRef(0);
+    // El primer toque habla YA, de forma síncrona dentro del propio toque —no
+    // tras una espera con setTimeout— porque Safari/iOS (y varios navegadores
+    // móviles) SOLO permiten disparar voz sintetizada si la llamada ocurre
+    // dentro del mismo gesto del usuario; si se llama desde un setTimeout
+    // posterior, el móvil la bloquea en silencio (por eso en el teléfono no se
+    // oía nada, aunque en el navegador de escritorio sí funcionaba). Si llega
+    // un segundo toque dentro de los 350 ms, se corta esa voz y se abre la
+    // ayuda escrita en su lugar.
     const manejarTap = () => {
       const ahora = Date.now();
       if (ahora - ultimoTapRef.current < 350) {
         // Segundo toque dentro de la ventana -> ayuda ESCRITA
         ultimoTapRef.current = 0;
-        if (tapTimerRef.current) { clearTimeout(tapTimerRef.current); tapTimerRef.current = null; }
+        if ('speechSynthesis' in window) window.speechSynthesis.cancel();
         onAyudaEscrita();
       } else {
-        // Primer toque -> si no llega un segundo en 350 ms, ayuda EN VOZ
+        // Primer toque -> ayuda EN VOZ inmediata
         ultimoTapRef.current = ahora;
-        if (tapTimerRef.current) clearTimeout(tapTimerRef.current);
-        tapTimerRef.current = setTimeout(() => {
-          tapTimerRef.current = null;
-          ultimoTapRef.current = 0;
-          speakWhereAmIOnHover();
-        }, 350);
+        speakWhereAmIOnHover();
       }
     };
     return (
@@ -1508,7 +1545,7 @@ const App = () => {
     const abrirDondeEstoyPantalla2 = () => {
       setWhereAmIInfo(infoPantalla2);
       setIsWhereAmIOpen(true);
-      speak(`${infoPantalla2.titulo}. ${infoPantalla2.texto}`);
+      speak(`${infoPantalla2.titulo}. ${infoPantalla2.texto} ${NOTA_GESTOS_AYUDA}`);
     };
 
     const iniciarDictado = () => {
@@ -1640,7 +1677,7 @@ const App = () => {
               setIsWhereAmIOpen(true);
               if ('speechSynthesis' in window) {
                 window.speechSynthesis.cancel();
-                const utterance = new SpeechSynthesisUtterance(`${info.titulo}. ${info.texto}`);
+                const utterance = new SpeechSynthesisUtterance(`${info.titulo}. ${info.texto} ${NOTA_GESTOS_AYUDA}`);
                 utterance.lang = 'es-MX';
                 utterance.rate = 0.9;
                 window.speechSynthesis.speak(utterance);
@@ -1863,17 +1900,16 @@ const App = () => {
                     key={cont.id}
                     type="button"
                     onClick={() => { setCategoriaAbiertaId(cont.id); setCurrentView('categoria_detalle'); setEnteredFromMenu(false); }}
-                    onMouseEnter={() => announceMenuOption(cont.titulo)}
+                    onMouseEnter={() => announceMenuOption(cont.corto)}
                     className={`w-full text-left ${cont.headerBg} border-4 ${cont.headerBorder} ${cont.headerText} rounded-[25px] px-5 py-4 transition-colors active:scale-95 flex items-center justify-between gap-3`}
                   >
                     <span>
-                      <span className="flex items-center gap-2">
-                        <span className="text-2xl font-black leading-none">
-                          <span className="text-3xl">{cont.titulo.charAt(0)}</span>{cont.titulo.slice(1)}
-                        </span>
-                        <span className="text-sm font-bold opacity-70">· {itemsDelContenedor.length} {itemsDelContenedor.length !== 1 ? 'opciones' : 'opción'}</span>
+                      <span className="text-xl font-bold leading-snug block">
+                        {cont.fraseP08.pre}
+                        <span className="text-2xl font-black">{cont.fraseP08.highlight}</span>
+                        {cont.fraseP08.post}
                       </span>
-                      <span className="block text-base font-bold mt-1 opacity-80">{cont.frase}</span>
+                      <span className="block text-sm font-bold opacity-70 mt-1">{itemsDelContenedor.length} {itemsDelContenedor.length !== 1 ? 'opciones' : 'opción'}</span>
                     </span>
                     <ChevronDown size={32} className="shrink-0 -rotate-90" />
                   </button>
@@ -1915,7 +1951,7 @@ const App = () => {
       .map((it) => ({ ...it, label: nombresMenuPersonalizados[it.key] || it.label, icon: <it.Icon size={iconSize} color="white" /> }));
 
     useEffect(() => {
-      speak(`Estás en ${cont.titulo}. ${cont.frase}.`);
+      speak(`Estás en ${cont.corto}. ${cont.frase}.`);
     }, [cont.id]);
 
     return (
@@ -1923,7 +1959,7 @@ const App = () => {
         <EncabezadoG onBack={() => setCurrentView('dashboard')} />
         <div className={`${cont.activeBg} ${cont.activeBorder} border-4 text-white rounded-[25px] px-5 py-4 mb-6`}>
           <h2 className="text-2xl font-black leading-none">
-            <span className="text-3xl">{cont.titulo.charAt(0)}</span>{cont.titulo.slice(1)}
+            <span className="text-3xl">{cont.corto.charAt(0)}</span>{cont.corto.slice(1)}
           </h2>
           <p className="text-base font-bold text-white/90 mt-1">{cont.frase}</p>
         </div>
@@ -4048,16 +4084,46 @@ const App = () => {
               P-06 ni antes de entrar. Queda por debajo de los modales (z-50). */}
           {step === 'dashboard' && currentView !== 'selector' && (() => {
             const esTam = currentView === 'tam';
+            if (esTam) {
+              return (
+                <div
+                  className="absolute top-1.5 left-1.5 z-40 flex items-center gap-1.5 bg-white/95 border-2 border-slate-300 rounded-full pl-1 pr-2.5 py-0.5 shadow-md pointer-events-none"
+                  role="img"
+                  aria-label="Estás en el continente TAM"
+                >
+                  <img src={logoTam} alt="" className="w-6 h-6 rounded-full" />
+                  <span className="text-xs font-black text-slate-700" aria-hidden="true">TAM</span>
+                </div>
+              );
+            }
+            // Lado VES: debajo del logo se indica dónde estás dentro del Panel
+            // Principal. En P-08 mismo, solo el logo (sin texto). En el detalle
+            // de una categoría (P-35), su nombre corto (p. ej. "No Estar
+            // Solo(a)"). Dentro de una opción de esa categoría (p. ej. Buscar
+            // Compañía), el nombre corto + la opción ("No Estar Solo(a), Buscar
+            // Compañía"). Al volver, handleBackNavigation regresa a P-35, así
+            // que aquí vuelve a verse solo el nombre corto de la categoría.
+            const catActual = CONTENEDORES.find((c) => c.id === categoriaAbiertaId);
+            const itemActual = MENU_ITEMS.find((it) => it.view === currentView);
+            let etiqueta;
+            if (currentView === 'dashboard') {
+              etiqueta = null;
+            } else if (catActual && itemActual && itemActual.categoria === catActual.id) {
+              const nombreItem = nombresMenuPersonalizados[itemActual.key] || itemActual.label;
+              etiqueta = `${catActual.corto}, ${nombreItem}`;
+            } else if (catActual) {
+              etiqueta = catActual.corto;
+            } else {
+              etiqueta = 'VES';
+            }
             return (
               <div
-                className="absolute top-1.5 left-1.5 z-40 flex items-center gap-1.5 bg-white/95 border-2 border-slate-300 rounded-full pl-1 pr-2.5 py-0.5 shadow-md pointer-events-none"
+                className="absolute top-1.5 left-1.5 z-40 flex flex-col items-center gap-0.5 bg-white/95 border-2 border-slate-300 rounded-2xl px-2 py-1 shadow-md pointer-events-none"
                 role="img"
-                aria-label={esTam ? 'Estás en el continente TAM' : 'Estás en el continente VES'}
+                aria-label={etiqueta ? `Estás en el continente VES, en ${etiqueta}` : 'Estás en el continente VES'}
               >
-                {esTam
-                  ? <img src={logoTam} alt="" className="w-6 h-6 rounded-full" />
-                  : <BrandLogo className="w-6" />}
-                <span className="text-xs font-black text-slate-700" aria-hidden="true">{esTam ? 'TAM' : 'VES'}</span>
+                <BrandLogo className="w-6" />
+                {etiqueta && <span className="text-[10px] font-black text-slate-700 leading-none whitespace-nowrap" aria-hidden="true">{etiqueta}</span>}
               </div>
             );
           })()}
@@ -4185,7 +4251,7 @@ const App = () => {
                         setIsWhereAmIOpen(true);
                         if ('speechSynthesis' in window) {
                           window.speechSynthesis.cancel();
-                          const utterance = new SpeechSynthesisUtterance(`${info.titulo}. ${info.texto}`);
+                          const utterance = new SpeechSynthesisUtterance(`${info.titulo}. ${info.texto} ${NOTA_GESTOS_AYUDA}`);
                           utterance.lang = 'es-MX';
                           utterance.rate = 0.9;
                           window.speechSynthesis.speak(utterance);
@@ -4300,13 +4366,17 @@ const App = () => {
                 <Info size={64} className="text-amber-400" />
               </div>
               <h2 className="text-3xl font-black text-white mb-4 leading-tight">{whereAmIInfo.titulo}</h2>
-              <p className="text-xl font-bold text-amber-100 leading-relaxed mb-6 max-w-sm">{whereAmIInfo.texto}</p>
+              <p className="text-xl font-bold text-amber-100 leading-relaxed mb-4 max-w-sm">{whereAmIInfo.texto}</p>
+              <p className="text-base font-bold text-white/70 leading-snug mb-6 max-w-sm flex items-center justify-center gap-2">
+                <Info size={20} className="shrink-0 text-amber-300" />
+                {NOTA_GESTOS_AYUDA}
+              </p>
               <div className="w-full max-w-sm space-y-3 mt-auto mb-6">
                 <button
                   onClick={() => {
                     if ('speechSynthesis' in window) {
                       window.speechSynthesis.cancel();
-                      const utterance = new SpeechSynthesisUtterance(`${whereAmIInfo.titulo}. ${whereAmIInfo.texto}`);
+                      const utterance = new SpeechSynthesisUtterance(`${whereAmIInfo.titulo}. ${whereAmIInfo.texto} ${NOTA_GESTOS_AYUDA}`);
                       utterance.lang = 'es-MX';
                       utterance.rate = 0.9;
                       window.speechSynthesis.speak(utterance);
