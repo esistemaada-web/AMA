@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import {
   MapPin, Users, ShoppingBag, ArrowLeft, PhoneCall,
   ShieldCheck, Loader2, Mic, MessageSquare,
@@ -22,7 +22,7 @@ const fotoUsuarioPorDefecto = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3
 // nueva actualización. Formato solicitado: DÍA(2 dígitos)+MES(2 dígitos)+AÑO(4 dígitos) - HORA:MINUTO
 // Ejemplo: "27072026-19:05" = 27 de julio de 2026, 19:05. Se muestra, sin
 // ninguna acción asociada, en la esquina superior izquierda de P-01.
-const APP_VERSION = "04092026-20:31";
+const APP_VERSION = "05092026-14:20";
 
 /**
  * APP SÉNIOR - SUITE MÓVIL ACCESIBLE (SIMULADOR DE TELÉFONO)
@@ -176,6 +176,66 @@ const CONTENEDORES = [
   { id: 'salud_digital', titulo: 'Tecnología',  frase: 'La tecnología, ya explicada y lista para ti',          emoji: '🔵', headerBg: 'bg-blue-50',    headerBorder: 'border-blue-300',    headerText: 'text-blue-900',   activeBg: 'bg-blue-700',    activeBorder: 'border-blue-900' },
 ];
 
+// --- AJUSTE AUTOMÁTICO SIN SCROLL (P-01, P-06, P-08, P-40) ---
+// Mide el contenido real (scrollHeight) contra el alto disponible del dispositivo
+// (clientHeight) y lo encoge con transform:scale() hasta que quepa entero, sin
+// necesidad de scroll. Si ni encogiendo al mínimo legible cabe (por ejemplo con
+// el texto ampliado al 200%, WCAG 1.4.4), se deja scroll vertical como último
+// recurso — nunca se recorta ni se desborda contenido.
+// `center`: true = si el contenido cabe con espacio de sobra, se centra en vertical
+// (para pantallas tipo P-01/P-06, diseñadas centradas). false = se queda pegado
+// arriba (para pantallas tipo P-08/P-40, que ya fluyen de arriba hacia abajo).
+// En ambos casos, si el contenido no cabe ni encogiendo al mínimo, se puede
+// desplazar (scroll) desde arriba — nunca queda nada recortado ni invisible.
+// NOTA: la escala se aplica directamente sobre el DOM (vía ref), sin useState.
+// Las pantallas que usan AutoFit (RenderSelector, RenderDashboard, etc.) están
+// definidas DENTRO de App y se recrean en cada render de App, así que este
+// componente se re-monta muy a menudo — un scale en useState se perdería
+// (volvería a su valor inicial) en cada uno de esos remontajes. Midiendo y
+// aplicando el transform de forma imperativa en cada montaje se evita ese problema.
+const AutoFit = ({ children, minScale = 0.75, center = false }) => {
+  const outerRef = useRef(null);
+  const innerRef = useRef(null);
+
+  useLayoutEffect(() => {
+    const outer = outerRef.current;
+    const inner = innerRef.current;
+    if (!outer || !inner) return;
+    const ajustar = () => {
+      // Se mide siempre partiendo de escala 1 para no acumular error de redondeo.
+      inner.style.transform = 'scale(1)';
+      const disponible = outer.clientHeight;
+      const necesario = inner.scrollHeight;
+      if (disponible <= 0 || necesario <= 0) return;
+      const nuevaEscala = Math.min(1, Math.max(minScale, disponible / necesario));
+      inner.style.transform = `scale(${nuevaEscala})`;
+    };
+    ajustar();
+    const ro = new ResizeObserver(ajustar);
+    ro.observe(outer);
+    ro.observe(inner);
+    window.addEventListener('resize', ajustar);
+    return () => { ro.disconnect(); window.removeEventListener('resize', ajustar); };
+  });
+
+  return (
+    <div ref={outerRef} className="h-full w-full overflow-y-auto flex flex-col">
+      <div
+        ref={innerRef}
+        className={center ? 'm-auto w-full' : 'w-full'}
+        // El origen siempre es arriba: si hay que encoger, se encoge "desde arriba"
+        // (el borde superior no se mueve), así el cálculo de cuánto cabe es exacto.
+        // El centrado vertical (cuando sobra espacio) lo hace el margin:auto de
+        // arriba, sobre la caja SIN transformar; el transform solo entra en juego
+        // si además hace falta encoger.
+        style={{ transformOrigin: 'top center' }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+};
+
 const App = () => {
   // --- ESTADOS DE NAVEGACIÓN ---
   const [step, setStep] = useState('inicio');
@@ -292,24 +352,27 @@ const App = () => {
   const [isListeningExplanation, setIsListeningExplanation] = useState(false);
 
   // --- ESTADOS PARA EL NUEVO PERFIL COMPLETO FORMULARIO ---
+  // Ciudadana grabada por defecto (para no tener que recrearla en cada sesión).
   const [profilePhoto, setProfilePhoto] = useState(fotoCiudadano);
   const [profileNombre, setProfileNombre] = useState('Mari');
-  const [profileApellido, setProfileApellido] = useState('');
-  const [profileDireccion, setProfileDireccion] = useState('Calle Castillo, 15');
-  const [profileZonaPostal, setProfileZonaPostal] = useState('38002');
-  const [profileCorreo, setProfileCorreo] = useState('manuel.rodriguez@correo.com');
-  const [profileTelefono, setProfileTelefono] = useState('600123456');
-  const [profileFechaNac, setProfileFechaNac] = useState('1952-08-25');
+  const [profileApellido, setProfileApellido] = useState('Gonzalo F');
+  const [profileDireccion, setProfileDireccion] = useState('Camino de Las Mercedes'); // "Calle" en Ubicación
+  const [profileZonaPostal, setProfileZonaPostal] = useState('38296');
+  const [profileCorreo, setProfileCorreo] = useState('esistemaada@gmail.com');
+  const [profileTelefono, setProfileTelefono] = useState('623328599');
+  const [profileFechaNac, setProfileFechaNac] = useState('1945-07-26');
   const [profileNacionalidad, setProfileNacionalidad] = useState('Española');
   const [profileIdioma, setProfileIdioma] = useState('Español');
-  const [profileGenero, setProfileGenero] = useState('Masculino');
+  const [profileGenero, setProfileGenero] = useState('Femenino');
   const [profileNombreIA, setProfileNombreIA] = useState('Chichita');
   const [profileLlamarIA, setProfileLlamarIA] = useState('Don Manuel');
 
   // NUEVOS ESTADOS AÑADIDOS PARA UBICACIÓN E IA
   const [profilePais, setProfilePais] = useState('España');
-  const [profileProvincia, setProfileProvincia] = useState('Santa Cruz de Tenerife');
-  const [profileCiudad, setProfileCiudad] = useState('Santa Cruz');
+  const [profileComunidadAutonoma, setProfileComunidadAutonoma] = useState('Canarias');
+  const [profileProvincia, setProfileProvincia] = useState('Santa Cruz de Tenerife'); // "Provincia y Isla"
+  const [profileMunicipio, setProfileMunicipio] = useState('San Cristóbal de La Laguna');
+  const [profileCiudad, setProfileCiudad] = useState('Las Mercedes'); // "Localidad / Barrio"
   const [profileVozIA, setProfileVozIA] = useState('Por defecto');
   const [profileInvitadoNombre, setProfileInvitadoNombre] = useState('');
   const [profileInvitadoClave, setProfileInvitadoClave] = useState('');
@@ -1091,41 +1154,43 @@ const App = () => {
     // cada render y repetiría el audio. Al pulsar una opción se corta el audio.
     const irA = (accion) => { if ('speechSynthesis' in window) window.speechSynthesis.cancel(); accion(); };
     return (
-      <div className="flex flex-col p-6 bg-white min-h-full pb-10 animate-in fade-in duration-300 relative">
-        <EncabezadoG onBack={() => setCurrentView('selector')} conMenu />
-        <div className="flex flex-col gap-6 flex-grow justify-center">
-          {verVes && (
-          <button
-            onClick={() => irA(() => setCurrentView('dashboard'))}
-            onMouseEnter={() => announceMenuOption('Abrir VES, tu Panel Principal')}
-            className="w-full flex flex-col items-center p-6 bg-emerald-50 border-4 border-emerald-600 rounded-[35px] shadow-md active:scale-95 transition-transform"
-            aria-label="Abrir VES, tu Panel Principal"
-          >
-            <BrandLogo className="w-44" />
-          </button>
-          )}
-          {verTam && (
-          <button
-            onClick={() => irA(() => setCurrentView('tam'))}
-            onMouseEnter={() => announceMenuOption('Abrir TAM, programas de ayuda al adulto mayor')}
-            className="w-full flex flex-col items-center p-6 bg-[#f6e3d4] border-4 border-[#d9a884] rounded-[35px] shadow-md active:scale-95 transition-transform"
-            aria-label="Abrir TAM, programas de ayuda al adulto mayor"
-          >
-            <img src={logoTam} alt="Logotipo de TAM" className="w-44 rounded-full" />
-          </button>
-          )}
-        </div>
-        <div className="mt-6">
-          <button
-            onClick={() => irA(() => setShowPedirAyudaModal(true))}
-            onMouseEnter={() => announceMenuOption('Pedir Ayuda')}
-            className="w-full flex items-center justify-center p-7 bg-red-700 hover:bg-red-800 text-white rounded-[35px] shadow-xl border-b-8 border-red-900 animate-pulse transition-colors gap-4"
-            aria-label="Pedir Ayuda"
-          >
-            <PhoneCall size={40} />
-            <span className="text-3xl font-black uppercase">PEDIR AYUDA</span>
-          </button>
-        </div>
+      <div className="h-full bg-white animate-in fade-in duration-300 relative">
+        <AutoFit center>
+          <div className="flex flex-col p-6 pb-9 gap-6">
+            <EncabezadoG onBack={() => setCurrentView('selector')} conMenu />
+            <div className="flex flex-col gap-6">
+              {verVes && (
+              <button
+                onClick={() => irA(() => setCurrentView('dashboard'))}
+                onMouseEnter={() => announceMenuOption('Abrir VES, tu Panel Principal')}
+                className="w-full flex flex-col items-center p-6 bg-emerald-50 border-4 border-emerald-600 rounded-[35px] shadow-md active:scale-95 transition-transform"
+                aria-label="Abrir VES, tu Panel Principal"
+              >
+                <BrandLogo className="w-44" />
+              </button>
+              )}
+              {verTam && (
+              <button
+                onClick={() => irA(() => setCurrentView('tam'))}
+                onMouseEnter={() => announceMenuOption('Abrir TAM, programas de ayuda al adulto mayor')}
+                className="w-full flex flex-col items-center p-6 bg-[#f6e3d4] border-4 border-[#d9a884] rounded-[35px] shadow-md active:scale-95 transition-transform"
+                aria-label="Abrir TAM, programas de ayuda al adulto mayor"
+              >
+                <img src={logoTam} alt="Logotipo de TAM" className="w-44 rounded-full" />
+              </button>
+              )}
+            </div>
+            <button
+              onClick={() => irA(() => setShowPedirAyudaModal(true))}
+              onMouseEnter={() => announceMenuOption('Pedir Ayuda')}
+              className="w-full flex items-center justify-center p-7 bg-red-700 hover:bg-red-800 text-white rounded-[35px] shadow-xl border-b-8 border-red-900 animate-pulse transition-colors gap-4"
+              aria-label="Pedir Ayuda"
+            >
+              <PhoneCall size={40} />
+              <span className="text-3xl font-black uppercase">PEDIR AYUDA</span>
+            </button>
+          </div>
+        </AutoFit>
         <div className="absolute bottom-2 left-0 right-0 text-center text-[10px] text-black font-bold">P-06</div>
       </div>
     );
@@ -1189,38 +1254,42 @@ const App = () => {
     return (
       // Fondo color carne suave: identifica visualmente que estás en el mundo TAM
       // (el mundo VES usa fondo gris claro / blanco).
-      <div className="flex flex-col p-6 bg-[#f6e3d4] min-h-full pb-32 animate-in fade-in duration-300 relative">
-        <EncabezadoG onBack={() => setCurrentView('selector')} conMenu={!dosOpcionesSelector} />
-        <h2 className="text-3xl font-black text-blue-900 mb-2 leading-tight">Programas</h2>
-        <p className="text-base font-bold text-slate-600 mb-5 leading-relaxed">Ayudas presenciales para el adulto mayor en soledad, movilidad y tecnología.</p>
-        <div className="space-y-4">
-          {TAM_CATEGORIAS.map((cat) => {
-            const progs = TAM_PROGRAMAS
-              .filter((p) => p.cat === cat.id)
-              .sort((a, b) => (a.origen === 'ama' ? 0 : 1) - (b.origen === 'ama' ? 0 : 1));
-            return (
-              <div key={cat.id}>
-                {cabecera(cat)}
-                {tamAbierto === cat.id && (
-                  <div className="space-y-3 mt-3 animate-in fade-in duration-200">
-                    {progs.map(tarjeta)}
+      <div className="h-full bg-[#f6e3d4] animate-in fade-in duration-300 relative">
+        <AutoFit>
+          <div className="flex flex-col p-6 pb-8 xl:pb-32 gap-0">
+            <EncabezadoG onBack={() => setCurrentView('selector')} conMenu={!dosOpcionesSelector} />
+            <h2 className="text-3xl font-black text-blue-900 mb-2 leading-tight">Programas</h2>
+            <p className="text-base font-bold text-slate-600 mb-5 leading-relaxed">Ayudas presenciales para el adulto mayor en soledad, movilidad y tecnología.</p>
+            <div className="space-y-4">
+              {TAM_CATEGORIAS.map((cat) => {
+                const progs = TAM_PROGRAMAS
+                  .filter((p) => p.cat === cat.id)
+                  .sort((a, b) => (a.origen === 'ama' ? 0 : 1) - (b.origen === 'ama' ? 0 : 1));
+                return (
+                  <div key={cat.id}>
+                    {cabecera(cat)}
+                    {tamAbierto === cat.id && (
+                      <div className="space-y-3 mt-3 animate-in fade-in duration-200">
+                        {progs.map(tarjeta)}
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-        <div className="mt-6">
-          <button
-            onClick={() => setShowPedirAyudaModal(true)}
-            onMouseEnter={() => announceMenuOption('Pedir Ayuda')}
-            className="w-full flex items-center justify-center p-7 bg-red-700 hover:bg-red-800 text-white rounded-[35px] shadow-xl border-b-8 border-red-900 animate-pulse transition-colors gap-4"
-            aria-label="Pedir Ayuda"
-          >
-            <PhoneCall size={40} />
-            <span className="text-3xl font-black uppercase">PEDIR AYUDA</span>
-          </button>
-        </div>
+                );
+              })}
+            </div>
+            <div className="mt-6">
+              <button
+                onClick={() => setShowPedirAyudaModal(true)}
+                onMouseEnter={() => announceMenuOption('Pedir Ayuda')}
+                className="w-full flex items-center justify-center p-7 bg-red-700 hover:bg-red-800 text-white rounded-[35px] shadow-xl border-b-8 border-red-900 animate-pulse transition-colors gap-4"
+                aria-label="Pedir Ayuda"
+              >
+                <PhoneCall size={40} />
+                <span className="text-3xl font-black uppercase">PEDIR AYUDA</span>
+              </button>
+            </div>
+          </div>
+        </AutoFit>
         <div className="absolute bottom-2 left-0 right-0 text-center text-[10px] text-black font-bold">P-40</div>
       </div>
     );
@@ -1386,37 +1455,44 @@ const App = () => {
       speak('Bienvenidos a AMA. Toca el logo para entrar a la aplicación, o Usuario Administrador para ajustar tus datos y preferencias.');
     }, []);
     return (
-      <div className="flex flex-col h-full overflow-hidden bg-white animate-in fade-in duration-500 px-6 relative">
-        {/* Etiqueta de versión: informativa, sin ninguna acción al tocarla */}
-        <span className="absolute top-12 left-4 text-xs font-bold text-slate-600 select-none">
-          Actualizado: {APP_VERSION}
-          <br />
-          Hola@amaves.com
-        </span>
-        <div className="flex flex-col items-center justify-center flex-grow gap-5">
-          <div className="text-center">
+      <div className="h-full bg-white animate-in fade-in duration-500 relative">
+        <AutoFit center>
+          <div className="flex flex-col items-center px-6 py-10 gap-8">
             <button
-              onClick={() => { if (entradaVisible.sistema_operativo) { setStep('entrada_automatica'); } else { setStep('login'); } }}
+              onClick={() => {
+                // Si "Entrada por S.O." es el ÚNICO método activo, no tiene sentido
+                // mostrar una pantalla de "Mi Acceso" con una sola opción: se entra
+                // directo. Si hay más métodos activos junto con S.O., se muestra
+                // P-02 con todas las opciones (incluida "Entrar con este dispositivo").
+                const soloSO = entradaVisible.sistema_operativo && !entradaVisible.rostro && !entradaVisible.huella && !entradaVisible.voz && !entradaVisible.escrito;
+                setStep(soloSO ? 'entrada_automatica' : 'login');
+              }}
               onMouseEnter={() => announceMenuOption('Entrar a la App')}
               className="cursor-pointer active:scale-95 transition-transform focus:outline-none focus:ring-4 focus:ring-blue-300 rounded-3xl"
               aria-label="Entrar a la App"
             >
               <img src={logoAma} alt="Logotipo de AMA: una paloma con una rama de olivo sobre un círculo verde y amarillo" className="w-64 mb-1 mx-auto" />
             </button>
+            <button onClick={() => openWhereAmI("Pantalla de Bienvenida", "estás en la pantalla de bienvenida de AMA. Toca el logo para entrar a la aplicación, o Usuario Administrador para ajustar tus datos y preferencias.")}
+              onMouseEnter={() => announceMenuOption('¿Dónde estoy?')}
+              className="text-2xl font-black text-slate-600 underline active:scale-95 transition-transform"
+              aria-label="¿Dónde estoy? Explicación de esta pantalla">
+              ¿Dónde estoy?
+            </button>
+            <button onClick={() => requestPerfilAccess()}
+              onMouseEnter={() => announceMenuOption('Usuario Administrador')}
+              className="w-full py-1.5 text-slate-400 hover:text-slate-600 font-bold text-xs uppercase tracking-wide active:scale-95 transition-colors flex items-center justify-center gap-1">
+              <ShieldCheck size={14} /> Usuario Administrador (Configurar La App)
+            </button>
           </div>
-          <button onClick={() => openWhereAmI("Pantalla de Bienvenida", "estás en la pantalla de bienvenida de AMA. Toca el logo para entrar a la aplicación, o Usuario Administrador para ajustar tus datos y preferencias.")}
-            onMouseEnter={() => announceMenuOption('¿Dónde estoy?')}
-            className="text-2xl font-black text-slate-600 underline active:scale-95 transition-transform"
-            aria-label="¿Dónde estoy? Explicación de esta pantalla">
-            ¿Dónde estoy?
-          </button>
-        </div>
-        {/* Acceso discreto de administrador: pequeño y justo encima del pie de pantalla */}
-        <button onClick={() => requestPerfilAccess()}
-          onMouseEnter={() => announceMenuOption('Usuario Administrador')}
-          className="w-full py-1.5 text-slate-400 hover:text-slate-600 font-bold text-xs uppercase tracking-wide active:scale-95 transition-colors flex items-center justify-center gap-1 mb-6">
-          <ShieldCheck size={14} /> Usuario Administrador (Configurar La App)
-        </button>
+        </AutoFit>
+        {/* Etiqueta de versión: informativa, sin ninguna acción al tocarla. Fuera del
+            bloque que se centra/encoge, para que se quede siempre en su esquina. */}
+        <span className="absolute top-12 left-4 text-xs font-bold text-slate-600 select-none">
+          Actualizado: {APP_VERSION}
+          <br />
+          Hola@amaves.com
+        </span>
         <ScreenFooter n="P-01" />
       </div>
     );
@@ -1489,6 +1565,11 @@ const App = () => {
             {entradaVisible.escrito && (
             <button onClick={() => setStep('username_entry')} onMouseEnter={() => announceMenuOption('Acceso Escrito')} className="w-full p-3 bg-blue-800 hover:bg-blue-700 text-white rounded-[25px] font-black text-lg uppercase shadow-lg border-b-8 border-blue-950 active:translate-y-1 transition-colors">
               ✍️ Acceso Escrito
+            </button>
+            )}
+            {entradaVisible.sistema_operativo && (
+            <button onClick={() => setStep('entrada_automatica')} onMouseEnter={() => announceMenuOption('Entrada por S.O.')} className="w-full p-3 bg-slate-700 hover:bg-slate-600 text-white rounded-[25px] font-black text-lg uppercase shadow-lg border-b-8 border-slate-900 active:translate-y-1 transition-colors">
+              📱 Entrada por S.O.
             </button>
             )}
           </div>
@@ -1609,15 +1690,23 @@ const App = () => {
   // Fusiona lo que antes eran las Pantallas 2.2 y 2.5 en una sola pantalla.
   const RenderUsernameEntry = () => {
     const [code, setCode] = useState('');
+    // El nombre se escribe en un estado LOCAL a esta pantalla, no directamente en
+    // el `username` global. Antes el input leía y escribía `username` (estado de
+    // App): cada tecla disparaba un re-render completo de App, y como este
+    // componente se redefine en cada render de App, React lo desmontaba y
+    // volvía a montar en cada pulsación — el campo perdía el foco y solo se
+    // podía escribir letra a letra. `username` (global) se actualiza una sola
+    // vez, al enviar el formulario.
+    const [localUsername, setLocalUsername] = useState(username);
     const handleUnifiedEntry = (e) => {
       e.preventDefault();
-      if (username.trim() && code.trim()) {
-        setProfileNombre(username);
+      if (localUsername.trim() && code.trim()) {
+        setUsername(localUsername);
+        setProfileNombre(localUsername);
         setStep('dashboard');
         setCurrentView(getVistaTrasAcceso());
       }
     };
-    // El input de nombre usa username (estado global) directamente.
     // Para evitar que el componente pierda el foco al escribir, NO se define
     // ningún componente anidado dentro de este render — todo es JSX plano.
     return (
@@ -1639,10 +1728,10 @@ const App = () => {
               <input
                 id="name"
                 type="text"
-                value={username}
+                value={localUsername}
                 placeholder="Ej: Manuel"
                 className="flex-grow w-full p-4 text-2xl border-4 border-gray-300 rounded-[25px] focus:border-blue-900 outline-none font-bold bg-slate-50"
-                onChange={(e) => setUsername(e.target.value)}
+                onChange={(e) => setLocalUsername(e.target.value)}
                 autoComplete="off"
               />
             </div>
@@ -1761,50 +1850,51 @@ const App = () => {
     // para poder llegar al Perfil y salir de la app.
     const dosOpcionesSelector = selectorVisible.ves && selectorVisible.tam;
     return (
-      <div className="flex flex-col p-6 bg-emerald-50 min-h-full pb-32 animate-in fade-in duration-300 relative">
-        <EncabezadoG onBack={() => setCurrentView('selector')} conMenu={!dosOpcionesSelector} />
-        <div className="space-y-4">
-          {CONTENEDORES.map((cont) => {
-            const itemsDelContenedor = itemsTodos.filter((item) => item.categoria === cont.id && menuVisible[item.key]);
-            if (itemsDelContenedor.length === 0) return null;
-            return (
-              <button
-                key={cont.id}
-                type="button"
-                onClick={() => { setCategoriaAbiertaId(cont.id); setCurrentView('categoria_detalle'); setEnteredFromMenu(false); }}
-                onMouseEnter={() => announceMenuOption(cont.titulo)}
-                className={`w-full text-left ${cont.headerBg} border-4 ${cont.headerBorder} ${cont.headerText} rounded-[25px] px-5 py-4 transition-colors active:scale-95 flex items-center justify-between gap-3`}
-              >
-                <span>
-                  <span className="flex items-center gap-2">
-                    <span className="text-2xl font-black leading-none">
-                      <span className="text-3xl">{cont.titulo.charAt(0)}</span>{cont.titulo.slice(1)}
+      <div className="h-full bg-emerald-50 animate-in fade-in duration-300 relative">
+        <AutoFit>
+          <div className="flex flex-col p-6 pb-8 xl:pb-32 gap-4">
+            <EncabezadoG onBack={() => setCurrentView('selector')} conMenu={!dosOpcionesSelector} />
+            <div className="space-y-4">
+              {CONTENEDORES.map((cont) => {
+                const itemsDelContenedor = itemsTodos.filter((item) => item.categoria === cont.id && menuVisible[item.key]);
+                if (itemsDelContenedor.length === 0) return null;
+                return (
+                  <button
+                    key={cont.id}
+                    type="button"
+                    onClick={() => { setCategoriaAbiertaId(cont.id); setCurrentView('categoria_detalle'); setEnteredFromMenu(false); }}
+                    onMouseEnter={() => announceMenuOption(cont.titulo)}
+                    className={`w-full text-left ${cont.headerBg} border-4 ${cont.headerBorder} ${cont.headerText} rounded-[25px] px-5 py-4 transition-colors active:scale-95 flex items-center justify-between gap-3`}
+                  >
+                    <span>
+                      <span className="flex items-center gap-2">
+                        <span className="text-2xl font-black leading-none">
+                          <span className="text-3xl">{cont.titulo.charAt(0)}</span>{cont.titulo.slice(1)}
+                        </span>
+                        <span className="text-sm font-bold opacity-70">· {itemsDelContenedor.length} {itemsDelContenedor.length !== 1 ? 'opciones' : 'opción'}</span>
+                      </span>
+                      <span className="block text-base font-bold mt-1 opacity-80">{cont.frase}</span>
                     </span>
-                    <span className="text-sm font-bold opacity-70">· {itemsDelContenedor.length} {itemsDelContenedor.length !== 1 ? 'opciones' : 'opción'}</span>
-                  </span>
-                  <span className="block text-base font-bold mt-1 opacity-80">{cont.frase}</span>
-                </span>
-                <ChevronDown size={32} className="shrink-0 -rotate-90" />
-              </button>
-            );
-          })}
-        </div>
-        {itemsTodos.every(item => !menuVisible[item.key]) && (
-          <div className="bg-amber-50 border-4 border-amber-300 p-6 rounded-[30px] text-center my-4">
-            <p className="text-xl font-bold text-amber-900 leading-relaxed">No tienes opciones activadas. Ve a Perfil → Configura el Menú VES para activar algunas.</p>
+                    <ChevronDown size={32} className="shrink-0 -rotate-90" />
+                  </button>
+                );
+              })}
+            </div>
+            {itemsTodos.every(item => !menuVisible[item.key]) && (
+              <div className="bg-amber-50 border-4 border-amber-300 p-6 rounded-[30px] text-center">
+                <p className="text-xl font-bold text-amber-900 leading-relaxed">No tienes opciones activadas. Ve a Perfil → Configura el Menú VES para activar algunas.</p>
+              </div>
+            )}
+            <button
+              onClick={() => setShowPedirAyudaModal(true)}
+              onMouseEnter={() => announceMenuOption('Pedir Ayuda')}
+              className="w-full flex items-center justify-center p-7 bg-red-700 hover:bg-red-800 text-white rounded-[35px] shadow-xl border-b-8 border-red-900 animate-pulse transition-colors gap-4"
+            >
+              <PhoneCall size={40} />
+              <span className="text-3xl font-black uppercase">PEDIR AYUDA</span>
+            </button>
           </div>
-        )}
-        <div className="mt-6">
-          <button
-            onClick={() => setShowPedirAyudaModal(true)}
-            onMouseEnter={() => announceMenuOption('Pedir Ayuda')}
-            className="w-full flex items-center justify-center p-7 bg-red-700 hover:bg-red-800 text-white rounded-[35px] shadow-xl border-b-8 border-red-900 animate-pulse transition-colors gap-4"
-          >
-            <PhoneCall size={40} />
-            <span className="text-3xl font-black uppercase">PEDIR AYUDA</span>
-          </button>
-        </div>
-
+        </AutoFit>
         <div className="absolute bottom-2 left-0 right-0 text-center text-[10px] text-black font-bold">P-08</div>
       </div>
     );
@@ -2133,7 +2223,9 @@ const App = () => {
       direccion:      useRef(null),
       telefono:       useRef(null),
       correo:         useRef(null),
+      comunidadAutonoma: useRef(null),
       provincia:      useRef(null),
+      municipio:      useRef(null),
       ciudad:         useRef(null),
       zonaPostal:     useRef(null),
       pais:           useRef(null),
@@ -2161,7 +2253,9 @@ const App = () => {
       setProfileDireccion(soloTexto(refs.direccion.current?.value));
       setProfileTelefono(soloTexto(refs.telefono.current?.value));
       setProfileCorreo(soloTexto(refs.correo.current?.value));
+      setProfileComunidadAutonoma(soloTexto(refs.comunidadAutonoma.current?.value));
       setProfileProvincia(soloTexto(refs.provincia.current?.value));
+      setProfileMunicipio(soloTexto(refs.municipio.current?.value));
       setProfileCiudad(soloTexto(refs.ciudad.current?.value));
       setProfileZonaPostal(soloTexto(refs.zonaPostal.current?.value));
       setProfilePais(refs.pais.current?.value || profilePais);
@@ -2258,16 +2352,6 @@ const App = () => {
                   <option value="Prefiero no decirlo">Prefiero no decirlo</option>
                 </select>
               </div>
-            </div>
-          )}
-          <SeccionBtn id="ubicacion" emoji="🌍" titulo="Contacto y Ubicación" seccionAbierta={seccionAbierta} toggleSeccion={toggleSeccion} announceMenuOption={announceMenuOption} />
-          {seccionAbierta === 'ubicacion' && (
-            <div className="bg-slate-50 p-5 rounded-[25px] border-4 border-blue-200 space-y-4 animate-in fade-in duration-200">
-              <div className="flex flex-col gap-1">
-                <label htmlFor="perfil-direccion" className="text-xl font-bold text-slate-700">Dirección:</label>
-                <input id="perfil-direccion" type="text" defaultValue={profileDireccion} ref={refs.direccion} onChange={marcarPendiente} autoComplete="off"
-                  className="w-full p-4 text-xl border-4 border-slate-300 rounded-2xl font-bold bg-white focus:border-blue-900 outline-none" />
-              </div>
               <div className="flex flex-col gap-1">
                 <label htmlFor="perfil-telefono" className="text-xl font-bold text-slate-700">Teléfono:</label>
                 <input id="perfil-telefono" type="tel" defaultValue={profileTelefono} ref={refs.telefono} onChange={marcarPendiente} autoComplete="off" inputMode="tel"
@@ -2278,21 +2362,11 @@ const App = () => {
                 <input id="perfil-correo" type="email" defaultValue={profileCorreo} ref={refs.correo} onChange={marcarPendiente} autoComplete="off" inputMode="email"
                   className="w-full p-4 text-xl border-4 border-slate-300 rounded-2xl font-bold bg-white focus:border-blue-900 outline-none" />
               </div>
-              <div className="flex flex-col gap-1">
-                <label htmlFor="perfil-provincia" className="text-xl font-bold text-slate-700">Provincia o estado:</label>
-                <input id="perfil-provincia" type="text" defaultValue={profileProvincia} ref={refs.provincia} onChange={marcarPendiente} autoComplete="off" placeholder="Ej: Santa Cruz de Tenerife"
-                  className="w-full p-4 text-xl border-4 border-slate-300 rounded-2xl font-bold bg-white focus:border-blue-900 outline-none" />
-              </div>
-              <div className="flex flex-col gap-1">
-                <label htmlFor="perfil-ciudad" className="text-xl font-bold text-slate-700">Ciudad:</label>
-                <input id="perfil-ciudad" type="text" defaultValue={profileCiudad} ref={refs.ciudad} onChange={marcarPendiente} autoComplete="off" placeholder="Ej: Santa Cruz"
-                  className="w-full p-4 text-xl border-4 border-slate-300 rounded-2xl font-bold bg-white focus:border-blue-900 outline-none" />
-              </div>
-              <div className="flex flex-col gap-1">
-                <label htmlFor="perfil-zona-postal" className="text-xl font-bold text-slate-700">Zona Postal:</label>
-                <input id="perfil-zona-postal" type="text" defaultValue={profileZonaPostal} ref={refs.zonaPostal} onChange={marcarPendiente} autoComplete="off" inputMode="numeric"
-                  className="w-full p-4 text-xl border-4 border-slate-300 rounded-2xl font-bold bg-white focus:border-blue-900 outline-none" />
-              </div>
+            </div>
+          )}
+          <SeccionBtn id="ubicacion" emoji="🌍" titulo="Ubicación" seccionAbierta={seccionAbierta} toggleSeccion={toggleSeccion} announceMenuOption={announceMenuOption} />
+          {seccionAbierta === 'ubicacion' && (
+            <div className="bg-slate-50 p-5 rounded-[25px] border-4 border-blue-200 space-y-4 animate-in fade-in duration-200">
               <div className="flex flex-col gap-1">
                 <label htmlFor="perfil-pais" className="text-xl font-bold text-slate-700">País:</label>
                 <select id="perfil-pais" defaultValue={profilePais} ref={refs.pais} onChange={marcarPendiente}
@@ -2303,6 +2377,36 @@ const App = () => {
                   <option value="Argentina">Argentina</option>
                   <option value="Otro">Otro...</option>
                 </select>
+              </div>
+              <div className="flex flex-col gap-1">
+                <label htmlFor="perfil-comunidad" className="text-xl font-bold text-slate-700">Comunidad Autónoma:</label>
+                <input id="perfil-comunidad" type="text" defaultValue={profileComunidadAutonoma} ref={refs.comunidadAutonoma} onChange={marcarPendiente} autoComplete="off" placeholder="Ej: Canarias"
+                  className="w-full p-4 text-xl border-4 border-slate-300 rounded-2xl font-bold bg-white focus:border-blue-900 outline-none" />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label htmlFor="perfil-provincia" className="text-xl font-bold text-slate-700">Provincia y Isla:</label>
+                <input id="perfil-provincia" type="text" defaultValue={profileProvincia} ref={refs.provincia} onChange={marcarPendiente} autoComplete="off" placeholder="Ej: Santa Cruz de Tenerife"
+                  className="w-full p-4 text-xl border-4 border-slate-300 rounded-2xl font-bold bg-white focus:border-blue-900 outline-none" />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label htmlFor="perfil-municipio" className="text-xl font-bold text-slate-700">Municipio:</label>
+                <input id="perfil-municipio" type="text" defaultValue={profileMunicipio} ref={refs.municipio} onChange={marcarPendiente} autoComplete="off" placeholder="Ej: San Cristóbal de La Laguna"
+                  className="w-full p-4 text-xl border-4 border-slate-300 rounded-2xl font-bold bg-white focus:border-blue-900 outline-none" />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label htmlFor="perfil-ciudad" className="text-xl font-bold text-slate-700">Localidad / Barrio:</label>
+                <input id="perfil-ciudad" type="text" defaultValue={profileCiudad} ref={refs.ciudad} onChange={marcarPendiente} autoComplete="off" placeholder="Ej: Las Mercedes"
+                  className="w-full p-4 text-xl border-4 border-slate-300 rounded-2xl font-bold bg-white focus:border-blue-900 outline-none" />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label htmlFor="perfil-direccion" className="text-xl font-bold text-slate-700">Calle:</label>
+                <input id="perfil-direccion" type="text" defaultValue={profileDireccion} ref={refs.direccion} onChange={marcarPendiente} autoComplete="off" placeholder="Ej: Camino de Las Mercedes"
+                  className="w-full p-4 text-xl border-4 border-slate-300 rounded-2xl font-bold bg-white focus:border-blue-900 outline-none" />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label htmlFor="perfil-zona-postal" className="text-xl font-bold text-slate-700">Zona Postal:</label>
+                <input id="perfil-zona-postal" type="text" defaultValue={profileZonaPostal} ref={refs.zonaPostal} onChange={marcarPendiente} autoComplete="off" inputMode="numeric"
+                  className="w-full p-4 text-xl border-4 border-slate-300 rounded-2xl font-bold bg-white focus:border-blue-900 outline-none" />
               </div>
             </div>
           )}
@@ -3900,7 +4004,12 @@ const App = () => {
   };
 
   return (
-    <div className="min-h-screen w-full bg-slate-300 flex items-center justify-center p-4 font-sans">
+    // RESPONSIVE REAL: por debajo de "xl" (1280px) —cualquier móvil o tablet
+    // real, en cualquier orientación— la app ocupa toda la pantalla del
+    // dispositivo, sin la maqueta decorativa de teléfono (bisel, notch, barra
+    // inferior) ni fondo gris alrededor. Esa maqueta solo se ve en pantallas de
+    // escritorio grandes, como previsualización — nunca en el dispositivo real.
+    <div className="min-h-screen w-full bg-white xl:bg-slate-300 flex items-center justify-center p-0 xl:p-4 font-sans">
       <style>{`
         ::-webkit-scrollbar { display: none; }
         * { -ms-overflow-style: none; scrollbar-width: none; }
@@ -3922,12 +4031,12 @@ const App = () => {
           border-radius: 8px;
         }
       `}</style>
-      <div className="relative w-full max-w-[430px] h-[880px] bg-slate-900 rounded-[55px] shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] border-[10px] border-slate-800 p-2 overflow-hidden flex flex-col">
-        <div className="absolute top-2 left-1/2 -translate-x-1/2 w-44 h-8 bg-slate-900 rounded-b-3xl z-[60] flex items-center justify-center gap-4">
+      <div className="relative w-full h-[100dvh] max-w-full xl:max-w-[430px] xl:h-[880px] bg-white xl:bg-slate-900 xl:rounded-[55px] xl:shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] border-0 xl:border-[10px] xl:border-slate-800 p-0 xl:p-2 overflow-hidden flex flex-col">
+        <div className="hidden xl:flex absolute top-2 left-1/2 -translate-x-1/2 w-44 h-8 bg-slate-900 rounded-b-3xl z-[60] items-center justify-center gap-4">
           <div className="w-16 h-2 bg-slate-800 rounded-full"></div>
           <div className="w-4 h-4 bg-blue-900/30 rounded-full border border-blue-900/50"></div>
         </div>
-        <div className="relative w-full h-full bg-white rounded-[40px] overflow-hidden flex flex-col shadow-inner">
+        <div className="relative w-full h-full bg-white rounded-none xl:rounded-[40px] overflow-hidden flex flex-col shadow-none xl:shadow-inner">
           <div className={`absolute inset-0 bg-slate-50 scroll-smooth ${step === 'login' ? 'overflow-hidden' : 'overflow-y-auto'}`}>
             {renderCurrentScreen()}
           </div>
@@ -4428,7 +4537,7 @@ const App = () => {
             </div>
           )}
         </div>
-        <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-32 h-1.5 bg-slate-500 rounded-full z-[60]"></div>
+        <div className="hidden xl:block absolute bottom-1 left-1/2 -translate-x-1/2 w-32 h-1.5 bg-slate-500 rounded-full z-[60]"></div>
       </div>
     </div>
   );
