@@ -22,7 +22,7 @@ const fotoUsuarioPorDefecto = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3
 // nueva actualización. Formato solicitado: DÍA(2 dígitos)+MES(2 dígitos)+AÑO(4 dígitos) - HORA:MINUTO
 // Ejemplo: "27072026-19:05" = 27 de julio de 2026, 19:05. Se muestra, sin
 // ninguna acción asociada, en la esquina superior izquierda de P-01.
-const APP_VERSION = "05092026-16:35";
+const APP_VERSION = "05092026-19:30";
 
 /**
  * APP SÉNIOR - SUITE MÓVIL ACCESIBLE (SIMULADOR DE TELÉFONO)
@@ -157,9 +157,11 @@ const MENU_ITEMS = [
   { key: 'cultura',          view: 'cultura',               label: 'Cultura y Ocio',            sub: 'Eventos y museos',          Icon: Ticket,        bg: 'bg-blue-950',    hover: 'hover:bg-blue-50',    border: 'border-blue-950',    text: 'text-blue-950',    num: 10, categoria: 'vitalidad' },
   { key: 'contactos',        view: 'contactos',             label: 'Llamar a Contactos',        sub: 'Familiares y amigos',       Icon: PhoneCall,     bg: 'bg-slate-600',   hover: 'hover:bg-slate-50',   border: 'border-slate-500',   text: 'text-slate-800',   num: 11, categoria: 'vitalidad' },
   { key: 'comentarios',      view: 'comentarios',           label: 'Comentarios y Sugerencias',  sub: 'Escríbenos a VES',          Icon: MessageSquare, bg: 'bg-purple-700',  hover: 'hover:bg-purple-50',  border: 'border-purple-500',  text: 'text-purple-900',  num: 12, categoria: 'salud_digital' },
-  // NUEVO: iAyuda ahora vive dentro del Menú Principal (antes estaba en el Menú Rápido / P-26).
-  // action:'assistant' indica que no navega a una vista, sino que abre el asistente de voz.
-  { key: 'iayuda',           view: null, action: 'assistant', label: 'iAyuda',                  sub: 'Habla con el asistente',    Icon: HelpCircle,    bg: 'bg-amber-400',   hover: 'hover:bg-amber-50',   border: 'border-amber-400',   text: 'text-amber-700',   num: 13, categoria: 'salud_digital' },
+  // iAyuda NO va en ninguna de las 3 categorías (ni en P-08, ni en P-35, ni en
+  // P-21). Se abre desde el Menú Rápido (hamburguesa) con "Hablar con iAyuda".
+  // categoria: 'menu_rapido' es un valor centinela que no coincide con ningún
+  // contenedor, así que los filtros por categoría lo excluyen en todas partes.
+  { key: 'iayuda',           view: null, action: 'assistant', label: 'iAyuda',                  sub: 'Habla con el asistente',    Icon: HelpCircle,    bg: 'bg-amber-400',   hover: 'hover:bg-amber-50',   border: 'border-amber-400',   text: 'text-amber-700',   num: 13, categoria: 'menu_rapido' },
   // NUEVO: Demo de la App — recorrido guiado por voz de lo que hace el sistema
   // (Usuario Administrador y Entrar a la App), tipo ayuda pero enfocado al funcionamiento general.
   { key: 'demo_app',         view: 'demo_app',              label: 'Demo de la App',            sub: 'Cómo funciona VES',         Icon: Info,          bg: 'bg-indigo-600',  hover: 'hover:bg-indigo-50',  border: 'border-indigo-600',  text: 'text-indigo-900',  num: 14, categoria: 'salud_digital' },
@@ -171,20 +173,23 @@ const MENU_ITEMS = [
 // Vitalidad primero (lo más motivador/social), Energía después, Salud Digital
 // al final — refuerza que VES es ante todo una app social, no "una app técnica".
 const CONTENEDORES = [
-  // `titulo`: nombre corto usado en P-21 (Configura el Menú VES) y P-35 (detalle
-  // de categoría) — ahí sí se sigue mostrando "Soledad"/"Movilidad"/"Tecnología".
-  // `corto`: nombre que aparece bajo el logo VES (indicador de continente) cuando
-  // estás dentro de esa categoría o alguna de sus opciones.
-  // `fraseP08`: la frase que reemplaza al título en los contenedores de P-08,
-  // con la parte en mayúsculas resaltada más grande.
-  { id: 'vitalidad',     titulo: 'Soledad',     corto: 'No Estar Solo(a)',
-    fraseP08: { pre: 'Para ', highlight: 'NO ESTAR SOLO (A)', post: ': buscar personas, lazos y salidas.' },
+  // `titulo`: nombre técnico interno ("Soledad"/"Movilidad"/"Tecnología"); ya NO
+  // se muestra en pantalla en ningún sitio, solo queda como referencia del grupo.
+  // `corto`: nombre que aparece junto al logo VES (indicador de continente) y como
+  // encabezado de P-35 cuando estás dentro de esa categoría o de sus opciones.
+  // Es la misma parte resaltada que se ve en la frase de P-08.
+  // `fraseP08`: la frase que se muestra como título del contenedor en P-08, P-40
+  // y P-21, con la parte en mayúsculas/negrita resaltada más grande.
+  { id: 'vitalidad',     titulo: 'Soledad',     corto: 'Espacio Para Compartir',
+    fraseP08: { pre: 'un ', highlight: 'Espacio Para Compartir', post: '' },
+    // descP35: descripción de la categoría en P-35, en base a sus submenús.
+    descP35: 'Personas y planes para no estar solo: encuentra compañía, comparte lo que sabes, mira tus recuerdos, sal a la cultura y llama a los tuyos.',
     frase: 'Para no estar solo: personas, lazos y salidas',        emoji: '💗', headerBg: 'bg-rose-50',    headerBorder: 'border-rose-300',    headerText: 'text-rose-900',   activeBg: 'bg-rose-600',    activeBorder: 'border-rose-800' },
-  { id: 'energia',       titulo: 'Movilidad',   corto: 'Moverte',
-    fraseP08: { pre: 'Para ', highlight: 'MOVERTE', post: ' con seguridad, dentro y fuera de casa' },
+  { id: 'energia',       titulo: 'Movilidad',   corto: 'MOVERTE',
+    fraseP08: { pre: 'para ', highlight: 'MOVERTE', post: ' con seguridad, dentro y fuera de casa' },
     frase: 'Para moverte con seguridad, dentro y fuera de casa',   emoji: '🟠', headerBg: 'bg-amber-50',   headerBorder: 'border-amber-300',   headerText: 'text-amber-900',  activeBg: 'bg-amber-500',   activeBorder: 'border-amber-700' },
-  { id: 'salud_digital', titulo: 'Tecnología',  corto: 'Tecnología',
-    fraseP08: { pre: 'La ', highlight: 'TECNOLOGÍA', post: ', ya explicada para ti' },
+  { id: 'salud_digital', titulo: 'Tecnología',  corto: 'TECNOLOGÍA',
+    fraseP08: { pre: 'la ', highlight: 'TECNOLOGÍA', post: ', ya explicada para ti' },
     frase: 'La tecnología, ya explicada y lista para ti',          emoji: '🔵', headerBg: 'bg-blue-50',    headerBorder: 'border-blue-300',    headerText: 'text-blue-900',   activeBg: 'bg-blue-700',    activeBorder: 'border-blue-900' },
 ];
 
@@ -205,7 +210,10 @@ const CONTENEDORES = [
 // componente se re-monta muy a menudo — un scale en useState se perdería
 // (volvería a su valor inicial) en cada uno de esos remontajes. Midiendo y
 // aplicando el transform de forma imperativa en cada montaje se evita ese problema.
-const AutoFit = ({ children, minScale = 0.75, center = false }) => {
+// `estatico`: true = la pantalla NUNCA hace scroll ni "rebota" (P-06). Se encoge
+// lo que haga falta (hasta 40%) para que todo quepa siempre, y el contenedor
+// recorta cualquier sobrante en vez de permitir desplazamiento.
+const AutoFit = ({ children, minScale = 0.75, center = false, estatico = false }) => {
   const outerRef = useRef(null);
   const innerRef = useRef(null);
 
@@ -213,25 +221,39 @@ const AutoFit = ({ children, minScale = 0.75, center = false }) => {
     const outer = outerRef.current;
     const inner = innerRef.current;
     if (!outer || !inner) return;
+    const piso = estatico ? 0.4 : minScale;
     const ajustar = () => {
-      // Se mide siempre partiendo de escala 1 para no acumular error de redondeo.
-      inner.style.transform = 'scale(1)';
       const disponible = outer.clientHeight;
+      // scrollHeight NO se ve afectado por transform:scale (es geometría de
+      // layout), así que se puede medir sin quitar la escala actual. Si por
+      // lo que sea aún no hay layout (valores 0), se sale sin tocar nada —
+      // NO se fuerza scale(1)— y se reintentará en el siguiente frame / resize.
       const necesario = inner.scrollHeight;
       if (disponible <= 0 || necesario <= 0) return;
-      const nuevaEscala = Math.min(1, Math.max(minScale, disponible / necesario));
+      // 2px de margen para que un redondeo sub-píxel no deje 1px de scroll.
+      const nuevaEscala = Math.min(1, Math.max(piso, (disponible - 2) / necesario));
       inner.style.transform = `scale(${nuevaEscala})`;
     };
     ajustar();
+    // Reintentos por si el layout o las imágenes aún no están listos al montar.
+    const raf1 = requestAnimationFrame(ajustar);
+    const raf2 = requestAnimationFrame(() => requestAnimationFrame(ajustar));
+    const imgs = inner.querySelectorAll('img');
+    imgs.forEach((img) => { if (!img.complete) img.addEventListener('load', ajustar, { once: true }); });
     const ro = new ResizeObserver(ajustar);
     ro.observe(outer);
     ro.observe(inner);
     window.addEventListener('resize', ajustar);
-    return () => { ro.disconnect(); window.removeEventListener('resize', ajustar); };
+    return () => {
+      cancelAnimationFrame(raf1);
+      cancelAnimationFrame(raf2);
+      ro.disconnect();
+      window.removeEventListener('resize', ajustar);
+    };
   });
 
   return (
-    <div ref={outerRef} className="h-full w-full overflow-y-auto flex flex-col">
+    <div ref={outerRef} className={`h-full w-full flex flex-col overscroll-none ${estatico ? 'overflow-hidden' : 'overflow-y-auto'}`}>
       <div
         ref={innerRef}
         className={center ? 'm-auto w-full' : 'w-full'}
@@ -949,7 +971,7 @@ const App = () => {
   // --- EXPLICACIONES POR PANTALLA PARA "¿DÓNDE ESTOY?" ---
   const explicacionesPantallas = {
     mode_selection: { titulo: "Selección de Modo", texto: "Estás en la pantalla principal. Aquí puedes elegir Modo Pantalla para ver botones grandes y mapas, o Buzón de Mensajes para ver tus avisos." },
-    dashboard: { titulo: "Panel Principal", texto: "Estás en el Panel Principal. Toca cualquier botón grande para ir a Compañía, Ruta Segura, Comercios, Talentos, Centro de Vitalidad, Cultura, tu Guía Digital, llamar a Contactos, o pedir ayuda de emergencia." },
+    dashboard: { titulo: "Panel Principal", texto: "Estás en tu Panel Principal. Aquí tienes cuatro opciones grandes: la primera, un espacio para compartir, con personas, lazos y salidas; la segunda, para moverte con seguridad, dentro y fuera de casa; la tercera, la tecnología, ya explicada para ti; y la cuarta, el botón rojo de Pedir Ayuda para una emergencia. Toca la que necesites." },
     compania: { titulo: "Buscar Compañía", texto: "Estás viendo centros de mayores cercanos. Toca Escuchar para que te lean la información, o Filtrar para ver solo tu zona." },
     rutas: { titulo: "Ruta Segura", texto: "Estás viendo rutas seguras para caminar. Toca Elegir Ruta para indicar de dónde a dónde vas, y avisa cuando llegues al punto seguro." },
     comercio: { titulo: "Comercios", texto: "Estás viendo comercios accesibles cercanos. Toca Ya Estoy Aquí cuando llegues a uno de ellos para hacer Check-in." },
@@ -990,7 +1012,7 @@ const App = () => {
     if (claveEfectiva === 'categoria_detalle') {
       // Usa la categoría realmente abierta, no un texto genérico de las tres.
       const cont = CONTENEDORES.find((c) => c.id === categoriaAbiertaId) || CONTENEDORES[0];
-      infoBase = { titulo: cont.corto, texto: `Estás en ${cont.corto}. ${cont.frase}. Toca cualquiera de las opciones grandes para abrirla, o toca Volver para regresar al Panel Principal.` };
+      infoBase = { titulo: cont.corto, texto: `Estás en ${cont.corto}. ${cont.descP35 || (cont.frase + '.')} Toca cualquiera de las opciones grandes para abrirla, o toca Volver para regresar al Panel Principal.` };
     }
     const info = { titulo: infoBase.titulo, texto: `${username || 'Hola'}, ${infoBase.texto}` };
     setWhereAmIInfo(info);
@@ -1191,8 +1213,8 @@ const App = () => {
     // cada render y repetiría el audio. Al pulsar una opción se corta el audio.
     const irA = (accion) => { if ('speechSynthesis' in window) window.speechSynthesis.cancel(); accion(); };
     return (
-      <div className="h-full bg-white animate-in fade-in duration-300 relative">
-        <AutoFit center>
+      <div className="h-full bg-white animate-in fade-in duration-300 relative overflow-hidden">
+        <AutoFit center estatico>
           <div className="flex flex-col p-6 pb-9 gap-6">
             <EncabezadoG onBack={() => setCurrentView('selector')} conMenu />
             <div className="flex flex-col gap-6">
@@ -1243,10 +1265,11 @@ const App = () => {
     useEffect(() => {
       speak('Programas TAM. Están organizados en tres grupos: Soledad, Movilidad y Tecnología. En cada grupo aparecen primero, en azul, los programas del equipo AMA. Abajo tienes el botón rojo de Pedir Ayuda para una emergencia.');
     }, []);
+    // Mismos títulos, mismo orden y misma forma que los contenedores de P-08.
     const TAM_CATEGORIAS = [
-      { id: 'soledad',    titulo: 'Soledad',    headerBg: 'bg-rose-50',  headerBorder: 'border-rose-300',  headerText: 'text-rose-900' },
-      { id: 'movilidad',  titulo: 'Movilidad',  headerBg: 'bg-amber-50', headerBorder: 'border-amber-300', headerText: 'text-amber-900' },
-      { id: 'tecnologia', titulo: 'Tecnología', headerBg: 'bg-blue-50',  headerBorder: 'border-blue-300',  headerText: 'text-blue-900' },
+      { id: 'soledad',    corto: CONTENEDORES[0].corto, fraseP08: CONTENEDORES[0].fraseP08, headerBg: 'bg-rose-50',  headerBorder: 'border-rose-300',  headerText: 'text-rose-900' },
+      { id: 'movilidad',  corto: CONTENEDORES[1].corto, fraseP08: CONTENEDORES[1].fraseP08, headerBg: 'bg-amber-50', headerBorder: 'border-amber-300', headerText: 'text-amber-900' },
+      { id: 'tecnologia', corto: CONTENEDORES[2].corto, fraseP08: CONTENEDORES[2].fraseP08, headerBg: 'bg-blue-50',  headerBorder: 'border-blue-300',  headerText: 'text-blue-900' },
     ];
     const TAM_PROGRAMAS = [
       // origen: 'ama' (azul, primero) | 'entorno' (se añadirán más adelante)
@@ -1277,10 +1300,14 @@ const App = () => {
     };
     const cabecera = (cat) => (
       <button type="button" onClick={() => setTamAbierto(a => a === cat.id ? null : cat.id)}
-        onMouseEnter={() => announceMenuOption(cat.titulo)}
+        onMouseEnter={() => announceMenuOption(cat.corto)}
         aria-expanded={tamAbierto === cat.id}
-        className={`w-full flex items-center justify-between p-5 rounded-[25px] border-4 font-black transition-colors active:scale-95 ${cat.headerBg} ${cat.headerBorder} ${cat.headerText}`}>
-        <span className="text-2xl leading-none"><span className="text-3xl">{cat.titulo.charAt(0)}</span>{cat.titulo.slice(1)}</span>
+        className={`w-full flex items-center justify-between gap-3 p-5 rounded-[25px] border-4 transition-colors active:scale-95 ${cat.headerBg} ${cat.headerBorder} ${cat.headerText}`}>
+        <span className="text-xl font-bold leading-snug text-left">
+          {cat.fraseP08.pre}
+          <span className="text-2xl font-black">{cat.fraseP08.highlight}</span>
+          {cat.fraseP08.post}
+        </span>
         <ChevronDown size={28} className={`shrink-0 transition-transform ${tamAbierto === cat.id ? 'rotate-180' : ''}`} />
       </button>
     );
@@ -1951,7 +1978,7 @@ const App = () => {
       .map((it) => ({ ...it, label: nombresMenuPersonalizados[it.key] || it.label, icon: <it.Icon size={iconSize} color="white" /> }));
 
     useEffect(() => {
-      speak(`Estás en ${cont.corto}. ${cont.frase}.`);
+      speak(`Estás en ${cont.corto}. ${cont.descP35 || (cont.frase + '.')}`);
     }, [cont.id]);
 
     return (
@@ -1961,7 +1988,7 @@ const App = () => {
           <h2 className="text-2xl font-black leading-none">
             <span className="text-3xl">{cont.corto.charAt(0)}</span>{cont.corto.slice(1)}
           </h2>
-          <p className="text-base font-bold text-white/90 mt-1">{cont.frase}</p>
+          <p className="text-base font-bold text-white/90 mt-1">{cont.descP35 || cont.frase}</p>
         </div>
         <div className={`${gridCols} gap-3`}>
           {itemsDelContenedor.map(item => (
@@ -3577,15 +3604,14 @@ const App = () => {
                 <button
                   type="button"
                   onClick={() => toggleContenedorConfig(cont.id)}
-                  onMouseEnter={() => announceMenuOption(cont.titulo)}
+                  onMouseEnter={() => announceMenuOption(cont.corto)}
                   aria-expanded={abierto}
                   className={`w-full text-left border-4 rounded-[25px] px-5 py-4 transition-colors active:scale-95 flex items-center justify-between gap-3 ${abierto ? `${cont.activeBg} ${cont.activeBorder} text-white` : `${cont.headerBg} ${cont.headerBorder} ${cont.headerText}`}`}
                 >
-                  <span>
-                    <span className="text-2xl font-black leading-none">
-                      <span className="text-3xl">{cont.titulo.charAt(0)}</span>{cont.titulo.slice(1)}
-                    </span>
-                    <span className={`block text-base font-bold mt-1 ${abierto ? 'text-white/90' : 'opacity-80'}`}>{cont.frase}</span>
+                  <span className="text-xl font-bold leading-snug">
+                    {cont.fraseP08.pre}
+                    <span className="text-2xl font-black">{cont.fraseP08.highlight}</span>
+                    {cont.fraseP08.post}
                   </span>
                   <ChevronDown size={32} className={`shrink-0 transition-transform duration-200 ${abierto ? 'rotate-180' : ''}`} />
                 </button>
@@ -4073,7 +4099,7 @@ const App = () => {
           <div className="w-4 h-4 bg-blue-900/30 rounded-full border border-blue-900/50"></div>
         </div>
         <div className="relative w-full h-full bg-white rounded-none xl:rounded-[40px] overflow-hidden flex flex-col shadow-none xl:shadow-inner">
-          <div className={`absolute inset-0 bg-slate-50 scroll-smooth ${step === 'login' ? 'overflow-hidden' : 'overflow-y-auto'}`}>
+          <div className={`absolute inset-0 bg-slate-50 scroll-smooth overscroll-none ${step === 'login' ? 'overflow-hidden' : 'overflow-y-auto'}`}>
             {renderCurrentScreen()}
           </div>
 
@@ -4084,46 +4110,38 @@ const App = () => {
               P-06 ni antes de entrar. Queda por debajo de los modales (z-50). */}
           {step === 'dashboard' && currentView !== 'selector' && (() => {
             const esTam = currentView === 'tam';
+            const continente = esTam ? 'TAM' : 'VES';
+            // Fila 1 (siempre): [logo] + "VES"/"TAM".
+            // Fila 2 (solo si estás dentro de algo): la ruta / niveles donde estás:
+            //  - VES: categoría (p. ej. "Espacio Para Compartir"), o
+            //         categoría + opción ("Espacio Para Compartir, Buscar Compañía").
+            //  - TAM: la categoría abierta en el acordeón.
+            let ruta = null;
             if (esTam) {
-              return (
-                <div
-                  className="absolute top-1.5 left-1.5 z-40 flex items-center gap-1.5 bg-white/95 border-2 border-slate-300 rounded-full pl-1 pr-2.5 py-0.5 shadow-md pointer-events-none"
-                  role="img"
-                  aria-label="Estás en el continente TAM"
-                >
-                  <img src={logoTam} alt="" className="w-6 h-6 rounded-full" />
-                  <span className="text-xs font-black text-slate-700" aria-hidden="true">TAM</span>
-                </div>
-              );
-            }
-            // Lado VES: debajo del logo se indica dónde estás dentro del Panel
-            // Principal. En P-08 mismo, solo el logo (sin texto). En el detalle
-            // de una categoría (P-35), su nombre corto (p. ej. "No Estar
-            // Solo(a)"). Dentro de una opción de esa categoría (p. ej. Buscar
-            // Compañía), el nombre corto + la opción ("No Estar Solo(a), Buscar
-            // Compañía"). Al volver, handleBackNavigation regresa a P-35, así
-            // que aquí vuelve a verse solo el nombre corto de la categoría.
-            const catActual = CONTENEDORES.find((c) => c.id === categoriaAbiertaId);
-            const itemActual = MENU_ITEMS.find((it) => it.view === currentView);
-            let etiqueta;
-            if (currentView === 'dashboard') {
-              etiqueta = null;
-            } else if (catActual && itemActual && itemActual.categoria === catActual.id) {
-              const nombreItem = nombresMenuPersonalizados[itemActual.key] || itemActual.label;
-              etiqueta = `${catActual.corto}, ${nombreItem}`;
-            } else if (catActual) {
-              etiqueta = catActual.corto;
-            } else {
-              etiqueta = 'VES';
+              const idx = { soledad: 0, movilidad: 1, tecnologia: 2 }[tamAbierto];
+              if (idx != null) ruta = CONTENEDORES[idx].corto;
+            } else if (currentView !== 'dashboard') {
+              const catActual = CONTENEDORES.find((c) => c.id === categoriaAbiertaId);
+              const itemActual = MENU_ITEMS.find((it) => it.view === currentView);
+              if (catActual && itemActual && itemActual.categoria === catActual.id) {
+                ruta = `${catActual.corto}, ${nombresMenuPersonalizados[itemActual.key] || itemActual.label}`;
+              } else if (catActual) {
+                ruta = catActual.corto;
+              }
             }
             return (
               <div
-                className="absolute top-1.5 left-1.5 z-40 flex flex-col items-center gap-0.5 bg-white/95 border-2 border-slate-300 rounded-2xl px-2 py-1 shadow-md pointer-events-none"
+                className="absolute top-1.5 left-1.5 z-40 flex flex-col items-start gap-0.5 bg-white/95 border-2 border-slate-300 rounded-2xl px-2 py-1 shadow-md pointer-events-none max-w-[62%]"
                 role="img"
-                aria-label={etiqueta ? `Estás en el continente VES, en ${etiqueta}` : 'Estás en el continente VES'}
+                aria-label={ruta ? `Estás en el continente ${continente}, en ${ruta}` : `Estás en el continente ${continente}`}
               >
-                <BrandLogo className="w-6" />
-                {etiqueta && <span className="text-[10px] font-black text-slate-700 leading-none whitespace-nowrap" aria-hidden="true">{etiqueta}</span>}
+                <div className="flex items-center gap-1.5">
+                  {esTam
+                    ? <img src={logoTam} alt="" className="w-6 h-6 rounded-full shrink-0" />
+                    : <BrandLogo className="w-6 shrink-0" />}
+                  <span className="text-xs font-black text-slate-700 leading-none" aria-hidden="true">{continente}</span>
+                </div>
+                {ruta && <span className="text-[10px] font-black text-slate-600 leading-tight" aria-hidden="true">{ruta}</span>}
               </div>
             );
           })()}
