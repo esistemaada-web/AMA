@@ -44,6 +44,34 @@ Frases para sincronizar (hacerlas **sin pedir confirmación**):
 4. **Bitácora** — añadir 2-3 líneas al principio de la sección de abajo con lo que
    se hizo en esta sesión, y commitear/pushear también ese cambio.
 
+## Trabajo en la sesión remota ("Nube GitHub")
+
+Además de la laptop y la PC de escritorio, existe una **tercera forma de trabajar**:
+una sesión de Claude Code en la nube (contenedor remoto efímero, se borra al cerrar
+la sesión). Ahí el repo ya viene clonado solo al iniciar la sesión (no hace falta
+`git clone` manual), pero **no hay forma de ver `localhost` en el navegador del
+usuario** porque el servidor corre en la máquina remota, no en la del usuario.
+Frases para esta sesión (hacerlas **sin pedir confirmación**):
+
+### "Ver_Local_Nube" — para ver el avance sin publicar aún
+1. Levantar `npm run dev` en el contenedor remoto.
+2. Con el navegador headless disponible en el entorno, sacar capturas de pantalla
+   de las pantallas relevantes al cambio hecho.
+3. Mostrar las capturas al usuario en la conversación (no requiere push ni Vercel).
+
+### "Terminar_NUBE" — para cerrar la sesión y publicar de verdad
+Mismos pasos que "YA TERMINÉ AQUÍ" (ver abajo), con la diferencia de que acá la
+sesión trabaja sobre una rama propia (no directo en `main`):
+1. **Git** — comprobar `APP_VERSION` si se editó `App.jsx`; `git add` **SOLO**
+   archivos de la app (nunca `Fotos/` ni nada personal); `git commit` con mensaje
+   en español.
+2. **GitHub** — mezclar (merge) la rama de la sesión a `main` y hacer `push` a
+   `main`.
+3. **Vercel** — verificar que el redeploy tomó el `APP_VERSION` nuevo en
+   `https://ama-eta-black.vercel.app/`.
+4. **Bitácora** — añadir 2-3 líneas al principio de la sección de abajo, y
+   commitear/pushear también ese cambio a `main`.
+
 ## Convenciones
 
 - **`APP_VERSION`**: constante al inicio de `src/App.jsx`, formato `DDMMAAAA-HH:MM`.
