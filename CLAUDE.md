@@ -84,6 +84,23 @@ sesión trabaja sobre una rama propia (no directo en `main`):
 
 ## Bitácora (lo más reciente arriba)
 
+### 2026-09-07 — commit 1aa6ab6 · APP_VERSION 07092026-10:20
+- P-11 "Datos Ciudadano" (antes "Datos Usuario"): ahora contiene Mis Preferencias,
+  Clasificación Funcional, Modos de Asistencia, **Mis Talentos** y **Centro de
+  Vitalidad** como sub-pantallas. Quitadas del menú P-28. Cada apartado del perfil
+  tiene su propio botón GUARDAR.
+- VOLVER inteligente (`subDesdeDatosCiudadano`): Mis Talentos / Centro de Vitalidad
+  vuelven a P-11 si se entró desde ahí; desde el mundo VES o el asistente, igual que
+  antes.
+- "Centro de Tratamiento" renombrado a **"Citas y Tratamientos"** (id interno
+  `centro_tratamiento` sin cambios). "Crear Contactos" → "Crear Actores".
+- P-21 "Configura el Menú VES": fuera el botón grande "GUARDAR CAMBIOS" y los avisos
+  anteriores; un único aviso centrado al final + botón GUARDAR ("Recuerda tocar
+  GUARDAR para no perder los cambios hechos recientemente").
+- P-21: al pulsar VOLVER con cambios sin guardar → campana de alerta + vibración
+  (móvil) + temblor de pantalla (PC) + voz, y abre el diálogo **P-36** con
+  GUARDAR Y SALIR / SALIR SIN GUARDAR / VOLVER. No deja salir sin elegir.
+
 ### 2026-09-05 — commit 8a88f8d · APP_VERSION 05092026-19:30
 - P-08 / P-40 / P-21: los 3 contenedores muestran frases ("un Espacio Para
   Compartir", "para MOVERTE con seguridad, dentro y fuera de casa", "la TECNOLOGÍA,
