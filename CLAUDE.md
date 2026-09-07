@@ -84,6 +84,18 @@ sesión trabaja sobre una rama propia (no directo en `main`):
 
 ## Bitácora (lo más reciente arriba)
 
+### 2026-09-07 — commit 6d25a65 · APP_VERSION 07092026-11:24
+- P-16 Centro de Vitalidad: dos modos. **Config** (desde Datos Ciudadano):
+  checklist con las 12 opciones + GUARDAR. **Normal** (desde el Panel Principal):
+  solo se ven las opciones tildadas; contenedor sin nada marcado se oculta;
+  aviso si no hay ninguna. Estado `vitalidadSel` + array `MODULOS_VITALIDAD`.
+- Al GUARDAR en pantallas de Datos Ciudadano (P-12/P-13/P-14/Mis Talentos/Centro
+  de Vitalidad) → confirmación **"Se grabó perfectamente"**, ahora pantalla
+  **P-38**. VOLVER en P-38 regresa a P-11 y restaura `enteredFromMenu`, para que
+  el siguiente VOLVER en P-11 vaya a P-28.
+- Mis Talentos y Centro de Vitalidad: el mensaje/retorno a P-11 solo si se entró
+  desde Datos Ciudadano (`subDesdeDatosCiudadano`).
+
 ### 2026-09-07 — commit d897136 · APP_VERSION 07092026-05:54
 - Patrón común "acordeón exclusivo + GUARDAR fijo al pie + aviso al salir sin
   guardar" aplicado a P-21, P-11 y a las sub-pantallas de Datos Ciudadano
