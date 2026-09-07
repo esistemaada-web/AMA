@@ -22,7 +22,7 @@ const fotoUsuarioPorDefecto = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3
 // nueva actualización. Formato solicitado: DÍA(2 dígitos)+MES(2 dígitos)+AÑO(4 dígitos) - HORA:MINUTO
 // Ejemplo: "27072026-19:05" = 27 de julio de 2026, 19:05. Se muestra, sin
 // ninguna acción asociada, en la esquina superior izquierda de P-01.
-const APP_VERSION = "05092026-19:30";
+const APP_VERSION = "07092026-10:20";
 
 /**
  * APP SÉNIOR - SUITE MÓVIL ACCESIBLE (SIMULADOR DE TELÉFONO)
@@ -60,58 +60,32 @@ const SeccionBtn = ({ id, emoji, titulo, seccionAbierta, toggleSeccion, announce
   </button>
 );
 
-// --- TARJETA DE OPCIÓN EDITABLE (Configurar el Menú Principal, P-21) ---
-// CRÍTICO: definido FUERA del componente App por el mismo motivo que SeccionBtn:
-// si se definiera dentro de RenderConfigurarMenu, cada tecla escrita generaría
-// una nueva referencia de función y el input perdería el foco.
-const OpcionMenuEditable = ({ item, value, isCustom, visible, onToggleVisible, onChangeValue, onSave, onRestore }) => {
-  const restantes = 25 - value.length;
+// --- TARJETA DE OPCIÓN DEL MENÚ (Configura el Menú VES, P-21) ---
+// Ya NO se pueden editar los nombres: cada opción solo se muestra u oculta con
+// el interruptor. Se conserva definido fuera de App por consistencia.
+const OpcionMenuEditable = ({ item, value, visible, onToggleVisible }) => {
+  const nombre = value || item.label;
   return (
     <div className="p-5 bg-slate-50 rounded-[30px] border-4 border-slate-200 shadow-sm space-y-4">
-      <div className="flex items-center justify-between gap-4">
-        <span className="text-base font-black text-slate-500 uppercase tracking-wide">{item.sub}</span>
+      <div className="flex items-center gap-4 justify-between">
+        <div className="flex items-center gap-3 overflow-hidden">
+          <div className={`${item.bg} p-2 rounded-full shrink-0`}>
+            <item.Icon size={22} color="white" />
+          </div>
+          <div className="text-left overflow-hidden">
+            <span className={`block text-lg font-black ${item.text} truncate`}>{nombre}</span>
+            <span className="block text-sm font-black text-slate-500 uppercase tracking-wide truncate">{item.sub}</span>
+          </div>
+        </div>
         <button
           onClick={onToggleVisible}
           role="switch"
           aria-checked={visible}
           className={`w-20 h-11 rounded-full p-1 transition-colors duration-200 focus:outline-none shrink-0 border-2 ${visible ? 'bg-emerald-600 border-emerald-800' : 'bg-slate-300 border-slate-400'}`}
-          aria-label={`Mostrar u ocultar ${value}`}
+          aria-label={`Mostrar u ocultar ${nombre}`}
         >
           <div className={`bg-white w-8 h-8 rounded-full shadow-md transform transition-transform duration-200 ${visible ? 'translate-x-9' : 'translate-x-0'}`}></div>
         </button>
-      </div>
-
-      <div>
-        <label className="block text-sm font-black text-slate-600 mb-1">Nombre en el menú (máx. 25 caracteres)</label>
-        <input
-          type="text"
-          value={value}
-          maxLength={25}
-          onChange={(e) => onChangeValue(e.target.value.slice(0, 25))}
-          onBlur={onSave}
-          className="w-full p-4 text-xl font-black border-4 border-slate-300 rounded-2xl focus:border-blue-900 outline-none bg-white text-slate-900"
-          aria-label={`Nombre personalizado para ${item.sub}, máximo 25 caracteres`}
-        />
-        <div className="flex items-center justify-between mt-2 gap-2 flex-wrap">
-          <span className={`text-sm font-bold ${restantes <= 5 ? 'text-red-600' : 'text-slate-500'}`}>{restantes} caracteres restantes</span>
-          {isCustom && (
-            <button type="button" onClick={onRestore} className="text-sm font-black text-blue-800 underline active:scale-95">
-              🔄 Restaurar nombre original
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* VISTA PREVIA EN VIVO: así se verá el botón en el Panel Principal */}
-      <div className="flex items-center gap-3 p-3 bg-white rounded-2xl border-2 border-dashed border-slate-300">
-        <div className={`${item.bg} p-2 rounded-full shrink-0`}>
-          <item.Icon size={22} color="white" />
-        </div>
-        <div className="text-left overflow-hidden">
-          <span className={`block text-sm font-black ${item.text} truncate`}>{value || item.label}</span>
-          <span className="block text-[11px] font-bold text-gray-500 truncate">{item.sub}</span>
-        </div>
-        <span className="ml-auto text-[10px] font-bold text-slate-400 shrink-0">Vista previa</span>
       </div>
     </div>
   );
@@ -149,9 +123,10 @@ const MENU_ITEMS = [
   { key: 'rutas',            view: 'rutas',                 label: 'Ruta Segura',               sub: 'Caminos y avisos',          Icon: MapPin,        bg: 'bg-emerald-700', hover: 'hover:bg-emerald-50', border: 'border-emerald-700', text: 'text-emerald-900', num: 4,  categoria: 'energia' },
   { key: 'comercio',         view: 'comercio',              label: 'Comercios',                 sub: 'Hacer Check-in',            Icon: ShoppingBag,   bg: 'bg-blue-800',    hover: 'hover:bg-blue-50',    border: 'border-blue-800',    text: 'text-blue-900',    num: 5,  categoria: 'energia' },
   { key: 'centro_vitalidad', view: 'centro_vitalidad',      label: 'Centro de Vitalidad',       sub: 'Salud y descanso',          Icon: Heart,         bg: 'bg-rose-500',    hover: 'hover:bg-rose-50',    border: 'border-rose-500',    text: 'text-rose-900',    num: 6,  categoria: 'energia' },
-  // NUEVO: Centro de Tratamiento — relación del usuario con un centro de tratamiento externo
-  // (fisioterapia, rehabilitación, etc.), sesiones presenciales o a domicilio.
-  { key: 'centro_tratamiento', view: 'centro_tratamiento',  label: 'Centro de Tratamiento',     sub: 'Sesiones y progreso',       Icon: Activity,      bg: 'bg-teal-600',    hover: 'hover:bg-teal-50',    border: 'border-teal-600',    text: 'text-teal-900',    num: 7,  categoria: 'energia' },
+  // "Citas y Tratamientos" (antes "Centro de Tratamiento") — relación del usuario con un
+  // centro externo (fisioterapia, rehabilitación, etc.), sesiones presenciales o a domicilio.
+  // El id interno sigue siendo 'centro_tratamiento'.
+  { key: 'centro_tratamiento', view: 'centro_tratamiento',  label: 'Citas y Tratamientos',      sub: 'Sesiones y progreso',       Icon: Activity,      bg: 'bg-teal-600',    hover: 'hover:bg-teal-50',    border: 'border-teal-600',    text: 'text-teal-900',    num: 7,  categoria: 'energia' },
   { key: 'guia_digital',     view: 'guia_digital',          label: 'Mi Guía Digital',           sub: 'Novedades y Consejos',      Icon: BookOpen,      bg: 'bg-purple-800',  hover: 'hover:bg-purple-50',  border: 'border-purple-800',  text: 'text-purple-900',  num: 8,  categoria: 'salud_digital' },
   { key: 'fotos_videos',     view: 'fotos_videos',          label: 'Fotos y Videos',            sub: 'Familia y recuerdos',       Icon: Image,         bg: 'bg-amber-600',   hover: 'hover:bg-amber-50',   border: 'border-amber-600',   text: 'text-amber-800',   num: 9,  categoria: 'vitalidad' },
   { key: 'cultura',          view: 'cultura',               label: 'Cultura y Ocio',            sub: 'Eventos y museos',          Icon: Ticket,        bg: 'bg-blue-950',    hover: 'hover:bg-blue-50',    border: 'border-blue-950',    text: 'text-blue-950',    num: 10, categoria: 'vitalidad' },
@@ -301,6 +276,9 @@ const App = () => {
   const [whereAmIInfo, setWhereAmIInfo] = useState({ titulo: '', texto: '' });
   const [quickMenuBackAction, setQuickMenuBackAction] = useState(() => () => {});
   const [enteredFromMenu, setEnteredFromMenu] = useState(false); // Memoria de procedencia para botón volver
+  // Cuando una sub-pantalla (Mis Talentos / Centro de Vitalidad) se abre desde
+  // "Datos Ciudadano" (P-11) en vez de desde el mundo VES, VOLVER regresa a P-11.
+  const [subDesdeDatosCiudadano, setSubDesdeDatosCiudadano] = useState(false);
 
   // --- ESTADOS DE NUEVAS PREFERENCIAS ---
   const [prefVision, setPrefVision] = useState(false);
@@ -320,6 +298,9 @@ const App = () => {
   const [perfilPasswordInput, setPerfilPasswordInput] = useState('');
   const [perfilNombreInput, setPerfilNombreInput] = useState('');
   const [perfilPasswordError, setPerfilPasswordError] = useState(false);
+  // Nivel elegido en "Clasificación Funcional" (P-14): a nivel de App para que
+  // se conserve al salir y volver, y al pulsar GUARDAR.
+  const [clasificacionNivel, setClasificacionNivel] = useState('leve');
   // --- VISIBILIDAD DE OPCIONES DEL PANEL PRINCIPAL (Configurar el Menú Principal) ---
   const [menuVisible, setMenuVisible] = useState({
     compania: true,
@@ -343,16 +324,18 @@ const App = () => {
   // Si el usuario solo deja activa una, tras el acceso se salta P-06 y entra
   // directo a P-08 (VES) o P-40 (TAM). Nunca se permite dejar las dos apagadas.
   const [selectorVisible, setSelectorVisible] = useState({ ves: true, tam: true });
-  // --- NOMBRES PERSONALIZADOS DE LAS OPCIONES DEL MENÚ PRINCIPAL (P-21) ---
-  // Solo se guarda la clave si el usuario cambió el nombre por defecto (máx. 25 caracteres).
-  // Los subtítulos NO son editables y siempre vienen de MENU_ITEMS.
-  const [nombresMenuPersonalizados, setNombresMenuPersonalizados] = useState({});
-  // Aviso "cambios sin guardar" y confirmación antes de restaurar un nombre (P-21).
-  // Viven a nivel de App (no dentro de RenderConfigurarMenu) porque esa pantalla
-  // ahora se invoca como función simple (no como <Componente/>), y los Hooks solo
-  // pueden vivir en un componente real, no en una función normal llamada condicionalmente.
+  // Nombres de las opciones del menú (P-21): ya NO se editan; se leen siempre de
+  // MENU_ITEMS. Se conserva el estado (vacío) por si hubiera nombres antiguos
+  // guardados de una versión previa.
+  const [nombresMenuPersonalizados] = useState({});
+  // Aviso "cambios sin guardar" en P-21 (para los interruptores mostrar/ocultar
+  // y el nº de opciones por fila). Vive a nivel de App porque esa pantalla se
+  // invoca como función simple y los Hooks solo pueden vivir en un componente real.
   const [hayCambiosSinGuardarMenu, setHayCambiosSinGuardarMenu] = useState(false);
-  const [confirmarRestaurarKey, setConfirmarRestaurarKey] = useState(null);
+  // Diálogo "quieres salir sin guardar" al pulsar VOLVER en P-21 con cambios
+  // pendientes, y disparador de la animación de "temblor" de la pantalla.
+  const [menuSalidaSinGuardar, setMenuSalidaSinGuardar] = useState(false);
+  const [menuShake, setMenuShake] = useState(false);
   // Qué contenedor (Vitalidad/Energía/Salud Digital) está desplegado en P-21,
   // mismo mecanismo de acordeón que en P-08. Vive a nivel de App porque
   // RenderConfigurarMenu se invoca como función simple, no como componente.
@@ -644,6 +627,11 @@ const App = () => {
   };
 
   const handleBackNavigation = () => {
+    if (subDesdeDatosCiudadano) {
+      setSubDesdeDatosCiudadano(false);
+      setCurrentView('perfil');
+      return;
+    }
     if (enteredFromMenu) {
       setCurrentView('dashboard');
       setIsMenuOpen(true);
@@ -760,6 +748,7 @@ const App = () => {
         setCurrentView('rutas');
       }
       setEnteredFromMenu(false);
+      setSubDesdeDatosCiudadano(false);
       setIsAssistantOpen(false);
     }, 2500);
   };
@@ -976,7 +965,7 @@ const App = () => {
     rutas: { titulo: "Ruta Segura", texto: "Estás viendo rutas seguras para caminar. Toca Elegir Ruta para indicar de dónde a dónde vas, y avisa cuando llegues al punto seguro." },
     comercio: { titulo: "Comercios", texto: "Estás viendo comercios accesibles cercanos. Toca Ya Estoy Aquí cuando llegues a uno de ellos para hacer Check-in." },
     cultura: { titulo: "Cultura y Ocio", texto: "Estás viendo museos, teatros y eventos culturales cercanos con acceso fácil." },
-    perfil: { titulo: "Mi Perfil", texto: "Estás en tu Perfil. En los apartados desplegables puedes cambiar tu foto y tus datos personales, tu contacto y dirección, tu asistente de Inteligencia Artificial, tu seguridad y emergencia, y los usuarios invitados. Recuerda tocar Guardar Perfil al terminar." },
+    perfil: { titulo: "Datos Ciudadano", texto: "Estás en los Datos del Ciudadano. En los apartados desplegables puedes cambiar la foto y los datos personales, la ubicación, el asistente de Inteligencia Artificial, la seguridad y emergencia, y los usuarios invitados, y cada apartado tiene su propio botón Guardar. Más abajo tienes Mis Preferencias, Clasificación Funcional, Modos de Asistencia, Mis Talentos y el Centro de Vitalidad." },
     preferencias: { titulo: "Mis Preferencias", texto: "Estás en Mis Preferencias. Aquí puedes activar ayudas de vista, oído y habla, con interruptores para adaptar la aplicación a lo que necesitas." },
     modos_asistencia: { titulo: "Modos de Asistencia", texto: "Estás evaluando tus capacidades de vista, oído, habla y escritura, para que la aplicación se adapte mejor a ti." },
     clasificacion_funcional: { titulo: "Clasificación Funcional", texto: "Estás viendo recomendaciones según tu nivel de movilidad: leve, moderado o severo." },
@@ -985,13 +974,13 @@ const App = () => {
     centro_vitalidad: { titulo: "Centro de Vitalidad", texto: "Estás en el Centro de Vitalidad. Aquí encontrarás ejercicios, juegos mentales, contactos sociales, salud y descanso." },
     buzon: { titulo: "Buzón de Mensajes", texto: "Estás viendo los avisos y mensajes que la aplicación te ha enviado." },
     contactos: { titulo: "Mis Contactos", texto: "Estás viendo tu lista de contactos. Toca el nombre de la persona que quieres llamar." },
-    crear_contactos: { titulo: "Crear Contactos", texto: "Tiene dos pestañas. En Crear lista de contactos rellenas los datos de una persona, foto, nombre, apellido, teléfono, y tocas Guardar Contacto. En Contactos de emergencia marcas a quién se llamará y se le enviará un mensaje al pulsar Pedir Ayuda, escribes ese mensaje, y eliges si se envía por SMS, WhatsApp o correo, uno o varios a la vez." },
+    crear_contactos: { titulo: "Crear Actores", texto: "Tiene dos pestañas. En Crear lista de actores rellenas los datos de una persona, foto, nombre, apellido, teléfono, y tocas Guardar. En Contactos de emergencia marcas a quién se llamará y se le enviará un mensaje al pulsar Pedir Ayuda, escribes ese mensaje, y eliges si se envía por SMS, WhatsApp o correo, uno o varios a la vez." },
     guia_digital: { titulo: "Mi Guía Digital", texto: "Estás en tu Guía Digital. Aquí encontrarás cursos sugeridos y consejos diarios de seguridad y bienestar." },
     emergencia: { titulo: "Pedir Ayuda", texto: "Estás en la pantalla de emergencia. Toca el botón rojo para llamar a Urgencias, o el nombre de un familiar para llamarlo a él. Si no haces nada, la app llamará a Urgencias automáticamente." },
     // categoria_detalle NO usa un texto fijo aquí: handleWhereAmI arma el texto
     // según la categoría que esté realmente abierta (categoriaAbiertaId), para
     // no anunciar un grupo distinto al que se está viendo.
-    centro_tratamiento: { titulo: "Centro de Tratamiento", texto: "Estás viendo tus sesiones de fisioterapia y rehabilitación: las próximas citas, si son a domicilio o en el centro, y el nombre del terapeuta. Cuando una sesión sea a domicilio y llegue el terapeuta, toca El terapeuta ya llegó." },
+    centro_tratamiento: { titulo: "Citas y Tratamientos", texto: "Estás viendo tus sesiones de fisioterapia y rehabilitación: las próximas citas, si son a domicilio o en el centro, y el nombre del terapeuta. Cuando una sesión sea a domicilio y llegue el terapeuta, toca El terapeuta ya llegó." },
     fotos_videos: { titulo: "Fotos y Videos", texto: "Estás viendo tus recuerdos en fotos y videos, agrupados por Familia, Amistades y otros momentos. Toca cualquier imagen para verla más grande." },
     configurar_menu: { titulo: "Configura el Menú VES", texto: "Aquí eliges qué opciones aparecen en tu Panel Principal de VES y cómo se llaman, máximo veinticinco letras, y cuántas caben por fila: una, dos o tres. Pedir Ayuda siempre estará visible. Recuerda tocar Guardar Cambios al terminar." },
     configurar_menu_principal: { titulo: "Configura Menú Principal", texto: "Aquí eliges qué aparece en la pantalla de inicio: el logo VES para tu Panel Principal y el logo TAM para los programas de ayuda. Debes dejar activo al menos uno. Si dejas solo uno, al entrar irás directamente a esa pantalla sin pasar por el selector." },
@@ -1994,7 +1983,7 @@ const App = () => {
           {itemsDelContenedor.map(item => (
             <button
               key={item.key}
-              onClick={() => { if (item.action === 'assistant') { setIsAssistantOpen(true); } else { setCurrentView(item.view); } setEnteredFromMenu(false); }}
+              onClick={() => { if (item.action === 'assistant') { setIsAssistantOpen(true); } else { setCurrentView(item.view); } setEnteredFromMenu(false); setSubDesdeDatosCiudadano(false); }}
               onMouseEnter={() => announceMenuOption(item.label)}
               className={`relative flex flex-col items-center justify-center text-center gap-2 ${btnPadding} bg-white ${item.hover} border-4 ${item.border} rounded-[30px] shadow-md active:bg-blue-50 transition-colors`}
             >
@@ -2304,35 +2293,60 @@ const App = () => {
 
     const toggleSeccion = (id) => setSeccionAbierta(prev => prev === id ? null : id);
 
-    const handleSaveProfile = (e) => {
-      e.preventDefault();
-      // Leer todos los valores de los refs y actualizar el estado global de una sola vez
-      setProfileNombre(soloTexto(refs.nombre.current?.value));
-      setProfileApellido(soloTexto(refs.apellido.current?.value));
-      setProfileFechaNac(refs.fechaNac.current?.value || profileFechaNac);
-      setProfileNacionalidad(soloTexto(refs.nacionalidad.current?.value));
-      setProfileIdioma(soloTexto(refs.idioma.current?.value));
-      setProfileGenero(refs.genero.current?.value || profileGenero);
-      setProfileDireccion(soloTexto(refs.direccion.current?.value));
-      setProfileTelefono(soloTexto(refs.telefono.current?.value));
-      setProfileCorreo(soloTexto(refs.correo.current?.value));
-      setProfileComunidadAutonoma(soloTexto(refs.comunidadAutonoma.current?.value));
-      setProfileProvincia(soloTexto(refs.provincia.current?.value));
-      setProfileMunicipio(soloTexto(refs.municipio.current?.value));
-      setProfileCiudad(soloTexto(refs.ciudad.current?.value));
-      setProfileZonaPostal(soloTexto(refs.zonaPostal.current?.value));
-      setProfilePais(refs.pais.current?.value || profilePais);
-      setProfileNombreIA(soloTexto(refs.nombreIA.current?.value));
-      setProfileLlamarIA(soloTexto(refs.llamarIA.current?.value));
-      setProfileVozIA(refs.vozIA.current?.value || profileVozIA);
-      setPerfilPassword(refs.segPassword.current?.value || '');
-      setProfileInvitadoNombre(soloTexto(refs.invitadoNombre.current?.value));
-      setProfileInvitadoClave(refs.invitadoClave.current?.value || '');
-      setUsername(soloTexto(refs.nombre.current?.value));
+    // Ya no hay un único "GUARDAR PERFIL": cada apartado (acordeón) tiene su propio
+    // botón GUARDAR que solo lee sus campos. Como los campos de un apartado cerrado
+    // están desmontados (sus refs son null), guardar por apartado evita el riesgo
+    // de borrar sin querer los datos de otro apartado que no estaba abierto.
+    const confirmarGuardado = () => {
       setHayDatosSinGuardar(false);
       setSelectedItem({ nombre: "Tu Perfil" });
       setShowSuccess(true);
     };
+    const guardarSeccion = {
+      datos: () => {
+        setProfileNombre(soloTexto(refs.nombre.current?.value));
+        setProfileApellido(soloTexto(refs.apellido.current?.value));
+        setProfileFechaNac(refs.fechaNac.current?.value || profileFechaNac);
+        setProfileNacionalidad(soloTexto(refs.nacionalidad.current?.value));
+        setProfileIdioma(soloTexto(refs.idioma.current?.value));
+        setProfileGenero(refs.genero.current?.value || profileGenero);
+        setProfileTelefono(soloTexto(refs.telefono.current?.value));
+        setProfileCorreo(soloTexto(refs.correo.current?.value));
+        setUsername(soloTexto(refs.nombre.current?.value));
+        confirmarGuardado();
+      },
+      ubicacion: () => {
+        setProfilePais(refs.pais.current?.value || profilePais);
+        setProfileComunidadAutonoma(soloTexto(refs.comunidadAutonoma.current?.value));
+        setProfileProvincia(soloTexto(refs.provincia.current?.value));
+        setProfileMunicipio(soloTexto(refs.municipio.current?.value));
+        setProfileCiudad(soloTexto(refs.ciudad.current?.value));
+        setProfileDireccion(soloTexto(refs.direccion.current?.value));
+        setProfileZonaPostal(soloTexto(refs.zonaPostal.current?.value));
+        confirmarGuardado();
+      },
+      ia: () => {
+        setProfileNombreIA(soloTexto(refs.nombreIA.current?.value));
+        setProfileLlamarIA(soloTexto(refs.llamarIA.current?.value));
+        setProfileVozIA(refs.vozIA.current?.value || profileVozIA);
+        confirmarGuardado();
+      },
+      seguridad: () => {
+        setPerfilPassword(refs.segPassword.current?.value || '');
+        confirmarGuardado();
+      },
+      invitados: () => {
+        setProfileInvitadoNombre(soloTexto(refs.invitadoNombre.current?.value));
+        setProfileInvitadoClave(refs.invitadoClave.current?.value || '');
+        confirmarGuardado();
+      },
+    };
+    const botonGuardar = (onClick) => (
+      <button type="button" onClick={onClick} onMouseEnter={() => announceMenuOption('Guardar')}
+        className="w-full py-4 bg-blue-900 text-white rounded-2xl font-black text-xl shadow-md border-b-4 border-blue-950 active:translate-y-0.5 mt-2 flex items-center justify-center gap-2">
+        <CheckCircle2 size={24} /> GUARDAR
+      </button>
+    );
 
     const handlePhotoChange = (e) => {
       const file = e.target.files[0];
@@ -2350,14 +2364,14 @@ const App = () => {
     return (
       <div className="flex flex-col p-6 bg-white min-h-full pb-32 animate-in fade-in duration-300 text-left relative">
         <EncabezadoG onBack={handleBackNavigation} />
-        <h2 className="text-4xl font-black text-blue-900 mb-6">Mi Perfil</h2>
+        <h2 className="text-4xl font-black text-blue-900 mb-6">Datos Ciudadano</h2>
         {hayDatosSinGuardar && (
           <div className="bg-amber-50 border-4 border-amber-400 rounded-2xl p-4 mb-4 flex items-center gap-3">
             <span className="text-2xl">⚠️</span>
-            <p className="text-lg font-black text-amber-800 leading-tight">Recuerda tocar GUARDAR PERFIL para no perder tus cambios.</p>
+            <p className="text-lg font-black text-amber-800 leading-tight">Recuerda tocar GUARDAR en cada apartado para no perder tus cambios.</p>
           </div>
         )}
-        <form onSubmit={handleSaveProfile} className="space-y-4">
+        <div className="space-y-4">
           <SeccionBtn id="datos" emoji="📋" titulo="Datos Personales" seccionAbierta={seccionAbierta} toggleSeccion={toggleSeccion} announceMenuOption={announceMenuOption} />
           {seccionAbierta === 'datos' && (
             <div className="bg-slate-50 p-5 rounded-[25px] border-4 border-blue-200 space-y-4 animate-in fade-in duration-200">
@@ -2425,6 +2439,7 @@ const App = () => {
                 <input id="perfil-correo" type="email" defaultValue={profileCorreo} ref={refs.correo} onChange={marcarPendiente} autoComplete="off" inputMode="email"
                   className="w-full p-4 text-xl border-4 border-slate-300 rounded-2xl font-bold bg-white focus:border-blue-900 outline-none" />
               </div>
+              {botonGuardar(guardarSeccion.datos)}
             </div>
           )}
           <SeccionBtn id="ubicacion" emoji="🌍" titulo="Ubicación" seccionAbierta={seccionAbierta} toggleSeccion={toggleSeccion} announceMenuOption={announceMenuOption} />
@@ -2471,6 +2486,7 @@ const App = () => {
                 <input id="perfil-zona-postal" type="text" defaultValue={profileZonaPostal} ref={refs.zonaPostal} onChange={marcarPendiente} autoComplete="off" inputMode="numeric"
                   className="w-full p-4 text-xl border-4 border-slate-300 rounded-2xl font-bold bg-white focus:border-blue-900 outline-none" />
               </div>
+              {botonGuardar(guardarSeccion.ubicacion)}
             </div>
           )}
           <SeccionBtn id="ia" emoji="🤖" titulo="Asistente de IA" seccionAbierta={seccionAbierta} toggleSeccion={toggleSeccion} announceMenuOption={announceMenuOption} />
@@ -2493,6 +2509,7 @@ const App = () => {
                   <option value="Hijo (Carlos)">Hijo (Carlos)</option><option value="Hija (Ana)">Hija (Ana)</option>
                 </select>
               </div>
+              {botonGuardar(guardarSeccion.ia)}
             </div>
           )}
           <SeccionBtn id="seguridad" emoji="🔒" titulo="Seguridad y Emergencia" seccionAbierta={seccionAbierta} toggleSeccion={toggleSeccion} announceMenuOption={announceMenuOption} />
@@ -2505,6 +2522,7 @@ const App = () => {
                 <input id="perfil-password" type="password" defaultValue={perfilPassword} ref={refs.segPassword} onChange={marcarPendiente} placeholder="Ej. 1234"
                   className="w-full p-4 text-xl border-4 border-slate-300 rounded-2xl font-bold bg-white focus:border-blue-900 outline-none" />
               </div>
+              {botonGuardar(guardarSeccion.seguridad)}
             </div>
           )}
           <SeccionBtn id="invitados" emoji="👥" titulo="Usuarios (Invitados)" seccionAbierta={seccionAbierta} toggleSeccion={toggleSeccion} announceMenuOption={announceMenuOption} />
@@ -2521,19 +2539,51 @@ const App = () => {
                 <input id="perfil-invitado-clave" type="password" defaultValue={profileInvitadoClave} ref={refs.invitadoClave} onChange={marcarPendiente} placeholder="Escribe una contraseña"
                   className="w-full p-4 text-xl border-4 border-slate-300 rounded-2xl font-bold bg-white focus:border-blue-900 outline-none" />
               </div>
+              {botonGuardar(guardarSeccion.invitados)}
             </div>
           )}
-          <button type="submit" className="w-full py-6 bg-blue-900 text-white rounded-3xl font-black text-2xl shadow-lg border-b-8 border-blue-950 active:translate-y-1 mt-6">
-            GUARDAR PERFIL
+        </div>
+
+        {/* Sub-pantallas del ciudadano (antes eran botones sueltos en el Menú de Perfil) */}
+        <div className="mt-8 space-y-3">
+          <button type="button" onClick={() => setCurrentView('preferencias')} onMouseEnter={() => announceMenuOption('Mis Preferencias')}
+            className="w-full flex items-center gap-3 p-5 bg-slate-50 border-4 border-blue-200 rounded-[25px] active:scale-95 transition-transform text-left">
+            <Info size={28} className="text-blue-900 shrink-0" />
+            <span className="text-xl font-black text-blue-900">Mis Preferencias</span>
+            <ChevronDown size={28} className="ml-auto shrink-0 -rotate-90 text-blue-900" />
           </button>
-        </form>
+          <button type="button" onClick={() => setCurrentView('clasificacion_funcional')} onMouseEnter={() => announceMenuOption('Clasificación Funcional')}
+            className="w-full flex items-center gap-3 p-5 bg-slate-50 border-4 border-blue-200 rounded-[25px] active:scale-95 transition-transform text-left">
+            <ShieldCheck size={28} className="text-blue-900 shrink-0" />
+            <span className="text-xl font-black text-blue-900">Clasificación Funcional</span>
+            <ChevronDown size={28} className="ml-auto shrink-0 -rotate-90 text-blue-900" />
+          </button>
+          <button type="button" onClick={() => setCurrentView('modos_asistencia')} onMouseEnter={() => announceMenuOption('Modos de Asistencia')}
+            className="w-full flex items-center gap-3 p-5 bg-slate-50 border-4 border-blue-200 rounded-[25px] active:scale-95 transition-transform text-left">
+            <HelpCircle size={28} className="text-blue-900 shrink-0" />
+            <span className="text-xl font-black text-blue-900">Modos de Asistencia</span>
+            <ChevronDown size={28} className="ml-auto shrink-0 -rotate-90 text-blue-900" />
+          </button>
+          <button type="button" onClick={() => { setSubDesdeDatosCiudadano(true); setEnteredFromMenu(false); setCurrentView('talento'); }} onMouseEnter={() => announceMenuOption('Mis Talentos')}
+            className="w-full flex items-center gap-3 p-5 bg-slate-50 border-4 border-blue-200 rounded-[25px] active:scale-95 transition-transform text-left">
+            <Star size={28} className="text-blue-900 shrink-0" />
+            <span className="text-xl font-black text-blue-900">Mis Talentos</span>
+            <ChevronDown size={28} className="ml-auto shrink-0 -rotate-90 text-blue-900" />
+          </button>
+          <button type="button" onClick={() => { setSubDesdeDatosCiudadano(true); setEnteredFromMenu(false); setCurrentView('centro_vitalidad'); }} onMouseEnter={() => announceMenuOption('Centro de Vitalidad')}
+            className="w-full flex items-center gap-3 p-5 bg-slate-50 border-4 border-blue-200 rounded-[25px] active:scale-95 transition-transform text-left">
+            <Heart size={28} className="text-blue-900 shrink-0" />
+            <span className="text-xl font-black text-blue-900">Centro de Vitalidad</span>
+            <ChevronDown size={28} className="ml-auto shrink-0 -rotate-90 text-blue-900" />
+          </button>
+        </div>
         <div className="absolute bottom-2 left-0 right-0 text-center text-[10px] text-black font-bold">P-11</div>
       </div>
     );
   };
   const RenderPreferencias = () => (
     <div className="flex flex-col p-6 bg-white min-h-full pb-32 animate-in fade-in duration-300 relative">
-      <EncabezadoG onBack={handleBackNavigation} />
+      <EncabezadoG onBack={() => setCurrentView('perfil')} />
       <h2 className="text-4xl font-black text-blue-900 mb-6">Mis Preferencias</h2>
       <p className="text-xl font-bold text-slate-700 mb-8 leading-relaxed">
         Activa o desactiva las ayudas visuales y de sonido con estos interruptores gigantes deslizantes:
@@ -2639,7 +2689,7 @@ const App = () => {
     );
     return (
       <div className="flex flex-col p-6 bg-white min-h-full pb-32 animate-in fade-in duration-300 relative">
-        <EncabezadoG onBack={handleBackNavigation} />
+        <EncabezadoG onBack={() => setCurrentView('perfil')} />
         <h2 className="text-4xl font-black text-blue-900 mb-2 text-left">Modos de Asistencia</h2>
         <p className="text-xl font-bold text-slate-600 mb-6 leading-tight text-left">
           Evalúa tus capacidades y marca si necesitas dispositivos de apoyo de forma cómoda:
@@ -2655,9 +2705,9 @@ const App = () => {
             setSelectedItem({ nombre: "Configuración de Asistencia" });
             setShowSuccess(true);
           }}
-          className="w-full py-6 bg-blue-950 text-white rounded-[25px] font-black text-2xl shadow-xl border-b-8 border-blue-950 active:translate-y-1 mt-8"
+          className="w-full py-6 bg-blue-950 text-white rounded-[25px] font-black text-2xl shadow-xl border-b-8 border-blue-950 active:translate-y-1 mt-8 flex items-center justify-center gap-3"
         >
-          GUARDAR ASISTENCIA
+          <CheckCircle2 size={28} /> GUARDAR
         </button>
         <div className="absolute bottom-2 left-0 right-0 text-center text-[10px] text-black font-bold">P-13</div>
       </div>
@@ -2665,10 +2715,11 @@ const App = () => {
   };
 
   const RenderClasificacionFuncional = () => {
-    const [nivel, setNivel] = useState('leve');
+    const nivel = clasificacionNivel;
+    const setNivel = setClasificacionNivel;
     return (
       <div className="flex flex-col p-6 bg-white min-h-full pb-32 animate-in fade-in duration-300 text-left relative">
-        <EncabezadoG onBack={handleBackNavigation} />
+        <EncabezadoG onBack={() => setCurrentView('perfil')} />
         <h2 className="text-4xl font-black text-blue-900 mb-6">Clasificación Funcional</h2>
         <div className="grid grid-cols-3 gap-3 mb-8">
           <button
@@ -2738,6 +2789,13 @@ const App = () => {
             </div>
           </div>
         )}
+        <button
+          onClick={() => { setSelectedItem({ nombre: "Clasificación Funcional" }); setShowSuccess(true); }}
+          onMouseEnter={() => announceMenuOption('Guardar')}
+          className="w-full py-6 bg-blue-950 text-white rounded-[25px] font-black text-2xl shadow-xl border-b-8 border-blue-950 active:translate-y-1 mt-8 flex items-center justify-center gap-3"
+        >
+          <CheckCircle2 size={28} /> GUARDAR
+        </button>
         <div className="absolute bottom-2 left-0 right-0 text-center text-[10px] text-black font-bold">P-14</div>
       </div>
     );
@@ -3003,7 +3061,7 @@ const App = () => {
     );
   };
 
-  // ─── CENTRO DE TRATAMIENTO ───
+  // ─── CITAS Y TRATAMIENTOS ───
   // Relación del usuario con un centro de tratamiento externo (fisioterapia,
   // rehabilitación, etc.): próximas sesiones, check-in cuando el terapeuta
   // llega a domicilio, y un resumen simple de progreso compartido por el
@@ -3022,7 +3080,7 @@ const App = () => {
           <div className="p-4 rounded-full bg-teal-600 text-white shadow-lg">
             <Activity size={36} />
           </div>
-          <h2 className="text-3xl font-black text-teal-900 leading-tight">Centro de Tratamiento</h2>
+          <h2 className="text-3xl font-black text-teal-900 leading-tight">Citas y Tratamientos</h2>
         </div>
 
         {sesionHoy && (
@@ -3242,7 +3300,7 @@ const App = () => {
           <div className="p-4 rounded-full bg-amber-100 text-amber-600 shadow-lg">
             <UserPlus size={36} />
           </div>
-          <h2 className="text-4xl font-black text-amber-600 leading-tight">Crear Contactos</h2>
+          <h2 className="text-4xl font-black text-amber-600 leading-tight">Crear Actores</h2>
         </div>
 
         {/* PESTAÑAS */}
@@ -3511,34 +3569,7 @@ const App = () => {
 
   // --- NUEVA PANTALLA: CONFIGURAR EL MENÚ PRINCIPAL ---
   const RenderConfigurarMenu = () => {
-    // Guarda el nombre mientras el usuario escribe (máx. 25, reforzado también aquí)
-    // y marca que hay cambios pendientes de guardar.
-    const handleChangeLabel = (key, val) => {
-      setNombresMenuPersonalizados((prev) => ({ ...prev, [key]: val.slice(0, 25) }));
-      setHayCambiosSinGuardarMenu(true);
-    };
-    // Al salir del campo (perder foco) se confirma por voz lo escrito.
-    // Si el usuario lo dejó vacío, se restaura automáticamente el nombre original.
-    const handleSaveLabel = (key) => {
-      const item = MENU_ITEMS.find((it) => it.key === key);
-      const val = (nombresMenuPersonalizados[key] ?? '').trim();
-      if (!val) {
-        setNombresMenuPersonalizados((prev) => { const next = { ...prev }; delete next[key]; return next; });
-        speak(`Nombre restaurado: ${item.label}`);
-        return;
-      }
-      speak(`Guardado: ${val}`);
-    };
-    // Pedir confirmación antes de restaurar (evita deshacer un cambio por error).
-    const pedirConfirmacionRestaurar = (key) => setConfirmarRestaurarKey(key);
-    const confirmarRestaurar = () => {
-      const key = confirmarRestaurarKey;
-      const item = MENU_ITEMS.find((it) => it.key === key);
-      setNombresMenuPersonalizados((prev) => { const next = { ...prev }; delete next[key]; return next; });
-      setHayCambiosSinGuardarMenu(true);
-      setConfirmarRestaurarKey(null);
-      speak(`Nombre restaurado: ${item.label}`);
-    };
+    // Los nombres de las opciones ya NO se editan aquí: solo se muestran u ocultan.
     const handleToggleVisible = (key) => {
       setMenuVisible((prev) => ({ ...prev, [key]: !prev[key] }));
       setHayCambiosSinGuardarMenu(true);
@@ -3548,30 +3579,48 @@ const App = () => {
       speak('Cambios guardados.');
       setShowSuccess(true);
     };
+    // Al pulsar VOLVER: si hay cambios sin guardar, NO se sale directamente.
+    // Suena la campana de alerta, vibra el móvil, la pantalla "tiembla" en PC
+    // y aparece un diálogo que obliga a elegir: guardar o salir sin guardar.
+    const intentarSalirMenu = () => {
+      if (hayCambiosSinGuardarMenu) {
+        playCampana();
+        if ('vibrate' in navigator) navigator.vibrate([120, 60, 120]);
+        setMenuShake(true);
+        setTimeout(() => setMenuShake(false), 600);
+        if ('speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+          const u = new SpeechSynthesisUtterance('Has cambiado algo y no lo has guardado. ¿Quieres guardar antes de salir?');
+          u.lang = 'es-MX';
+          u.rate = 0.95;
+          window.speechSynthesis.speak(u);
+        }
+        setMenuSalidaSinGuardar(true);
+        return;
+      }
+      handleBackNavigation();
+    };
     // Mismos 3 contenedores de acordeón que en P-08 (Vitalidad / Energía /
     // Salud Digital), agrupando las funcionalidades con el mismo criterio.
     const toggleContenedorConfig = (id) => setContenedorAbiertoConfig((prev) => (prev === id ? null : id));
     return (
-      <div className="flex flex-col p-6 bg-white min-h-full pb-32 relative">
-        <EncabezadoG onBack={handleBackNavigation} />
+      <div className={`flex flex-col p-6 bg-white min-h-full pb-32 relative ${menuShake ? 'menu-shake' : ''}`}>
+        <style>{`
+          @keyframes menuShakeAnim {
+            0%,100% { transform: translateX(0); }
+            15% { transform: translateX(-10px); }
+            30% { transform: translateX(9px); }
+            45% { transform: translateX(-7px); }
+            60% { transform: translateX(5px); }
+            75% { transform: translateX(-3px); }
+          }
+          .menu-shake { animation: menuShakeAnim 0.55s ease-in-out; }
+        `}</style>
+        <EncabezadoG onBack={intentarSalirMenu} />
         <h2 className="text-3xl font-black text-blue-900 mb-2">Configura el Menú VES</h2>
         <p className="text-lg font-bold text-slate-600 mb-4 leading-relaxed">
-          Elige qué opciones quieres ver en tu Panel Principal y cómo se llaman (máx. 25 caracteres, solo el nombre). "Pedir Ayuda" siempre estará visible.
+          Elige qué opciones quieres ver en tu Panel Principal. "Pedir Ayuda" siempre estará visible.
         </p>
-
-        {hayCambiosSinGuardarMenu && (
-          <div className="bg-amber-50 border-4 border-amber-400 rounded-2xl p-4 mb-4 flex items-center gap-3">
-            <span className="text-2xl">⚠️</span>
-            <p className="text-lg font-black text-amber-800 leading-tight flex-grow">Recuerda tocar GUARDAR CAMBIOS para no perder tus cambios.</p>
-            <button
-              onClick={handleGuardarCambios}
-              onMouseEnter={() => announceMenuOption('Guardar Cambios')}
-              className="shrink-0 py-3 px-5 bg-emerald-700 text-white rounded-2xl font-black text-base shadow-md active:scale-95 transition-transform"
-            >
-              GUARDAR
-            </button>
-          </div>
-        )}
 
         {/* SELECTOR DE OPCIONES POR FILA */}
         <div className="p-5 bg-blue-50 rounded-[25px] border-4 border-blue-200 mb-6">
@@ -3616,24 +3665,16 @@ const App = () => {
                   <ChevronDown size={32} className={`shrink-0 transition-transform duration-200 ${abierto ? 'rotate-180' : ''}`} />
                 </button>
                 {abierto && (
-                  <div className="space-y-5 mt-4 animate-in fade-in duration-200">
-                    {itemsDelContenedor.map((item) => {
-                      const value = nombresMenuPersonalizados[item.key] ?? item.label;
-                      const isCustom = nombresMenuPersonalizados[item.key] !== undefined && nombresMenuPersonalizados[item.key] !== item.label;
-                      return (
-                        <OpcionMenuEditable
-                          key={item.key}
-                          item={item}
-                          value={value}
-                          isCustom={isCustom}
-                          visible={menuVisible[item.key]}
-                          onToggleVisible={() => handleToggleVisible(item.key)}
-                          onChangeValue={(val) => handleChangeLabel(item.key, val)}
-                          onSave={() => handleSaveLabel(item.key)}
-                          onRestore={() => pedirConfirmacionRestaurar(item.key)}
-                        />
-                      );
-                    })}
+                  <div className="space-y-4 mt-4 animate-in fade-in duration-200">
+                    {itemsDelContenedor.map((item) => (
+                      <OpcionMenuEditable
+                        key={item.key}
+                        item={item}
+                        value={nombresMenuPersonalizados[item.key] ?? item.label}
+                        visible={menuVisible[item.key]}
+                        onToggleVisible={() => handleToggleVisible(item.key)}
+                      />
+                    ))}
                   </div>
                 )}
               </div>
@@ -3641,33 +3682,53 @@ const App = () => {
           })}
         </div>
 
-        {/* BOTÓN GUARDAR CAMBIOS AL FINAL DE LA PANTALLA */}
-        <button
-          onClick={handleGuardarCambios}
-          onMouseEnter={() => announceMenuOption('Guardar Cambios')}
-          className="w-full mt-8 py-7 bg-emerald-700 text-white rounded-[30px] font-black text-2xl shadow-xl border-b-8 border-emerald-900 active:translate-y-1 transition-colors flex items-center justify-center gap-3"
-        >
-          <CheckCircle2 size={30} /> GUARDAR CAMBIOS
-        </button>
+        {/* GUARDAR + AVISO AL FINAL DE LA PANTALLA */}
+        <div className="w-full mt-8">
+          <p className="text-center text-lg font-black text-amber-800 mb-3 leading-snug max-w-sm mx-auto">
+            Recuerda tocar GUARDAR para no perder los cambios hechos recientemente.
+          </p>
+          <button
+            onClick={handleGuardarCambios}
+            onMouseEnter={() => announceMenuOption('Guardar')}
+            className="w-full py-7 bg-emerald-700 text-white rounded-[30px] font-black text-2xl shadow-xl border-b-8 border-emerald-900 active:translate-y-1 transition-colors flex items-center justify-center gap-3"
+          >
+            <CheckCircle2 size={30} /> GUARDAR
+          </button>
+        </div>
 
-        {/* CONFIRMACIÓN ANTES DE RESTAURAR UN NOMBRE */}
-        {confirmarRestaurarKey && (
-          <div role="dialog" aria-modal="true" aria-label="Confirmar restaurar nombre original" className="absolute inset-0 bg-blue-950/95 z-[60] p-8 flex flex-col items-center justify-center text-center">
-            <div className="bg-white/10 p-8 rounded-full mb-6"><AlertTriangle size={64} className="text-amber-400" /></div>
-            <h3 className="text-3xl font-black text-white mb-4 leading-tight">¿Restaurar nombre original?</h3>
-            <p className="text-xl font-bold text-blue-100 mb-10">
-              Volverá a llamarse "{MENU_ITEMS.find((it) => it.key === confirmarRestaurarKey)?.label}".
-            </p>
-            <div className="w-full max-w-sm space-y-4">
-              <button onClick={confirmarRestaurar} className="w-full py-6 bg-amber-400 text-blue-950 rounded-[30px] font-black text-xl shadow-xl active:scale-95 transition-transform">
-                SÍ, RESTAURAR
+        {/* DIÁLOGO P-36: intento de salir con cambios sin guardar */}
+        {menuSalidaSinGuardar && (
+          <div role="dialog" aria-modal="true" aria-label="Cambios sin guardar" className="absolute inset-0 bg-blue-950/95 z-50 p-8 flex flex-col items-center justify-center text-center animate-in fade-in duration-200">
+            <span className="text-6xl mb-4 text-center">🔔</span>
+            <h3 className="text-3xl font-black text-white mb-3 leading-tight text-center max-w-xs mx-auto">Cambiaste algo y no lo has guardado</h3>
+            <p className="text-xl font-bold text-amber-200 mb-8 leading-relaxed text-center max-w-xs mx-auto">¿Quieres guardar tus cambios antes de salir?</p>
+            <div className="w-full max-w-sm mx-auto space-y-4">
+              <button
+                onClick={() => { setHayCambiosSinGuardarMenu(false); speak('Cambios guardados.'); setMenuSalidaSinGuardar(false); handleBackNavigation(); }}
+                onMouseEnter={() => announceMenuOption('Guardar y salir')}
+                className="w-full py-6 bg-emerald-600 text-white rounded-[25px] font-black text-2xl shadow-xl border-b-8 border-emerald-800 active:translate-y-1 flex items-center justify-center gap-3"
+              >
+                <CheckCircle2 size={28} /> GUARDAR Y SALIR
               </button>
-              <button onClick={() => setConfirmarRestaurarKey(null)} className="w-full py-6 bg-white/10 border-4 border-white/30 text-white rounded-[30px] font-black text-xl active:scale-95 transition-transform">
-                CANCELAR
+              <button
+                onClick={() => { setHayCambiosSinGuardarMenu(false); setMenuSalidaSinGuardar(false); handleBackNavigation(); }}
+                onMouseEnter={() => announceMenuOption('Salir sin guardar')}
+                className="w-full py-6 bg-red-900/40 border-4 border-red-400 text-red-100 rounded-[25px] font-black text-xl active:translate-y-1"
+              >
+                SALIR SIN GUARDAR
+              </button>
+              <button
+                onClick={() => setMenuSalidaSinGuardar(false)}
+                onMouseEnter={() => announceMenuOption('Volver')}
+                className="w-full py-5 bg-white/10 border-2 border-white/40 text-white rounded-[25px] font-black text-lg active:scale-95"
+              >
+                VOLVER
               </button>
             </div>
+            <div className="absolute bottom-2 left-0 right-0 text-center text-[10px] text-white/50 font-bold">P-36</div>
           </div>
         )}
+
         <div className="absolute bottom-2 left-0 right-0 text-center text-[10px] text-black font-bold">P-21</div>
       </div>
     );
@@ -4195,7 +4256,7 @@ const App = () => {
             <div role="alert" aria-live="assertive" className="absolute inset-0 bg-white z-50 flex flex-col items-center justify-center p-8 text-center animate-in zoom-in duration-300 overflow-y-auto">
               <div className="bg-emerald-100 p-10 rounded-full mb-8 mt-10"><CheckCircle2 size={120} className="text-emerald-600" /></div>
               <h2 className="text-5xl font-black text-emerald-900 mb-4 leading-none">
-                {currentView === 'talento' ? "¡Felicitaciones!" : currentView === 'perfil' ? "¡Felicitaciones!" : currentView === 'modos_asistencia' ? "¡Configurado!" : currentView === 'configurar_menu' ? "¡Guardado!" : "¡Llegaste Bien!"}
+                {currentView === 'talento' ? "¡Felicitaciones!" : currentView === 'perfil' ? "¡Felicitaciones!" : currentView === 'modos_asistencia' ? "¡Configurado!" : currentView === 'clasificacion_funcional' ? "¡Guardado!" : currentView === 'configurar_menu' ? "¡Guardado!" : "¡Llegaste Bien!"}
               </h2>
               {currentView === 'rutas' ? (
                 <div className="bg-blue-50 p-6 rounded-3xl border-4 border-blue-200 mb-10 w-full animate-pulse">
@@ -4219,7 +4280,7 @@ const App = () => {
                   <Sparkles size={48} className="text-emerald-600 mx-auto mb-4" />
                   <p className="text-2xl font-bold text-gray-700 leading-tight">
                     ¡Hemos guardado tus cambios!<br/>
-                    <span className="text-emerald-800 text-3xl font-black mt-2 block">{currentView === 'crear_contactos' ? "Nuevo Contacto Añadido" : `${profileNombre} ${profileApellido}`}</span>
+                    <span className="text-emerald-800 text-3xl font-black mt-2 block">{currentView === 'crear_contactos' ? "Nuevo Actor Añadido" : `${profileNombre} ${profileApellido}`}</span>
                     <span className="text-xl mt-2 block text-slate-600">La información ha sido guardada de forma segura.</span>
                   </p>
                 </div>
@@ -4230,6 +4291,14 @@ const App = () => {
                     ¡Ayuda Configurada Correctamente!<br/>
                     <span className="text-emerald-800 text-2xl font-black mt-2 block">Tus preferencias han sido guardadas.</span>
                     <span className="text-lg mt-2 block text-slate-600">Adaptaremos la interfaz según tu nivel de capacidad.</span>
+                  </p>
+                </div>
+              ) : currentView === 'clasificacion_funcional' ? (
+                <div className="bg-emerald-50 p-6 rounded-3xl border-4 border-emerald-200 mb-10 w-full animate-pulse">
+                  <Sparkles size={48} className="text-emerald-600 mx-auto mb-4" />
+                  <p className="text-2xl font-bold text-gray-700 leading-tight">
+                    ¡Guardado!<br/>
+                    <span className="text-emerald-800 text-2xl font-black mt-2 block">Tu clasificación funcional ha sido guardada.</span>
                   </p>
                 </div>
               ) : currentView === 'configurar_menu' ? (
@@ -4577,37 +4646,17 @@ const App = () => {
                   <Menu size={32} className="text-amber-400" />
                   <span className="text-lg font-bold leading-tight">Configura el Menú VES</span>
                 </button>
-                <button onClick={() => { setCurrentView('perfil'); setIsMenuOpen(false); setEnteredFromMenu(true); }} onMouseEnter={() => announceMenuOption('Datos Usuario')} className="flex flex-col items-center justify-center text-center gap-2 p-4 bg-white/10 rounded-2xl hover:bg-white/15 active:scale-95 transition-transform">
+                <button onClick={() => { setCurrentView('perfil'); setIsMenuOpen(false); setEnteredFromMenu(true); }} onMouseEnter={() => announceMenuOption('Datos Ciudadano')} className="flex flex-col items-center justify-center text-center gap-2 p-4 bg-white/10 rounded-2xl hover:bg-white/15 active:scale-95 transition-transform">
                   <Users size={32} className="text-amber-400" />
-                  <span className="text-lg font-bold leading-tight">Datos Usuario</span>
-                </button>
-                <button onClick={() => { setCurrentView('clasificacion_funcional'); setIsMenuOpen(false); setEnteredFromMenu(true); }} onMouseEnter={() => announceMenuOption('Clasificación Funcional')} className="flex flex-col items-center justify-center text-center gap-2 p-4 bg-white/10 rounded-2xl hover:bg-white/15 active:scale-95 transition-transform">
-                  <ShieldCheck size={32} className="text-amber-400" />
-                  <span className="text-lg font-bold leading-tight">Clasificación Funcional</span>
-                </button>
-                <button onClick={() => { setCurrentView('preferencias'); setIsMenuOpen(false); setEnteredFromMenu(true); }} onMouseEnter={() => announceMenuOption('Mis Preferencias')} className="flex flex-col items-center justify-center text-center gap-2 p-4 bg-white/10 rounded-2xl hover:bg-white/15 active:scale-95 transition-transform">
-                  <Info size={32} className="text-amber-400" />
-                  <span className="text-lg font-bold leading-tight">Mis Preferencias</span>
-                </button>
-                <button onClick={() => { setCurrentView('modos_asistencia'); setIsMenuOpen(false); setEnteredFromMenu(true); }} onMouseEnter={() => announceMenuOption('Modos de Asistencia')} className="flex flex-col items-center justify-center text-center gap-2 p-4 bg-white/10 rounded-2xl hover:bg-white/15 active:scale-95 transition-transform">
-                  <HelpCircle size={32} className="text-amber-400" />
-                  <span className="text-lg font-bold leading-tight">Modos de Asistencia</span>
-                </button>
-                <button onClick={() => { setCurrentView('talento'); setIsMenuOpen(false); setEnteredFromMenu(true); }} onMouseEnter={() => announceMenuOption('Mis Talentos')} className="flex flex-col items-center justify-center text-center gap-2 p-4 bg-white/10 rounded-2xl hover:bg-white/15 active:scale-95 transition-transform">
-                  <Star size={32} className="text-amber-400" />
-                  <span className="text-lg font-bold leading-tight">Mis Talentos</span>
-                </button>
-                <button onClick={() => { setCurrentView('centro_vitalidad'); setIsMenuOpen(false); setEnteredFromMenu(true); }} onMouseEnter={() => announceMenuOption('Centro de Vitalidad')} className="flex flex-col items-center justify-center text-center gap-2 p-4 bg-white/10 rounded-2xl hover:bg-white/15 active:scale-95 transition-transform">
-                  <Heart size={32} className="text-rose-400 animate-pulse" />
-                  <span className="text-lg font-bold text-rose-100 leading-tight">Centro de Vitalidad</span>
+                  <span className="text-lg font-bold leading-tight">Datos Ciudadano</span>
                 </button>
                 <button onClick={() => { setCurrentView('emergencia'); setIsEditingEmergencia(true); setIsMenuOpen(false); setEnteredFromMenu(true); }} onMouseEnter={() => announceMenuOption('Configurar Pedir Ayuda')} className="flex flex-col items-center justify-center text-center gap-2 p-4 bg-white/10 rounded-2xl hover:bg-white/15 active:scale-95 transition-transform">
                   <PhoneCall size={32} className="text-amber-400" />
                   <span className="text-lg font-bold text-amber-200 leading-tight">Configurar Pedir Ayuda</span>
                 </button>
-                <button onClick={() => { setCurrentView('crear_contactos'); setIsMenuOpen(false); setEnteredFromMenu(true); }} onMouseEnter={() => announceMenuOption('Crear Contactos')} className="flex flex-col items-center justify-center text-center gap-2 p-4 bg-white/10 rounded-2xl hover:bg-white/15 active:scale-95 transition-transform">
+                <button onClick={() => { setCurrentView('crear_contactos'); setIsMenuOpen(false); setEnteredFromMenu(true); }} onMouseEnter={() => announceMenuOption('Crear Actores')} className="flex flex-col items-center justify-center text-center gap-2 p-4 bg-white/10 rounded-2xl hover:bg-white/15 active:scale-95 transition-transform">
                   <UserPlus size={32} className="text-amber-400" />
-                  <span className="text-lg font-bold leading-tight">Crear Contactos</span>
+                  <span className="text-lg font-bold leading-tight">Crear Actores</span>
                 </button>
                 {/* "Salir de la App" siempre sola y a todo el ancho al final:
                     acción destructiva, separada del resto de opciones. */}
