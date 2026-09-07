@@ -22,7 +22,7 @@ const fotoUsuarioPorDefecto = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3
 // nueva actualización. Formato solicitado: DÍA(2 dígitos)+MES(2 dígitos)+AÑO(4 dígitos) - HORA:MINUTO
 // Ejemplo: "27072026-19:05" = 27 de julio de 2026, 19:05. Se muestra, sin
 // ninguna acción asociada, en la esquina superior izquierda de P-01.
-const APP_VERSION = "07092026-05:54";
+const APP_VERSION = "07092026-11:24";
 
 /**
  * APP SÉNIOR - SUITE MÓVIL ACCESIBLE (SIMULADOR DE TELÉFONO)
@@ -3204,7 +3204,9 @@ const App = () => {
               </button>
             </div>
           </>
-        ) : (
+        ) : subDesdeDatosCiudadano ? (
+          /* MODO CONFIGURACIÓN (entrando desde Datos Ciudadano): checklist con
+             TODAS las opciones para elegir qué ver. */
           <>
             <p className="text-xl font-bold text-slate-600 mb-2 leading-relaxed">
               Explora nuestros módulos diseñados para mantener tu mente y cuerpo activos.
@@ -3254,6 +3256,45 @@ const App = () => {
               <CheckCircle2 size={28} /> GUARDAR
             </button>
           </>
+        ) : (
+          /* MODO NORMAL (entrando desde el menú principal): SOLO se muestran las
+             opciones tildadas en la configuración (Datos Ciudadano → P-16). */
+          (() => {
+            const modulosVisibles = MODULOS_VITALIDAD
+              .map((m) => ({ ...m, items: m.items.filter((it) => !!vitalidadSel[it.id]) }))
+              .filter((m) => m.items.length > 0);
+            if (modulosVisibles.length === 0) {
+              return (
+                <div className="bg-amber-50 p-6 rounded-[25px] border-4 border-amber-300 mt-4">
+                  <p className="text-xl font-black text-amber-800 leading-snug">
+                    Todavía no has elegido qué ver aquí. Ve a <span className="text-red-700">Datos Ciudadano → Centro de Vitalidad</span> y marca lo que quieras que aparezca.
+                  </p>
+                </div>
+              );
+            }
+            return (
+              <div className="space-y-6">
+                <p className="text-xl font-bold text-slate-600 leading-relaxed">
+                  Estos son los módulos que elegiste para tu bienestar.
+                </p>
+                {modulosVisibles.map((m) => (
+                  <div key={m.id} className={`p-6 rounded-[30px] border-4 shadow-sm ${m.box}`}>
+                    <h3 className={`text-3xl font-black mb-4 flex items-center gap-3 border-b-2 pb-3 ${m.h3}`}>
+                      <m.Icon size={32} className={m.ic} /> {m.titulo}
+                    </h3>
+                    <div className="space-y-5">
+                      {m.items.map((it) => (
+                        <div key={it.id}>
+                          <h4 className={`text-2xl font-black ${m.h4}`}>{it.titulo}</h4>
+                          <p className={`text-lg font-bold leading-tight mt-1 ${m.p}`}>{it.desc}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            );
+          })()
         )}
         <div className="absolute bottom-2 left-0 right-0 text-center text-[10px] text-black font-bold">P-16</div>
       </div>
@@ -4466,13 +4507,34 @@ const App = () => {
             </div>
           )}
 
-          {showSuccess && (
+          {showSuccess && (() => {
+            // Pantallas de Datos Ciudadano: al GUARDAR se muestra "Se grabó
+            // perfectamente" y el botón VOLVER regresa a P-11. Mis Talentos y
+            // Centro de Vitalidad solo si se entró desde Datos Ciudadano.
+            const volverADatosCiudadano =
+              currentView === 'preferencias' ||
+              currentView === 'modos_asistencia' ||
+              currentView === 'clasificacion_funcional' ||
+              ((currentView === 'talento' || currentView === 'centro_vitalidad') && subDesdeDatosCiudadano);
+            const cuerpoDatosCiudadano = {
+              preferencias: 'Tus preferencias han sido guardadas.',
+              modos_asistencia: 'Tus modos de asistencia han sido guardados.',
+              clasificacion_funcional: 'Tu clasificación funcional ha sido guardada.',
+              talento: 'Tus talentos han sido guardados.',
+              centro_vitalidad: 'Tu menú de vitalidad ha sido guardado.',
+            }[currentView] || 'Tus cambios han sido guardados.';
+            return (
             <div role="alert" aria-live="assertive" className="absolute inset-0 bg-white z-50 flex flex-col items-center justify-center p-8 text-center animate-in zoom-in duration-300 overflow-y-auto">
               <div className="bg-emerald-100 p-10 rounded-full mb-8 mt-10"><CheckCircle2 size={120} className="text-emerald-600" /></div>
               <h2 className="text-5xl font-black text-emerald-900 mb-4 leading-none">
-                {currentView === 'talento' ? "¡Felicitaciones!" : currentView === 'perfil' ? "¡Felicitaciones!" : currentView === 'modos_asistencia' ? "¡Configurado!" : currentView === 'clasificacion_funcional' ? "¡Guardado!" : currentView === 'configurar_menu' ? "¡Guardado!" : "¡Llegaste Bien!"}
+                {volverADatosCiudadano ? "Se grabó perfectamente" : currentView === 'talento' ? "¡Felicitaciones!" : currentView === 'perfil' ? "¡Felicitaciones!" : currentView === 'configurar_menu' ? "¡Guardado!" : currentView === 'centro_vitalidad' ? "¡Guardado!" : "¡Llegaste Bien!"}
               </h2>
-              {currentView === 'rutas' ? (
+              {volverADatosCiudadano ? (
+                <div className="bg-emerald-50 p-6 rounded-3xl border-4 border-emerald-200 mb-10 w-full animate-pulse">
+                  <Sparkles size={48} className="text-emerald-600 mx-auto mb-4" />
+                  <p className="text-2xl font-bold text-emerald-800 leading-tight">{cuerpoDatosCiudadano}</p>
+                </div>
+              ) : currentView === 'rutas' ? (
                 <div className="bg-blue-50 p-6 rounded-3xl border-4 border-blue-200 mb-10 w-full animate-pulse">
                   <MessageSquare size={48} className="text-blue-600 mx-auto mb-4" />
                   <p className="text-2xl font-bold text-gray-700 leading-tight">
@@ -4498,23 +4560,6 @@ const App = () => {
                     <span className="text-xl mt-2 block text-slate-600">La información ha sido guardada de forma segura.</span>
                   </p>
                 </div>
-              ) : currentView === 'modos_asistencia' ? (
-                <div className="bg-emerald-50 p-6 rounded-3xl border-4 border-emerald-200 mb-10 w-full animate-pulse">
-                  <Sparkles size={48} className="text-emerald-600 mx-auto mb-4" />
-                  <p className="text-2xl font-bold text-gray-700 leading-tight">
-                    ¡Ayuda Configurada Correctamente!<br/>
-                    <span className="text-emerald-800 text-2xl font-black mt-2 block">Tus preferencias han sido guardadas.</span>
-                    <span className="text-lg mt-2 block text-slate-600">Adaptaremos la interfaz según tu nivel de capacidad.</span>
-                  </p>
-                </div>
-              ) : currentView === 'clasificacion_funcional' ? (
-                <div className="bg-emerald-50 p-6 rounded-3xl border-4 border-emerald-200 mb-10 w-full animate-pulse">
-                  <Sparkles size={48} className="text-emerald-600 mx-auto mb-4" />
-                  <p className="text-2xl font-bold text-gray-700 leading-tight">
-                    ¡Guardado!<br/>
-                    <span className="text-emerald-800 text-2xl font-black mt-2 block">Tu clasificación funcional ha sido guardada.</span>
-                  </p>
-                </div>
               ) : currentView === 'configurar_menu' ? (
                 <div className="bg-emerald-50 p-6 rounded-3xl border-4 border-emerald-200 mb-10 w-full animate-pulse">
                   <Sparkles size={48} className="text-emerald-600 mx-auto mb-4" />
@@ -4523,14 +4568,21 @@ const App = () => {
                     <span className="text-emerald-800 text-2xl font-black mt-2 block">Tus opciones y nombres quedaron guardados.</span>
                   </p>
                 </div>
+              ) : currentView === 'centro_vitalidad' ? (
+                <div className="bg-emerald-50 p-6 rounded-3xl border-4 border-emerald-200 mb-10 w-full animate-pulse">
+                  <Sparkles size={48} className="text-emerald-600 mx-auto mb-4" />
+                  <p className="text-2xl font-bold text-emerald-800 leading-tight">Tu menú de vitalidad ha sido guardado.</p>
+                </div>
               ) : (
                 <p className="text-2xl font-bold text-gray-700 mb-10 leading-tight">Hemos avisado a <br/><span className="text-blue-900 text-3xl font-black">{selectedItem?.nombre}</span> <br/>que ya estás aquí.</p>
               )}
-              <button onClick={() => setShowSuccess(false)} className="w-full py-6 bg-emerald-800 text-white rounded-[30px] font-black text-2xl flex items-center justify-center gap-3 active:scale-95 transition-transform mb-10 mt-auto">
+              <button onClick={() => { setShowSuccess(false); if (volverADatosCiudadano) { setSubPantallaPend(false); setSubPantallaSalir(false); setSubDesdeDatosCiudadano(false); setEnteredFromMenu(true); setCurrentView('perfil'); } }} className="w-full py-6 bg-emerald-800 text-white rounded-[30px] font-black text-2xl flex items-center justify-center gap-3 active:scale-95 transition-transform mb-10 mt-auto">
                 <ArrowLeft size={32} /> VOLVER
               </button>
+              <div className="absolute bottom-2 left-0 right-0 text-center text-[10px] text-slate-400 font-bold">P-38</div>
             </div>
-          )}
+            );
+          })()}
 
           {isAssistantOpen && (
             <div className="absolute inset-0 bg-blue-950 z-50 p-8 flex flex-col items-center justify-center text-center animate-in slide-in-from-bottom duration-300 overflow-y-auto">
