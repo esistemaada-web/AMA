@@ -23,7 +23,7 @@ const fotoUsuarioPorDefecto = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3
 // nueva actualización. Formato solicitado: DÍA(2 dígitos)+MES(2 dígitos)+AÑO(4 dígitos) - HORA:MINUTO
 // Ejemplo: "27072026-19:05" = 27 de julio de 2026, 19:05. Se muestra, sin
 // ninguna acción asociada, en la esquina superior izquierda de P-01.
-const APP_VERSION = "07092026-14:21";
+const APP_VERSION = "07092026-14:59";
 
 /**
  * APP SÉNIOR - SUITE MÓVIL ACCESIBLE (SIMULADOR DE TELÉFONO)
@@ -525,9 +525,13 @@ const App = () => {
   // Cada contacto: { id, nombre, apellido, edad, telefono, correo, direccion, foto, esEmergencia, fijo }
   // Arranca con 3 contactos FIJOS (no se pueden borrar); 2 ya marcados como emergencia.
   const [listaContactos, setListaContactos] = useState([
-    { id: 1, nombre: 'Carlos', apellido: 'Rodríguez', edad: '48', telefono: '600123456', correo: 'carlos@correo.com', direccion: '', foto: fotoUsuarioPorDefecto, esEmergencia: true, fijo: true },
-    { id: 2, nombre: 'Ana', apellido: 'Rodríguez', edad: '45', telefono: '600123457', correo: 'ana@correo.com', direccion: '', foto: fotoUsuarioPorDefecto, esEmergencia: true, fijo: true },
-    { id: 3, nombre: 'Lucía', apellido: 'Pérez', edad: '52', telefono: '600123458', correo: 'lucia@correo.com', direccion: '', foto: fotoUsuarioPorDefecto, esEmergencia: false, fijo: true },
+    // Actores fijos: siempre presentes al arrancar (se pueden editar y borrar,
+    // pero reaparecen al volver a abrir la app).
+    { id: 1, nombre: 'Mayra', apellido: 'Bernabei', edad: '59', telefono: '+34633704824', correo: 'mayrabernabeid@gmail.com', direccion: 'Calle 3', foto: fotoUsuarioPorDefecto, esEmergencia: true, fijo: true },
+    { id: 2, nombre: 'Rafael', apellido: 'Gonzalo', edad: '59', telefono: '+34623328599', correo: 'sistemaada@gmail.com', direccion: 'Calle 3', foto: fotoUsuarioPorDefecto, esEmergencia: true, fijo: true },
+    { id: 3, nombre: 'Carlos', apellido: 'Rodríguez', edad: '48', telefono: '+34600123456', correo: 'carlos@correo.com', direccion: '', foto: fotoUsuarioPorDefecto, esEmergencia: false, fijo: true },
+    { id: 4, nombre: 'Ana', apellido: 'Rodríguez', edad: '45', telefono: '+34600123457', correo: 'ana@correo.com', direccion: '', foto: fotoUsuarioPorDefecto, esEmergencia: false, fijo: true },
+    { id: 5, nombre: 'Lucía', apellido: 'Pérez', edad: '52', telefono: '+34600123458', correo: 'lucia@correo.com', direccion: '', foto: fotoUsuarioPorDefecto, esEmergencia: false, fijo: true },
   ]);
   // Pestaña activa y aviso de "Crear Contactos" — a nivel de App para que sobrevivan
   // al remontado del componente cuando cambia listaContactos (los Render* son funciones
@@ -1113,7 +1117,7 @@ const App = () => {
     centro_vitalidad: { titulo: "Centro de Vitalidad", texto: "Estás en el Centro de Vitalidad. Aquí encontrarás ejercicios, juegos mentales, contactos sociales, salud y descanso." },
     buzon: { titulo: "Buzón de Mensajes", texto: "Estás viendo los avisos y mensajes que la aplicación te ha enviado." },
     contactos: { titulo: "Mis Contactos", texto: "Estás viendo tu lista de contactos. Toca el nombre de la persona que quieres llamar." },
-    crear_contactos: { titulo: "Crear Actores", texto: "Tiene dos pestañas. En Crear lista de actores rellenas los datos de una persona, foto, nombre, apellido, teléfono, y tocas Guardar. Debajo aparece la lista: toca el lápiz para modificar los datos de un actor ya creado, o la papelera para eliminarlo (te pide confirmación). En Contactos de emergencia marcas a quién se llamará y se le enviará un mensaje al pulsar Pedir Ayuda, escribes ese mensaje, y eliges si se envía por SMS, WhatsApp o correo, uno o varios a la vez." },
+    crear_contactos: { titulo: "Crear Actores", texto: "Tiene dos pestañas. En Crear lista de actores rellenas los datos de una persona, foto, nombre, apellido, teléfono con prefijo de país como más treinta y cuatro, y tocas Guardar. Debajo aparece la lista: toca el lápiz para modificar los datos de un actor ya creado, o la papelera para eliminarlo (te pide confirmación). En Contactos de emergencia marcas a quién se llamará y se le enviará un mensaje al pulsar Pedir Ayuda, escribes ese mensaje, y eliges si se envía por SMS, WhatsApp o correo, uno o varios a la vez." },
     guia_digital: { titulo: "Mi Guía Digital", texto: "Estás en tu Guía Digital. Aquí encontrarás cursos sugeridos y consejos diarios de seguridad y bienestar." },
     emergencia: { titulo: "Pedir Ayuda", texto: "Estás en la pantalla de emergencia. Toca el botón rojo para llamar a Urgencias, o el nombre de un familiar para llamarlo a él. Si no haces nada, la app llamará a Urgencias automáticamente." },
     // categoria_detalle NO usa un texto fijo aquí: handleWhereAmI arma el texto
@@ -3482,7 +3486,12 @@ const App = () => {
       const nuevosErrores = {};
       if (!refsContacto.nombre.current?.value.trim()) nuevosErrores.nombre = 'Falta el nombre. Escribe el nombre del contacto.';
       if (!refsContacto.apellido.current?.value.trim()) nuevosErrores.apellido = 'Falta el apellido. Escribe el apellido del contacto.';
-      if (!refsContacto.telefono.current?.value.trim()) nuevosErrores.telefono = 'Falta el teléfono. Escribe al menos un número de contacto.';
+      const telVal = (refsContacto.telefono.current?.value || '').trim();
+      if (!telVal) {
+        nuevosErrores.telefono = 'Falta el teléfono. Escribe el número con prefijo de país.';
+      } else if (!/^\+\d[\d\s]{5,}$/.test(telVal)) {
+        nuevosErrores.telefono = 'El teléfono debe empezar por el prefijo de país. Ejemplo: +34 633 704 824';
+      }
       setErrores(nuevosErrores);
       if (Object.keys(nuevosErrores).length > 0) {
         speak('Faltan datos por completar. Revisa los campos marcados en rojo.');
@@ -3540,11 +3549,36 @@ const App = () => {
     const canalesTxt = textoCanales(canalesEmergencia);
     const algunCanal = canalesEmergencia.sms || canalesEmergencia.whatsapp || canalesEmergencia.correo;
     const toggleCanal = (key) => setCanalesEmergencia((prev) => ({ ...prev, [key]: !prev[key] }));
-    const probarEnvio = () => {
-      if (marcados.length === 0) { speak('Primero marca al menos un contacto de emergencia.'); return; }
-      if (!algunCanal) { speak('Elige al menos un canal de envío: SMS, WhatsApp o Correo.'); return; }
-      mostrarAviso(`Mensaje enviado por ${canalesTxt} a: ${marcados.map((c) => c.nombre).join(', ')}`);
-    };
+
+    // --- ENVÍO REAL (Opción A: enlaces del propio teléfono) ---
+    // Se construyen enlaces sms:/wa.me/mailto: con el mensaje ya escrito. Al
+    // tocarlos se abre la app de Mensajes / WhatsApp / Correo del dispositivo con
+    // todo relleno; el usuario solo pulsa "Enviar". No necesita servidor.
+    const soloDigitos = (tel) => (tel || '').replace(/[^\d+]/g, '');
+    const numeroWa = (tel) => soloDigitos(tel).replace(/^\+/, '');
+    const msgCodificado = encodeURIComponent(mensajeEmergencia || '');
+    const asuntoCodificado = encodeURIComponent('Necesito ayuda');
+    const envios = [];
+    marcados.forEach((c) => {
+      if (canalesEmergencia.sms && c.telefono) {
+        envios.push({ id: `${c.id}-sms`, etiqueta: `💬 SMS a ${c.nombre} ${c.apellido}`, voz: `Enviar SMS a ${c.nombre}`,
+          href: `sms:${soloDigitos(c.telefono)}?body=${msgCodificado}`, cls: 'bg-blue-900 border-blue-950' });
+      }
+      if (canalesEmergencia.whatsapp && c.telefono) {
+        envios.push({ id: `${c.id}-wa`, etiqueta: `🟢 WhatsApp a ${c.nombre} ${c.apellido}`, voz: `Enviar WhatsApp a ${c.nombre}`,
+          href: `https://wa.me/${numeroWa(c.telefono)}?text=${msgCodificado}`, cls: 'bg-emerald-600 border-emerald-800' });
+      }
+      if (canalesEmergencia.correo && c.correo) {
+        envios.push({ id: `${c.id}-mail`, etiqueta: `✉️ Correo a ${c.nombre} ${c.apellido}`, voz: `Enviar correo a ${c.nombre}`,
+          href: `mailto:${c.correo}?subject=${asuntoCodificado}&body=${msgCodificado}`, cls: 'bg-purple-700 border-purple-900' });
+      }
+    });
+    // Un solo correo a todos los que tengan email
+    const correosTodos = marcados.filter((c) => c.correo).map((c) => c.correo);
+    if (canalesEmergencia.correo && correosTodos.length > 1) {
+      envios.unshift({ id: 'mail-todos', etiqueta: `✉️ Un correo a los ${correosTodos.length} a la vez`, voz: 'Enviar un correo a todos',
+        href: `mailto:${correosTodos.join(',')}?subject=${asuntoCodificado}&body=${msgCodificado}`, cls: 'bg-purple-800 border-purple-950' });
+    }
 
     const campo = (id, label, refKey, type = 'text', placeholder = '', requerido = false) => (
       <div className="flex flex-col gap-1">
@@ -3620,7 +3654,7 @@ const App = () => {
                 {campo('contacto-nombre', 'Nombre:', 'nombre', 'text', 'Ej. María', true)}
                 {campo('contacto-apellido', 'Apellido:', 'apellido', 'text', 'Ej. González', true)}
                 {campo('contacto-edad', 'Edad:', 'edad', 'number', 'Ej. 65')}
-                {campo('contacto-telefono', 'Teléfono(s):', 'telefono', 'tel', 'Ej. 600 123 456', true)}
+                {campo('contacto-telefono', 'Teléfono (con prefijo, ej. +34…):', 'telefono', 'tel', 'Ej. +34 633 704 824', true)}
                 {campo('contacto-correo', 'Correo Electrónico:', 'correo', 'email', 'correo@ejemplo.com')}
                 {campo('contacto-direccion', 'Dirección:', 'direccion', 'text', 'Ej. Calle Principal 1')}
               </div>
@@ -3747,14 +3781,28 @@ const App = () => {
                   </p>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={probarEnvio}
-                  onMouseEnter={() => announceMenuOption('Probar envío del mensaje')}
-                  className="w-full py-5 bg-red-700 text-white rounded-3xl font-black text-xl shadow-lg border-b-8 border-red-900 active:translate-y-1 flex items-center justify-center gap-3"
-                >
-                  <Send size={26} /> PROBAR ENVÍO DEL MENSAJE
-                </button>
+                {/* ENVÍO REAL: enlaces que abren la app del teléfono */}
+                {marcados.length > 0 && algunCanal && (
+                  <div className="bg-white border-4 border-slate-200 rounded-2xl p-4 space-y-3">
+                    <p className="text-lg font-black text-slate-800 leading-tight">Tocar para enviar el aviso ahora:</p>
+                    <p className="text-sm font-bold text-slate-500 leading-tight">
+                      Se abrirá tu app de Mensajes, WhatsApp o Correo con el texto ya escrito; solo pulsa <b>Enviar</b>.
+                    </p>
+                    {envios.map((e) => (
+                      <a
+                        key={e.id}
+                        href={e.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onMouseEnter={() => announceMenuOption(e.voz)}
+                        className={`w-full py-4 px-4 rounded-2xl font-black text-lg leading-tight border-b-8 text-white flex items-center gap-3 active:translate-y-1 transition-transform ${e.cls}`}
+                      >
+                        <Send size={22} className="shrink-0" />
+                        <span className="text-left">{e.etiqueta}</span>
+                      </a>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </>
