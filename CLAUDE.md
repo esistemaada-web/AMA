@@ -84,6 +84,24 @@ sesión trabaja sobre una rama propia (no directo en `main`):
 
 ## Bitácora (lo más reciente arriba)
 
+### 2026-09-07 — commit d897136 · APP_VERSION 07092026-05:54
+- Patrón común "acordeón exclusivo + GUARDAR fijo al pie + aviso al salir sin
+  guardar" aplicado a P-21, P-11 y a las sub-pantallas de Datos Ciudadano
+  (P-12 Mis Preferencias, P-13 Modos de Asistencia, P-14 Clasificación Funcional).
+- P-21: al entrar, los 3 contenedores cerrados; al abrir uno se ocultan los otros.
+- P-11: al abrir un apartado se ocultan los demás y los accesos de abajo; la barra
+  GUARDAR guarda el apartado abierto.
+- Diálogos "salir sin guardar": P-36 (de P-21) y P-37 (de P-11/P-12/P-13/P-14),
+  con campana + vibración (móvil) + temblor (PC). Componentes reutilizables
+  `BarraGuardarFija` y `DialogoSalirSinGuardar`.
+- P-16 Centro de Vitalidad: checklist en cada uno de los 6 contenedores (12
+  casillas) para elegir qué ver en el menú principal (estado `vitalidadSel`, aún
+  sin cablear a una pantalla concreta).
+- "Citas y Tratamientos" (antes "Centro de Tratamiento"); "Crear Actores" (antes
+  "Crear Contactos"). Mis Talentos y Centro de Vitalidad movidos dentro de
+  "Datos Ciudadano".
+- `APP_VERSION` se toma SIEMPRE de la hora real de la PC (`date`), nunca estimada.
+
 ### 2026-09-07 — commit 1aa6ab6 · APP_VERSION 07092026-10:20
 - P-11 "Datos Ciudadano" (antes "Datos Usuario"): ahora contiene Mis Preferencias,
   Clasificación Funcional, Modos de Asistencia, **Mis Talentos** y **Centro de
