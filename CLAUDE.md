@@ -84,6 +84,13 @@ sesión trabaja sobre una rama propia (no directo en `main`):
 
 ## Bitácora (lo más reciente arriba)
 
+### 2026-09-07 — commit f7ba92b · APP_VERSION 07092026-14:21
+- Crear Actores es ahora **P-39**. Cada actor de la lista tiene botón lápiz
+  (editar: carga sus datos en el formulario, "GUARDAR CAMBIOS" + "CANCELAR
+  EDICIÓN", actualiza en vez de crear) y botón papelera (eliminar con diálogo de
+  confirmación). Se pueden eliminar todos (antes los 3 iniciales eran `fijo`).
+  Estado `contactoEditandoId` / `contactoAEliminar` a nivel de App.
+
 ### 2026-09-07 — commit 6d25a65 · APP_VERSION 07092026-11:24
 - P-16 Centro de Vitalidad: dos modos. **Config** (desde Datos Ciudadano):
   checklist con las 12 opciones + GUARDAR. **Normal** (desde el Panel Principal):
