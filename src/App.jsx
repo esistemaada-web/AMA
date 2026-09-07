@@ -23,7 +23,7 @@ const fotoUsuarioPorDefecto = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3
 // nueva actualización. Formato solicitado: DÍA(2 dígitos)+MES(2 dígitos)+AÑO(4 dígitos) - HORA:MINUTO
 // Ejemplo: "27072026-19:05" = 27 de julio de 2026, 19:05. Se muestra, sin
 // ninguna acción asociada, en la esquina superior izquierda de P-01.
-const APP_VERSION = "07092026-14:59";
+const APP_VERSION = "07092026-19:25";
 
 /**
  * APP SÉNIOR - SUITE MÓVIL ACCESIBLE (SIMULADOR DE TELÉFONO)
@@ -43,6 +43,9 @@ const AppLogo = ({ className = "w-32" }) => (
 );
 
 // --- LOGO DE MARCA VITAlidad (Árbol con raíces) ---
+
+// Prefijo fijo del mensaje de emergencia (P-39 / P-33): siempre va al principio.
+const PREFIJO_MENSAJE_EMERGENCIA = 'Necesito Ayuda. ';
 
 // --- BOTÓN DE SECCIÓN ACORDEÓN (Mi Perfil) ---
 // CRÍTICO: definido FUERA del componente App para que React no lo remonte en
@@ -394,6 +397,9 @@ const App = () => {
   // Vive a nivel de App (y no dentro de RenderDashboard) para que el mismo botón/modal
   // pueda activarse también desde la pantalla de Login, sin duplicar código.
   const [showPedirAyudaModal, setShowPedirAyudaModal] = useState(false);
+  // Sub-paso del modal P-33: al pulsar "Mensajes masivos" se muestran los enlaces
+  // reales de envío (SMS/WhatsApp/Correo), igual que en P-39. Pausa la cuenta atrás.
+  const [masivosEnvio, setMasivosEnvio] = useState(false);
   const [segundosRestantesAyuda, setSegundosRestantesAyuda] = useState(10);
   // --- NUEVA CONTRASEÑA EXCLUSIVA PARA ENTRAR A PERFIL ---
   const [perfilPassword, setPerfilPassword] = useState('1234');
@@ -550,7 +556,7 @@ const App = () => {
     return () => clearTimeout(t);
   }, [contactosAviso]);
   // Mensaje que reciben los contactos de emergencia al pulsar PEDIR AYUDA (pestaña 2).
-  const [mensajeEmergencia, setMensajeEmergencia] = useState('Necesito ayuda. Por favor, contáctame o ven a mi casa lo antes posible.');
+  const [mensajeEmergencia, setMensajeEmergencia] = useState('Necesito Ayuda. Por favor, contáctame o ven a mi casa lo antes posible.');
   // Canales por los que se envía ese mensaje: se pueden activar varios a la vez.
   const [canalesEmergencia, setCanalesEmergencia] = useState({ sms: true, whatsapp: false, correo: false });
   // Texto legible con los canales activos: "SMS", "SMS y WhatsApp", "SMS, WhatsApp y Correo"...
@@ -589,6 +595,39 @@ const App = () => {
       personalizada: false,
     };
   };
+  // Enlaces reales de envío del aviso de emergencia (Opción A: sms:/wa.me/mailto:).
+  // Se usa en P-39 (pestaña Contactos de emergencia) y en P-33 (Mensajes masivos).
+  const construirEnviosEmergencia = () => {
+    const marcados = listaContactos.filter((c) => c.esEmergencia);
+    const soloDigitos = (tel) => (tel || '').replace(/[^\d+]/g, '');
+    const numeroWa = (tel) => soloDigitos(tel).replace(/^\+/, '');
+    const msgCod = encodeURIComponent(mensajeEmergencia || '');
+    const asuntoCod = encodeURIComponent('Necesito ayuda');
+    const correosTodos = marcados.filter((c) => c.correo).map((c) => c.correo);
+    const envios = [];
+    marcados.forEach((c) => {
+      if (canalesEmergencia.sms && c.telefono) {
+        envios.push({ id: `${c.id}-sms`, etiqueta: `💬 SMS a ${c.nombre} ${c.apellido}`, voz: `Enviar SMS a ${c.nombre}`,
+          href: `sms:${soloDigitos(c.telefono)}?body=${msgCod}`, cls: 'bg-blue-900 border-blue-950' });
+      }
+      if (canalesEmergencia.whatsapp && c.telefono) {
+        envios.push({ id: `${c.id}-wa`, etiqueta: `🟢 WhatsApp a ${c.nombre} ${c.apellido}`, voz: `Enviar WhatsApp a ${c.nombre}`,
+          href: `https://wa.me/${numeroWa(c.telefono)}?text=${msgCod}`, cls: 'bg-emerald-600 border-emerald-800' });
+      }
+      // El correo individual solo se muestra si hay como mucho un destinatario
+      // con email; con 2 o más se usa un único correo conjunto (abajo).
+      if (canalesEmergencia.correo && c.correo && correosTodos.length <= 1) {
+        envios.push({ id: `${c.id}-mail`, etiqueta: `✉️ Correo a ${c.nombre} ${c.apellido}`, voz: `Enviar correo a ${c.nombre}`,
+          href: `mailto:${c.correo}?subject=${asuntoCod}&body=${msgCod}`, cls: 'bg-purple-700 border-purple-900' });
+      }
+    });
+    if (canalesEmergencia.correo && correosTodos.length > 1) {
+      envios.unshift({ id: 'mail-todos', etiqueta: `✉️ Un correo a los ${correosTodos.length} a la vez`, voz: 'Enviar un correo a todos',
+        href: `mailto:${correosTodos.join(',')}?subject=${asuntoCod}&body=${msgCod}`, cls: 'bg-purple-800 border-purple-950' });
+    }
+    return envios;
+  };
+
   // Contactos habilitados para mostrarse en la pantalla de emergencia (máx. 2)
   const [emergenciaContacto2Activo, setEmergenciaContacto2Activo] = useState(true);
   const [emergenciaContacto3Activo, setEmergenciaContacto3Activo] = useState(true);
@@ -658,7 +697,8 @@ const App = () => {
   // en P-10, lo cual atenúa parcialmente el requisito. Se recomienda revisar
   // esta decisión en una auditoría formal de accesibilidad.
   useEffect(() => {
-    if (!showPedirAyudaModal) return;
+    if (!showPedirAyudaModal) { setMasivosEnvio(false); return; }
+    if (masivosEnvio) return; // cuenta atrás en pausa mientras se muestran los enlaces
     const totalSegundos = Math.max(segundosLlamadaAutomatica || 10, 1);
     setSegundosRestantesAyuda(totalSegundos);
     // Contador local: evita el doble disparo del updater de estado en StrictMode,
@@ -688,7 +728,7 @@ const App = () => {
       }
     }, 1000);
     return () => clearInterval(intervalId);
-  }, [showPedirAyudaModal, segundosLlamadaAutomatica]);
+  }, [showPedirAyudaModal, segundosLlamadaAutomatica, masivosEnvio]);
 
   // --- DATOS DE PRUEBA ---
   const centrosMayores = [
@@ -3468,6 +3508,7 @@ const App = () => {
       telefono: useRef(null),
       correo: useRef(null),
       direccion: useRef(null),
+      mensaje: useRef(null),
     };
     const handleFotoChange = (e) => {
       const file = e.target.files[0];
@@ -3550,35 +3591,8 @@ const App = () => {
     const algunCanal = canalesEmergencia.sms || canalesEmergencia.whatsapp || canalesEmergencia.correo;
     const toggleCanal = (key) => setCanalesEmergencia((prev) => ({ ...prev, [key]: !prev[key] }));
 
-    // --- ENVÍO REAL (Opción A: enlaces del propio teléfono) ---
-    // Se construyen enlaces sms:/wa.me/mailto: con el mensaje ya escrito. Al
-    // tocarlos se abre la app de Mensajes / WhatsApp / Correo del dispositivo con
-    // todo relleno; el usuario solo pulsa "Enviar". No necesita servidor.
-    const soloDigitos = (tel) => (tel || '').replace(/[^\d+]/g, '');
-    const numeroWa = (tel) => soloDigitos(tel).replace(/^\+/, '');
-    const msgCodificado = encodeURIComponent(mensajeEmergencia || '');
-    const asuntoCodificado = encodeURIComponent('Necesito ayuda');
-    const envios = [];
-    marcados.forEach((c) => {
-      if (canalesEmergencia.sms && c.telefono) {
-        envios.push({ id: `${c.id}-sms`, etiqueta: `💬 SMS a ${c.nombre} ${c.apellido}`, voz: `Enviar SMS a ${c.nombre}`,
-          href: `sms:${soloDigitos(c.telefono)}?body=${msgCodificado}`, cls: 'bg-blue-900 border-blue-950' });
-      }
-      if (canalesEmergencia.whatsapp && c.telefono) {
-        envios.push({ id: `${c.id}-wa`, etiqueta: `🟢 WhatsApp a ${c.nombre} ${c.apellido}`, voz: `Enviar WhatsApp a ${c.nombre}`,
-          href: `https://wa.me/${numeroWa(c.telefono)}?text=${msgCodificado}`, cls: 'bg-emerald-600 border-emerald-800' });
-      }
-      if (canalesEmergencia.correo && c.correo) {
-        envios.push({ id: `${c.id}-mail`, etiqueta: `✉️ Correo a ${c.nombre} ${c.apellido}`, voz: `Enviar correo a ${c.nombre}`,
-          href: `mailto:${c.correo}?subject=${asuntoCodificado}&body=${msgCodificado}`, cls: 'bg-purple-700 border-purple-900' });
-      }
-    });
-    // Un solo correo a todos los que tengan email
-    const correosTodos = marcados.filter((c) => c.correo).map((c) => c.correo);
-    if (canalesEmergencia.correo && correosTodos.length > 1) {
-      envios.unshift({ id: 'mail-todos', etiqueta: `✉️ Un correo a los ${correosTodos.length} a la vez`, voz: 'Enviar un correo a todos',
-        href: `mailto:${correosTodos.join(',')}?subject=${asuntoCodificado}&body=${msgCodificado}`, cls: 'bg-purple-800 border-purple-950' });
-    }
+    // Enlaces reales de envío (Opción A). Misma lógica en P-33 (Mensajes masivos).
+    const envios = construirEnviosEmergencia();
 
     const campo = (id, label, refKey, type = 'text', placeholder = '', requerido = false) => (
       <div className="flex flex-col gap-1">
@@ -3731,13 +3745,19 @@ const App = () => {
 
                 <div>
                   <label htmlFor="msg-emergencia" className="block text-xl font-black text-slate-800 mb-2">Mensaje que recibirán:</label>
-                  <textarea
-                    id="msg-emergencia"
-                    value={mensajeEmergencia}
-                    onChange={(e) => setMensajeEmergencia(e.target.value)}
-                    rows={3}
-                    className="w-full p-4 text-lg border-4 border-slate-300 rounded-2xl font-bold bg-white focus:border-red-600 outline-none resize-none"
-                  />
+                  <div className="w-full border-4 border-slate-300 rounded-2xl bg-white overflow-hidden focus-within:border-red-600">
+                    <div className="px-4 pt-3 text-lg font-black text-red-700 select-none">Necesito Ayuda.</div>
+                    <textarea
+                      id="msg-emergencia"
+                      ref={refsContacto.mensaje}
+                      defaultValue={mensajeEmergencia.startsWith(PREFIJO_MENSAJE_EMERGENCIA) ? mensajeEmergencia.slice(PREFIJO_MENSAJE_EMERGENCIA.length) : mensajeEmergencia}
+                      onBlur={(e) => setMensajeEmergencia(PREFIJO_MENSAJE_EMERGENCIA + e.target.value.replace(/^\s*necesito ayuda[.,]?\s*/i, ''))}
+                      rows={3}
+                      placeholder="Añade lo demás: dónde estás, qué te pasa, tu dirección…"
+                      className="w-full px-4 pb-4 pt-1 text-lg font-bold bg-white outline-none resize-none"
+                    />
+                  </div>
+                  <p className="text-sm font-bold text-slate-500 mt-1">"Necesito Ayuda." va siempre al principio; el resto lo puedes cambiar.</p>
                 </div>
 
                 <div>
@@ -4572,7 +4592,7 @@ const App = () => {
           })()}
 
           {/* MODAL GLOBAL "PEDIR AYUDA" (P-33) — compartido entre P-02 (Login) y P-08 (Panel Principal) */}
-          {showPedirAyudaModal && (
+          {showPedirAyudaModal && !masivosEnvio && (
             <div role="dialog" aria-modal="true" aria-label="Pedir Ayuda" className="absolute inset-0 bg-red-950/97 z-50 flex flex-col items-center justify-center p-8 gap-5 animate-in fade-in duration-200 overflow-y-auto">
               <AlertTriangle size={60} className="text-red-400 animate-bounce" />
               <h2 className="text-3xl font-black text-white text-center">¿Cómo quieres pedir ayuda?</h2>
@@ -4594,10 +4614,8 @@ const App = () => {
               {emergenciaMasivosActiva && (
                 <button
                   onClick={() => {
-                    const emerg = getEmergenciaEfectiva();
-                    speak(`Enviando mensaje por ${emerg.canalesTexto} a ${emerg.nombres.join(', ')}, y llamando a Urgencias.`);
-                    setShowPedirAyudaModal(false);
-                    setCallingContact(emerg.primero);
+                    setMasivosEnvio(true);
+                    speak('Toca cada botón para enviar el aviso por Mensajes, WhatsApp o Correo.');
                   }}
                   onMouseEnter={() => announceMenuOption('Mensajes Masivos')}
                   className="w-full min-h-[80px] flex items-center justify-center gap-4 bg-purple-700 hover:bg-purple-800 text-white rounded-[35px] font-black text-2xl shadow-2xl border-b-8 border-purple-900 active:translate-y-2 transition-colors"
@@ -4615,6 +4633,60 @@ const App = () => {
               <div className="absolute bottom-2 left-0 right-0 text-center text-[10px] text-white/40 font-bold">P-33</div>
             </div>
           )}
+
+          {/* P-33 · sub-paso "Mensajes masivos": enlaces reales de envío (igual que P-39) */}
+          {showPedirAyudaModal && masivosEnvio && (() => {
+            const enviosMasivos = construirEnviosEmergencia();
+            return (
+              <div role="dialog" aria-modal="true" aria-label="Enviar aviso de emergencia" className="absolute inset-0 bg-red-950/97 z-50 flex flex-col items-center p-8 gap-4 animate-in fade-in duration-200 overflow-y-auto">
+                <MessageSquare size={52} className="text-purple-300 mt-4" />
+                <h2 className="text-3xl font-black text-white text-center leading-tight">Enviar el aviso</h2>
+                <p className="text-base font-bold text-red-100 text-center leading-tight max-w-sm">
+                  Se abrirá tu app de Mensajes, WhatsApp o Correo con el texto ya escrito; solo pulsa <b>Enviar</b>.
+                </p>
+                {enviosMasivos.length === 0 ? (
+                  <div className="bg-white/10 border-4 border-white/30 rounded-2xl p-5 w-full">
+                    <p className="text-lg font-black text-white leading-snug">
+                      No hay contactos de emergencia o canales configurados. Ve a <span className="text-amber-200">Crear Actores → Contactos de emergencia</span>.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="w-full space-y-3">
+                    {enviosMasivos.map((e) => (
+                      <a
+                        key={e.id}
+                        href={e.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onMouseEnter={() => announceMenuOption(e.voz)}
+                        className={`w-full py-4 px-4 rounded-2xl font-black text-lg leading-tight border-b-8 text-white flex items-center gap-3 active:translate-y-1 transition-transform ${e.cls}`}
+                      >
+                        <Send size={22} className="shrink-0" />
+                        <span className="text-left">{e.etiqueta}</span>
+                      </a>
+                    ))}
+                  </div>
+                )}
+                <div className="w-full space-y-3 mt-2">
+                  <button
+                    onClick={() => { setShowPedirAyudaModal(false); setCallingContact({ name: '112 (URGENCIA)', phone: '112' }); }}
+                    onMouseEnter={() => announceMenuOption('Llamar al 112')}
+                    className="w-full min-h-[70px] flex items-center justify-center gap-3 bg-red-600 hover:bg-red-700 text-white rounded-[30px] font-black text-xl shadow-xl border-b-8 border-red-900 active:translate-y-1"
+                  >
+                    <PhoneCall size={30} /> LLAMAR AL 112
+                  </button>
+                  <button
+                    onClick={() => setMasivosEnvio(false)}
+                    onMouseEnter={() => announceMenuOption('Volver')}
+                    className="w-full min-h-[70px] flex items-center justify-center gap-3 bg-white/10 border-4 border-white/30 text-white rounded-[30px] font-black text-xl active:scale-95"
+                  >
+                    <ArrowLeft size={30} /> VOLVER
+                  </button>
+                </div>
+                <div className="absolute bottom-2 left-0 right-0 text-center text-[10px] text-white/40 font-bold">P-33</div>
+              </div>
+            );
+          })()}
 
           {showSuccess && (() => {
             // Pantallas de Datos Ciudadano: al GUARDAR se muestra "Se grabó
