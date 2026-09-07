@@ -84,6 +84,18 @@ sesión trabaja sobre una rama propia (no directo en `main`):
 
 ## Bitácora (lo más reciente arriba)
 
+### 2026-09-07 — commit 77c777c · APP_VERSION 07092026-19:25
+- P-33 "Mensajes masivos": ahora abre un sub-paso con los enlaces reales
+  `sms:`/`wa.me`/`mailto:` (misma función común `construirEnviosEmergencia` que
+  P-39). Pausa la cuenta atrás; botones LLAMAR AL 112 y VOLVER.
+- Campo "Mensaje que recibirán" (P-39): prefijo fijo **"Necesito Ayuda."** no
+  editable + resto editable. Textarea pasa a **no controlado** (sync al `onBlur`)
+  para que se escriba de corrido — se acabó el "carácter por carácter".
+- Contenedor "Tocar para enviar el aviso": con 2+ correos, solo el enlace
+  conjunto "un correo a los N a la vez"; con uno solo, su correo individual.
+- Sobre envío automático real: solo con Opción B (backend Vercel + Twilio/Resend)
+  o EmailJS (solo correo). El usuario decidió quedarse en Opción A por ahora.
+
 ### 2026-09-07 — commit 38f582f · APP_VERSION 07092026-14:59
 - P-39 pestaña "Contactos de emergencia": envío real **Opción A** (enlaces del
   teléfono, sin servidor). Botones que abren Mensajes (`sms:`), WhatsApp
