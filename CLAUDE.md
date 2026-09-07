@@ -84,6 +84,18 @@ sesión trabaja sobre una rama propia (no directo en `main`):
 
 ## Bitácora (lo más reciente arriba)
 
+### 2026-09-07 — commit 38f582f · APP_VERSION 07092026-14:59
+- P-39 pestaña "Contactos de emergencia": envío real **Opción A** (enlaces del
+  teléfono, sin servidor). Botones que abren Mensajes (`sms:`), WhatsApp
+  (`wa.me`) o Correo (`mailto:`) con el texto ya escrito; también un `mailto:` a
+  todos los que tengan email.
+- Campo Teléfono exige prefijo de país (`+NN…`), valida al crear y al editar.
+- Actores fijos por defecto ahora: **Mayra Bernabei** (+34633704824) y **Rafael
+  Gonzalo** (+34623328599), ambos de emergencia; los 3 de ejemplo (Carlos, Ana,
+  Lucía) pasan a llevar +34. Total 5 al arrancar.
+- Para envío automático de verdad (SMS/WhatsApp/correo sin toque extra) haría
+  falta la Opción B: funciones serverless en Vercel + Twilio/Resend + dominio.
+
 ### 2026-09-07 — commit f7ba92b · APP_VERSION 07092026-14:21
 - Crear Actores es ahora **P-39**. Cada actor de la lista tiene botón lápiz
   (editar: carga sus datos en el formulario, "GUARDAR CAMBIOS" + "CANCELAR
