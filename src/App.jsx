@@ -5,7 +5,8 @@ import {
   Send, X, Sparkles, CheckCircle2, Navigation, Info,
   AlertTriangle, Fingerprint, ScanFace, Lock,
   Star, Ticket, Volume2, Filter, Menu, HelpCircle, Check,
-  Activity, Brain, Heart, Moon, Mail, UserPlus, BookOpen, Image, Leaf, ChevronDown, LayoutGrid
+  Activity, Brain, Heart, Moon, Mail, UserPlus, BookOpen, Image, Leaf, ChevronDown, LayoutGrid,
+  Pencil, Trash2
 } from 'lucide-react';
 // Foto del ciudadano por defecto: se deja grabada aquí para no tener que subirla
 // en cada sesión. Para cambiarla, reemplaza src/foto-ciudadano.jpg.
@@ -22,7 +23,7 @@ const fotoUsuarioPorDefecto = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3
 // nueva actualización. Formato solicitado: DÍA(2 dígitos)+MES(2 dígitos)+AÑO(4 dígitos) - HORA:MINUTO
 // Ejemplo: "27072026-19:05" = 27 de julio de 2026, 19:05. Se muestra, sin
 // ninguna acción asociada, en la esquina superior izquierda de P-01.
-const APP_VERSION = "07092026-11:24";
+const APP_VERSION = "07092026-14:21";
 
 /**
  * APP SÉNIOR - SUITE MÓVIL ACCESIBLE (SIMULADOR DE TELÉFONO)
@@ -532,6 +533,9 @@ const App = () => {
   // al remontado del componente cuando cambia listaContactos (los Render* son funciones
   // internas y React los remonta en cada render de App).
   const [contactosTab, setContactosTab] = useState('lista'); // 'lista' | 'emergencia'
+  // Edición / borrado de un actor ya creado (P-39).
+  const [contactoEditandoId, setContactoEditandoId] = useState(null);
+  const [contactoAEliminar, setContactoAEliminar] = useState(null);
   // Apartado abierto en el menú TAM ('ama' | 'entorno' | null) — a nivel de App
   // para que no se cierre al remontarse el componente.
   const [tamAbierto, setTamAbierto] = useState(null);
@@ -1109,7 +1113,7 @@ const App = () => {
     centro_vitalidad: { titulo: "Centro de Vitalidad", texto: "Estás en el Centro de Vitalidad. Aquí encontrarás ejercicios, juegos mentales, contactos sociales, salud y descanso." },
     buzon: { titulo: "Buzón de Mensajes", texto: "Estás viendo los avisos y mensajes que la aplicación te ha enviado." },
     contactos: { titulo: "Mis Contactos", texto: "Estás viendo tu lista de contactos. Toca el nombre de la persona que quieres llamar." },
-    crear_contactos: { titulo: "Crear Actores", texto: "Tiene dos pestañas. En Crear lista de actores rellenas los datos de una persona, foto, nombre, apellido, teléfono, y tocas Guardar. En Contactos de emergencia marcas a quién se llamará y se le enviará un mensaje al pulsar Pedir Ayuda, escribes ese mensaje, y eliges si se envía por SMS, WhatsApp o correo, uno o varios a la vez." },
+    crear_contactos: { titulo: "Crear Actores", texto: "Tiene dos pestañas. En Crear lista de actores rellenas los datos de una persona, foto, nombre, apellido, teléfono, y tocas Guardar. Debajo aparece la lista: toca el lápiz para modificar los datos de un actor ya creado, o la papelera para eliminarlo (te pide confirmación). En Contactos de emergencia marcas a quién se llamará y se le enviará un mensaje al pulsar Pedir Ayuda, escribes ese mensaje, y eliges si se envía por SMS, WhatsApp o correo, uno o varios a la vez." },
     guia_digital: { titulo: "Mi Guía Digital", texto: "Estás en tu Guía Digital. Aquí encontrarás cursos sugeridos y consejos diarios de seguridad y bienestar." },
     emergencia: { titulo: "Pedir Ayuda", texto: "Estás en la pantalla de emergencia. Toca el botón rojo para llamar a Urgencias, o el nombre de un familiar para llamarlo a él. Si no haces nada, la app llamará a Urgencias automáticamente." },
     // categoria_detalle NO usa un texto fijo aquí: handleWhereAmI arma el texto
@@ -3450,6 +3454,7 @@ const App = () => {
     const tab = contactosTab;
     const setTab = setContactosTab;
     const aviso = contactosAviso;
+    const editando = listaContactos.find((c) => c.id === contactoEditandoId) || null;
     const [fotoContacto, setFotoContacto] = useState('');
     const [errores, setErrores] = useState({});
     const refsContacto = {
@@ -3483,28 +3488,53 @@ const App = () => {
         speak('Faltan datos por completar. Revisa los campos marcados en rojo.');
         return;
       }
-      const nuevo = {
-        id: Date.now(),
+      const datos = {
         nombre: refsContacto.nombre.current.value.trim(),
         apellido: refsContacto.apellido.current.value.trim(),
         edad: refsContacto.edad.current?.value || '',
         telefono: refsContacto.telefono.current.value.trim(),
         correo: refsContacto.correo.current?.value || '',
         direccion: refsContacto.direccion.current?.value || '',
-        foto: fotoContacto || fotoUsuarioPorDefecto,
-        esEmergencia: false,
       };
+      if (contactoEditandoId) {
+        // MODIFICAR un actor ya creado
+        setListaContactos((prev) => prev.map((c) => (
+          c.id === contactoEditandoId ? { ...c, ...datos, foto: fotoContacto || c.foto } : c
+        )));
+        setContactoEditandoId(null);
+        setFotoContacto('');
+        setErrores({});
+        mostrarAviso(`Actor ${datos.nombre} actualizado.`);
+        return;
+      }
+      const nuevo = { id: Date.now(), ...datos, foto: fotoContacto || fotoUsuarioPorDefecto, esEmergencia: false };
       setListaContactos((prev) => [...prev, nuevo]);
       Object.values(refsContacto).forEach((r) => { if (r.current) r.current.value = ''; });
       setFotoContacto('');
       setErrores({});
       mostrarAviso(`Contacto ${nuevo.nombre} guardado en tu lista.`);
     };
+    const empezarEdicion = (c) => {
+      setContactoEditandoId(c.id);
+      setFotoContacto('');
+      setErrores({});
+      setTab('lista');
+      setContactosAviso(null);
+    };
+    const cancelarEdicion = () => {
+      setContactoEditandoId(null);
+      setFotoContacto('');
+      setErrores({});
+    };
     const toggleEmergencia = (id) => {
       setListaContactos((prev) => prev.map((c) => (c.id === id ? { ...c, esEmergencia: !c.esEmergencia } : c)));
     };
-    const eliminarContacto = (id) => {
-      setListaContactos((prev) => prev.filter((c) => c.id !== id || c.fijo));
+    const confirmarEliminar = () => {
+      const c = listaContactos.find((x) => x.id === contactoAEliminar);
+      setListaContactos((prev) => prev.filter((x) => x.id !== contactoAEliminar));
+      if (contactoEditandoId === contactoAEliminar) setContactoEditandoId(null);
+      setContactoAEliminar(null);
+      if (c) mostrarAviso(`Actor ${c.nombre} eliminado.`);
     };
     const marcados = listaContactos.filter((c) => c.esEmergencia);
     const canalesTxt = textoCanales(canalesEmergencia);
@@ -3522,6 +3552,7 @@ const App = () => {
         <input
           id={id}
           ref={refsContacto[refKey]}
+          defaultValue={editando ? (editando[refKey] || '') : ''}
           type={type}
           required={requerido}
           aria-invalid={!!errores[refKey]}
@@ -3574,12 +3605,12 @@ const App = () => {
 
         {tab === 'lista' ? (
           <>
-            <p className="text-lg font-bold text-slate-600 mb-4 leading-relaxed">
-              Rellena los datos para añadir a una persona a tu lista:
+            <p className={`text-lg font-black mb-4 leading-relaxed ${editando ? 'text-amber-700' : 'text-slate-600'}`}>
+              {editando ? `✏️ Editando a ${editando.nombre} ${editando.apellido}. Cambia lo que necesites y toca GUARDAR CAMBIOS.` : 'Rellena los datos para añadir a una persona a tu lista:'}
             </p>
-            <form onSubmit={handleGuardarContacto} className="space-y-6">
+            <form key={contactoEditandoId ?? 'nuevo'} onSubmit={handleGuardarContacto} className="space-y-6">
               <div className="bg-white p-6 rounded-3xl border-4 border-slate-200 text-center flex flex-col items-center">
-                <img src={fotoContacto || fotoUsuarioPorDefecto} alt="Foto del nuevo contacto" className="w-32 h-32 rounded-full object-cover border-4 border-blue-900 shadow-md mb-4" />
+                <img src={fotoContacto || editando?.foto || fotoUsuarioPorDefecto} alt="Foto del actor" className="w-32 h-32 rounded-full object-cover border-4 border-blue-900 shadow-md mb-4" />
                 <label htmlFor="contacto-foto" className="cursor-pointer bg-blue-900 text-white px-6 py-3 rounded-2xl font-black text-lg shadow-md active:bg-blue-950 inline-block">
                   SUBIR FOTO 📷
                   <input id="contacto-foto" type="file" accept="image/*" onChange={handleFotoChange} className="hidden" />
@@ -3593,30 +3624,36 @@ const App = () => {
                 {campo('contacto-correo', 'Correo Electrónico:', 'correo', 'email', 'correo@ejemplo.com')}
                 {campo('contacto-direccion', 'Dirección:', 'direccion', 'text', 'Ej. Calle Principal 1')}
               </div>
-              <button type="submit" className="w-full py-6 bg-blue-900 text-white rounded-3xl font-black text-2xl shadow-lg border-b-8 border-blue-950 active:translate-y-1 mt-2">
-                GUARDAR CONTACTO
+              <button type="submit" className="w-full py-6 bg-blue-900 text-white rounded-3xl font-black text-2xl shadow-lg border-b-8 border-blue-950 active:translate-y-1 mt-2 flex items-center justify-center gap-3">
+                <CheckCircle2 size={26} /> {editando ? 'GUARDAR CAMBIOS' : 'GUARDAR CONTACTO'}
               </button>
+              {editando && (
+                <button type="button" onClick={cancelarEdicion} onMouseEnter={() => announceMenuOption('Cancelar edición')}
+                  className="w-full py-4 bg-white text-slate-700 rounded-3xl font-black text-xl border-4 border-slate-300 active:scale-95">
+                  CANCELAR EDICIÓN
+                </button>
+              )}
             </form>
 
             {listaContactos.length > 0 && (
               <div className="mt-8">
-                <h3 className="text-2xl font-black text-slate-800 mb-3">Tus contactos ({listaContactos.length})</h3>
+                <h3 className="text-2xl font-black text-slate-800 mb-3">Tus actores ({listaContactos.length})</h3>
+                <p className="text-base font-bold text-slate-500 mb-3 leading-tight">Toca ✏️ para modificar sus datos o 🗑️ para eliminarlo.</p>
                 <div className="space-y-3">
                   {listaContactos.map((c) => (
-                    <div key={c.id} className="bg-white p-4 rounded-2xl border-4 border-slate-200 flex items-center gap-3">
+                    <div key={c.id} className={`bg-white p-4 rounded-2xl border-4 flex items-center gap-3 ${contactoEditandoId === c.id ? 'border-amber-400' : 'border-slate-200'}`}>
                       <img src={c.foto} alt="" className="w-14 h-14 rounded-full object-cover border-2 border-slate-300 shrink-0" />
                       <div className="flex-grow text-left overflow-hidden">
                         <span className="block text-lg font-black text-slate-800 truncate">{c.nombre} {c.apellido}</span>
                         <span className="block text-base font-bold text-slate-500 truncate">{c.telefono}</span>
                       </div>
-                      {c.esEmergencia && <span className="text-xs font-black text-red-700 bg-red-100 px-2 py-1 rounded-full shrink-0">EMERGENCIA</span>}
-                      {c.fijo ? (
-                        <span className="text-xs font-black text-slate-500 bg-slate-100 px-2 py-1 rounded-full shrink-0" title="Contacto fijo, no se puede borrar">🔒 FIJO</span>
-                      ) : (
-                        <button type="button" onClick={() => eliminarContacto(c.id)} aria-label={`Eliminar a ${c.nombre}`} className="text-red-600 shrink-0 p-2 active:scale-90">
-                          <X size={24} />
-                        </button>
-                      )}
+                      {c.esEmergencia && <span className="text-xs font-black text-red-700 bg-red-100 px-2 py-1 rounded-full shrink-0">SOS</span>}
+                      <button type="button" onClick={() => empezarEdicion(c)} onMouseEnter={() => announceMenuOption(`Editar a ${c.nombre}`)} aria-label={`Editar a ${c.nombre}`} className="shrink-0 p-2 rounded-xl bg-blue-50 text-blue-800 border-2 border-blue-200 active:scale-90">
+                        <Pencil size={22} />
+                      </button>
+                      <button type="button" onClick={() => setContactoAEliminar(c.id)} onMouseEnter={() => announceMenuOption(`Eliminar a ${c.nombre}`)} aria-label={`Eliminar a ${c.nombre}`} className="shrink-0 p-2 rounded-xl bg-red-50 text-red-700 border-2 border-red-200 active:scale-90">
+                        <Trash2 size={22} />
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -3722,6 +3759,30 @@ const App = () => {
             )}
           </>
         )}
+
+        {/* CONFIRMACIÓN DE BORRADO */}
+        {contactoAEliminar != null && (() => {
+          const c = listaContactos.find((x) => x.id === contactoAEliminar);
+          return (
+            <div role="dialog" aria-modal="true" aria-label="Confirmar eliminación" className="absolute inset-0 bg-blue-950/95 z-50 p-8 flex flex-col items-center justify-center text-center animate-in fade-in duration-200">
+              <Trash2 size={64} className="text-red-300 mb-4" />
+              <h3 className="text-3xl font-black text-white mb-3 leading-tight max-w-xs mx-auto">¿Eliminar a {c ? `${c.nombre} ${c.apellido}` : 'este actor'}?</h3>
+              <p className="text-xl font-bold text-amber-200 mb-8 leading-relaxed max-w-xs mx-auto">Esta acción no se puede deshacer.</p>
+              <div className="w-full max-w-sm mx-auto space-y-4">
+                <button type="button" onClick={confirmarEliminar} onMouseEnter={() => announceMenuOption('Sí, eliminar')}
+                  className="w-full py-6 bg-red-600 text-white rounded-[25px] font-black text-2xl shadow-xl border-b-8 border-red-800 active:translate-y-1 flex items-center justify-center gap-3">
+                  <Trash2 size={26} /> SÍ, ELIMINAR
+                </button>
+                <button type="button" onClick={() => setContactoAEliminar(null)} onMouseEnter={() => announceMenuOption('Cancelar')}
+                  className="w-full py-5 bg-white/10 border-2 border-white/40 text-white rounded-[25px] font-black text-lg active:scale-95">
+                  CANCELAR
+                </button>
+              </div>
+            </div>
+          );
+        })()}
+
+        <div className="absolute bottom-2 left-0 right-0 text-center text-[10px] text-black font-bold">P-39</div>
       </div>
     );
   };
@@ -4927,7 +4988,7 @@ const App = () => {
                   <PhoneCall size={32} className="text-amber-400" />
                   <span className="text-lg font-bold text-amber-200 leading-tight">Configurar Pedir Ayuda</span>
                 </button>
-                <button onClick={() => { setCurrentView('crear_contactos'); setIsMenuOpen(false); setEnteredFromMenu(true); }} onMouseEnter={() => announceMenuOption('Crear Actores')} className="flex flex-col items-center justify-center text-center gap-2 p-4 bg-white/10 rounded-2xl hover:bg-white/15 active:scale-95 transition-transform">
+                <button onClick={() => { setContactoEditandoId(null); setContactoAEliminar(null); setContactosTab('lista'); setCurrentView('crear_contactos'); setIsMenuOpen(false); setEnteredFromMenu(true); }} onMouseEnter={() => announceMenuOption('Crear Actores')} className="flex flex-col items-center justify-center text-center gap-2 p-4 bg-white/10 rounded-2xl hover:bg-white/15 active:scale-95 transition-transform">
                   <UserPlus size={32} className="text-amber-400" />
                   <span className="text-lg font-bold leading-tight">Crear Actores</span>
                 </button>
