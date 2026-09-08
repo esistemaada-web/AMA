@@ -84,6 +84,18 @@ sesión trabaja sobre una rama propia (no directo en `main`):
 
 ## Bitácora (lo más reciente arriba)
 
+### 2026-09-08 — commit 03e6e98 · APP_VERSION 08092026-09:59
+- Nueva **encuesta de Estado de Ánimo**. Opción nueva en P-28.
+  - **P-41** config: on/off, disparadores "al entrar tras el acceso" y "al salir
+    de la app" (configurables), frecuencia cada 1/2/4/8/16 h, checklist de 6
+    emociones (Felicidad, Tristeza, Miedo, Ira, Sorpresa, Asco; mínimo una),
+    PROBAR AHORA y lista de respuestas de hoy.
+  - **P-42** popup: sale sobre cualquier pantalla cada N horas, y además al
+    entrar y al salir si están activados. Registra `{ts, emocion}` en
+    `animoHistorial`. No interrumpe emergencia ni llamada. Al salir, completa la
+    salida tras responder o saltar.
+- P-11: "Seguridad y Emergencia" → solo **"Seguridad"**.
+
 ### 2026-09-07 — commit 77c777c · APP_VERSION 07092026-19:25
 - P-33 "Mensajes masivos": ahora abre un sub-paso con los enlaces reales
   `sms:`/`wa.me`/`mailto:` (misma función común `construirEnviosEmergencia` que
