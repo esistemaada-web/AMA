@@ -6,7 +6,7 @@ import {
   AlertTriangle, Fingerprint, ScanFace, Lock,
   Star, Ticket, Volume2, Filter, Menu, HelpCircle, Check,
   Activity, Brain, Heart, Moon, Mail, UserPlus, BookOpen, Image, Leaf, ChevronDown, LayoutGrid,
-  Pencil, Trash2
+  Pencil, Trash2, Smile
 } from 'lucide-react';
 // Foto del ciudadano por defecto: se deja grabada aquí para no tener que subirla
 // en cada sesión. Para cambiarla, reemplaza src/foto-ciudadano.jpg.
@@ -23,7 +23,7 @@ const fotoUsuarioPorDefecto = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3
 // nueva actualización. Formato solicitado: DÍA(2 dígitos)+MES(2 dígitos)+AÑO(4 dígitos) - HORA:MINUTO
 // Ejemplo: "27072026-19:05" = 27 de julio de 2026, 19:05. Se muestra, sin
 // ninguna acción asociada, en la esquina superior izquierda de P-01.
-const APP_VERSION = "07092026-19:25";
+const APP_VERSION = "08092026-09:59";
 
 /**
  * APP SÉNIOR - SUITE MÓVIL ACCESIBLE (SIMULADOR DE TELÉFONO)
@@ -187,6 +187,18 @@ const MENU_ITEMS = [
   // (Usuario Administrador y Entrar a la App), tipo ayuda pero enfocado al funcionamiento general.
   { key: 'demo_app',         view: 'demo_app',              label: 'Demo de la App',            sub: 'Cómo funciona VES',         Icon: Info,          bg: 'bg-indigo-600',  hover: 'hover:bg-indigo-50',  border: 'border-indigo-600',  text: 'text-indigo-900',  num: 14, categoria: 'salud_digital' },
 ];
+
+// --- ENCUESTA DE ESTADO DE ÁNIMO (P-41 config / P-42 popup) ---
+// Emociones básicas (Ekman). Cada una con dos emojis y color propio.
+const EMOCIONES_ANIMO = [
+  { id: 'felicidad', nombre: 'Felicidad (Alegría)', emojis: '😄 😊', chkBox: 'bg-white border-amber-400',  chkOn: 'bg-amber-500 border-amber-700' },
+  { id: 'tristeza',  nombre: 'Tristeza',            emojis: '😢 😞', chkBox: 'bg-white border-blue-400',   chkOn: 'bg-blue-600 border-blue-800' },
+  { id: 'miedo',     nombre: 'Miedo',               emojis: '😨 😱', chkBox: 'bg-white border-violet-400', chkOn: 'bg-violet-600 border-violet-800' },
+  { id: 'ira',       nombre: 'Ira (Enojo)',         emojis: '😡 😠', chkBox: 'bg-white border-red-400',    chkOn: 'bg-red-600 border-red-800' },
+  { id: 'sorpresa',  nombre: 'Sorpresa',            emojis: '😲 😮', chkBox: 'bg-white border-emerald-400', chkOn: 'bg-emerald-600 border-emerald-800' },
+  { id: 'asco',      nombre: 'Asco (Disgusto)',     emojis: '🤢 🤮', chkBox: 'bg-white border-lime-500',   chkOn: 'bg-lime-600 border-lime-800' },
+];
+const FRECUENCIAS_ANIMO = [1, 2, 4, 8, 16]; // cada cuántas horas sale la encuesta
 
 // --- MÓDULOS DEL CENTRO DE VITALIDAD (P-16) ---
 // Cada contenedor lleva un checklist: el ciudadano marca lo que quiere ver en
@@ -422,6 +434,20 @@ const App = () => {
   const [vitalidadSel, setVitalidadSel] = useState(() =>
     MODULOS_VITALIDAD.reduce((acc, m) => { m.items.forEach((it) => { acc[it.id] = true; }); return acc; }, {})
   );
+  // --- ENCUESTA DE ESTADO DE ÁNIMO (P-41 config / P-42 popup) ---
+  const [animoActivo, setAnimoActivo] = useState(false);
+  const [animoFrecuenciaHoras, setAnimoFrecuenciaHoras] = useState(2);
+  // Disparadores extra (configurables): al entrar tras el acceso y al salir.
+  const [animoAlEntrar, setAnimoAlEntrar] = useState(true);
+  const [animoAlSalir, setAnimoAlSalir] = useState(true);
+  const [animoContexto, setAnimoContexto] = useState(null); // null | 'salida'
+  const animoEntradaRef = useRef(false);
+  const [animoEmocionesSel, setAnimoEmocionesSel] = useState(() =>
+    EMOCIONES_ANIMO.reduce((acc, e) => { acc[e.id] = true; return acc; }, {})
+  );
+  const [animoHistorial, setAnimoHistorial] = useState([]); // [{ ts, emocion }]
+  const [animoPopupVisible, setAnimoPopupVisible] = useState(false);
+  const [animoUltimo, setAnimoUltimo] = useState(0); // ts de la última vez que se preguntó
   // --- VISIBILIDAD DE OPCIONES DEL PANEL PRINCIPAL (Configurar el Menú Principal) ---
   const [menuVisible, setMenuVisible] = useState({
     compania: true,
@@ -1124,6 +1150,32 @@ const App = () => {
     }
   }, [showPedirAyudaModal]);
 
+  // Encuesta de estado de ánimo (P-42): si está activada, cada N horas se muestra
+  // sobre la pantalla en la que esté el ciudadano en ese momento. Se comprueba
+  // cada minuto. No interrumpe una emergencia ni otros modales.
+  useEffect(() => {
+    if (!animoActivo || step !== 'dashboard') return;
+    const chequear = () => {
+      if (animoPopupVisible || showPedirAyudaModal || showSuccess || isMenuOpen || callingContact) return;
+      if (Date.now() - animoUltimo >= animoFrecuenciaHoras * 3600000) setAnimoPopupVisible(true);
+    };
+    const id = setInterval(chequear, 60000);
+    return () => clearInterval(id);
+  }, [animoActivo, step, animoFrecuenciaHoras, animoUltimo, animoPopupVisible, showPedirAyudaModal, showSuccess, isMenuOpen, callingContact]);
+
+  // Encuesta al ENTRAR a la app (tras el acceso): una vez por sesión iniciada.
+  useEffect(() => {
+    if (step === 'dashboard') {
+      if (animoActivo && animoAlEntrar && !animoEntradaRef.current) {
+        animoEntradaRef.current = true;
+        const t = setTimeout(() => setAnimoPopupVisible(true), 800);
+        return () => clearTimeout(t);
+      }
+    } else {
+      animoEntradaRef.current = false; // al volver a inicio/login se rearma
+    }
+  }, [step, animoActivo, animoAlEntrar]);
+
   // Al llegar al Panel Principal desde el acceso (huella, rostro, voz, escrito, etc.)
   // y NO desde el Menú de Perfil, se limpia la memoria de "vengo de un submenú"
   // para que P-08 muestre siempre la hamburguesa (y por tanto la opción de salir).
@@ -1148,11 +1200,12 @@ const App = () => {
     rutas: { titulo: "Ruta Segura", texto: "Estás viendo rutas seguras para caminar. Toca Elegir Ruta para indicar de dónde a dónde vas, y avisa cuando llegues al punto seguro." },
     comercio: { titulo: "Comercios", texto: "Estás viendo comercios accesibles cercanos. Toca Ya Estoy Aquí cuando llegues a uno de ellos para hacer Check-in." },
     cultura: { titulo: "Cultura y Ocio", texto: "Estás viendo museos, teatros y eventos culturales cercanos con acceso fácil." },
-    perfil: { titulo: "Datos Ciudadano", texto: "Estás en los Datos del Ciudadano. Abre un apartado para cambiar la foto y los datos personales, la ubicación, el asistente de Inteligencia Artificial, la seguridad y emergencia, o los usuarios invitados; al abrir uno, los demás se ocultan hasta que lo cierres. Cuando un apartado está abierto, abajo del todo tienes el botón GUARDAR, siempre visible. Si intentas salir sin guardar, la aplicación te avisa. Con todos los apartados cerrados aparecen Mis Preferencias, Clasificación Funcional, Modos de Asistencia, Mis Talentos y el Centro de Vitalidad." },
+    perfil: { titulo: "Datos Ciudadano", texto: "Estás en los Datos del Ciudadano. Abre un apartado para cambiar la foto y los datos personales, la ubicación, el asistente de Inteligencia Artificial, la seguridad, o los usuarios invitados; al abrir uno, los demás se ocultan hasta que lo cierres. Cuando un apartado está abierto, abajo del todo tienes el botón GUARDAR, siempre visible. Si intentas salir sin guardar, la aplicación te avisa. Con todos los apartados cerrados aparecen Mis Preferencias, Clasificación Funcional, Modos de Asistencia, Mis Talentos y el Centro de Vitalidad." },
     preferencias: { titulo: "Mis Preferencias", texto: "Estás en Mis Preferencias. Aquí puedes activar ayudas de vista, oído y habla, con interruptores para adaptar la aplicación a lo que necesitas." },
     modos_asistencia: { titulo: "Modos de Asistencia", texto: "Estás evaluando tus capacidades de vista, oído, habla y escritura, para que la aplicación se adapte mejor a ti." },
     clasificacion_funcional: { titulo: "Clasificación Funcional", texto: "Estás viendo recomendaciones según tu nivel de movilidad: leve, moderado o severo." },
     configurar_entrada: { titulo: "Acceso a la App", texto: "Aquí eliges qué formas de entrar aparecerán en la pantalla de inicio: reconocer tu rostro, usar tu huella, usar tu voz, acceso escrito con tu nombre y clave, o entrada automática con la del teléfono. Toca cada interruptor para activarlo o apagarlo. Siempre debe quedar al menos uno activo." },
+    estado_animo: { titulo: "Estado de Ánimo", texto: "Configuras una encuesta corta que pregunta al ciudadano cómo se siente varias veces al día, sobre cualquier pantalla en la que esté. Activas o desactivas la encuesta, y con interruptores decides si también sale al entrar a la app tras el acceso y al salir de la app. Eliges cada cuántas horas sale, de una a dieciséis, y marcas qué emociones aparecen: Felicidad, Tristeza, Miedo, Ira, Sorpresa y Asco. El botón Probar Ahora la muestra de inmediato. Abajo ves las respuestas de hoy." },
     talento: { titulo: "Mi Talento", texto: "Estás en Mis Talentos. Aquí puedes elegir qué te gustaría enseñar a otras personas y compartir tu experiencia." },
     centro_vitalidad: { titulo: "Centro de Vitalidad", texto: "Estás en el Centro de Vitalidad. Aquí encontrarás ejercicios, juegos mentales, contactos sociales, salud y descanso." },
     buzon: { titulo: "Buzón de Mensajes", texto: "Estás viendo los avisos y mensajes que la aplicación te ha enviado." },
@@ -2723,7 +2776,7 @@ const App = () => {
             </div>
           )}
           {(!seccionAbierta || seccionAbierta === 'seguridad') && (
-            <SeccionBtn id="seguridad" emoji="🔒" titulo="Seguridad y Emergencia" seccionAbierta={seccionAbierta} toggleSeccion={toggleSeccion} announceMenuOption={announceMenuOption} />
+            <SeccionBtn id="seguridad" emoji="🔒" titulo="Seguridad" seccionAbierta={seccionAbierta} toggleSeccion={toggleSeccion} announceMenuOption={announceMenuOption} />
           )}
           {seccionAbierta === 'seguridad' && (
             <div className="bg-slate-50 p-5 rounded-[25px] border-4 border-blue-200 space-y-4 animate-in fade-in duration-200">
@@ -4317,6 +4370,151 @@ const App = () => {
     );
   };
 
+  // --- P-41: CONFIGURAR LA ENCUESTA DE ESTADO DE ÁNIMO ---
+  const RenderEstadoAnimo = () => {
+    const seleccionadas = EMOCIONES_ANIMO.filter((e) => animoEmocionesSel[e.id]);
+    const toggleEmo = (id) => {
+      const activas = EMOCIONES_ANIMO.filter((e) => animoEmocionesSel[e.id]).length;
+      if (animoEmocionesSel[id] && activas <= 1) { speak('Debes dejar al menos una emoción marcada.'); return; }
+      setAnimoEmocionesSel((prev) => ({ ...prev, [id]: !prev[id] }));
+    };
+    const historialHoy = animoHistorial
+      .filter((h) => new Date(h.ts).toDateString() === new Date().toDateString())
+      .slice(-6)
+      .reverse();
+    const nombreEmo = (id) => EMOCIONES_ANIMO.find((e) => e.id === id)?.nombre || id;
+    const emojiEmo = (id) => (EMOCIONES_ANIMO.find((e) => e.id === id)?.emojis || '🙂').split(' ')[0];
+    const guardar = () => { setSelectedItem({ nombre: 'Estado de Ánimo' }); setShowSuccess(true); };
+    return (
+      <div className="flex flex-col p-6 bg-white min-h-full pb-6 relative">
+        <EncabezadoG onBack={handleBackNavigation} />
+        <div className="flex items-center gap-4 mb-4">
+          <div className="p-4 rounded-full bg-indigo-100 text-indigo-700 shadow-lg"><Smile size={36} /></div>
+          <h2 className="text-4xl font-black text-indigo-800 leading-tight">Estado de Ánimo</h2>
+        </div>
+        <p className="text-lg font-bold text-slate-600 mb-6 leading-relaxed">
+          Una encuesta breve preguntará al ciudadano cómo se siente, varias veces al día, sobre la pantalla en la que esté. Elige qué emociones aparecen y cada cuánto sale.
+        </p>
+
+        {/* ON / OFF */}
+        <div className="p-5 bg-slate-50 rounded-[25px] border-4 border-slate-200 mb-6 flex items-center justify-between gap-4">
+          <span className="text-xl font-black text-slate-800">Encuesta activada</span>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={animoActivo}
+            onClick={() => { const n = !animoActivo; setAnimoActivo(n); if (n) setAnimoUltimo(Date.now()); }}
+            aria-label="Activar o desactivar la encuesta de estado de ánimo"
+            className={`w-24 h-12 rounded-full p-1 transition-colors shrink-0 border-2 ${animoActivo ? 'bg-emerald-600 border-emerald-800' : 'bg-slate-300 border-slate-400'}`}
+          >
+            <div className={`bg-white w-9 h-9 rounded-full shadow-md transform transition-transform ${animoActivo ? 'translate-x-11' : 'translate-x-0'}`}></div>
+          </button>
+        </div>
+
+        {/* DISPARADORES EXTRA */}
+        <h3 className="text-xl font-black text-slate-800 mb-3">¿Cuándo más sale?</h3>
+        <div className="space-y-3 mb-6">
+          {[
+            { on: animoAlEntrar, set: setAnimoAlEntrar, label: 'Al entrar a la app (tras el acceso)' },
+            { on: animoAlSalir, set: setAnimoAlSalir, label: 'Al salir de la app' },
+          ].map((o) => (
+            <div key={o.label} className="p-4 bg-slate-50 rounded-2xl border-4 border-slate-200 flex items-center justify-between gap-3">
+              <span className="text-lg font-black text-slate-800 leading-tight">{o.label}</span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={o.on}
+                onClick={() => o.set(!o.on)}
+                aria-label={o.label}
+                className={`w-20 h-11 rounded-full p-1 transition-colors shrink-0 border-2 ${o.on ? 'bg-emerald-600 border-emerald-800' : 'bg-slate-300 border-slate-400'}`}
+              >
+                <div className={`bg-white w-8 h-8 rounded-full shadow-md transform transition-transform ${o.on ? 'translate-x-9' : 'translate-x-0'}`}></div>
+              </button>
+            </div>
+          ))}
+        </div>
+
+        {/* FRECUENCIA */}
+        <h3 className="text-xl font-black text-slate-800 mb-3">¿Cada cuánto sale?</h3>
+        <div className="grid grid-cols-3 gap-3 mb-6">
+          {FRECUENCIAS_ANIMO.map((h) => (
+            <button
+              key={h}
+              type="button"
+              onClick={() => setAnimoFrecuenciaHoras(h)}
+              onMouseEnter={() => announceMenuOption(`Cada ${h} ${h === 1 ? 'hora' : 'horas'}`)}
+              className={`py-4 rounded-2xl font-black text-lg border-4 transition-all active:scale-95 ${animoFrecuenciaHoras === h ? 'bg-indigo-700 border-indigo-900 text-white shadow-md' : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'}`}
+            >
+              Cada {h} h
+            </button>
+          ))}
+        </div>
+
+        {/* EMOCIONES CON CHECKLIST */}
+        <h3 className="text-xl font-black text-slate-800 mb-3">Emociones de la encuesta</h3>
+        <div className="space-y-3 mb-6">
+          {EMOCIONES_ANIMO.map((e) => {
+            const on = !!animoEmocionesSel[e.id];
+            return (
+              <button
+                key={e.id}
+                type="button"
+                role="checkbox"
+                aria-checked={on}
+                onClick={() => toggleEmo(e.id)}
+                onMouseEnter={() => announceMenuOption(e.nombre)}
+                className="w-full flex items-center gap-3 p-4 rounded-2xl border-4 border-slate-200 bg-slate-50 text-left active:scale-[0.98] transition-transform"
+              >
+                <span className={`shrink-0 w-9 h-9 rounded-lg border-4 flex items-center justify-center ${on ? `${e.chkOn} text-white` : e.chkBox}`}>
+                  {on && <Check size={22} strokeWidth={3} />}
+                </span>
+                <span className="text-3xl shrink-0">{e.emojis}</span>
+                <span className="text-lg font-black text-slate-800 flex-grow">{e.nombre}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setAnimoPopupVisible(true)}
+          onMouseEnter={() => announceMenuOption('Probar ahora')}
+          className="w-full py-4 mb-6 bg-white border-4 border-indigo-300 text-indigo-800 rounded-2xl font-black text-lg active:scale-95 flex items-center justify-center gap-2"
+        >
+          <Smile size={22} /> PROBAR AHORA
+        </button>
+
+        {/* HISTORIAL DE HOY */}
+        {historialHoy.length > 0 && (
+          <div className="bg-indigo-50 border-4 border-indigo-200 rounded-2xl p-4 mb-6">
+            <p className="text-base font-black text-indigo-900 mb-2">Respuestas de hoy ({historialHoy.length}):</p>
+            <div className="flex flex-wrap gap-2">
+              {historialHoy.map((h, i) => (
+                <span key={i} className="inline-flex items-center gap-1 bg-white border-2 border-indigo-200 rounded-full px-3 py-1 text-sm font-bold text-slate-700">
+                  <span className="text-lg">{emojiEmo(h.emocion)}</span>
+                  {nombreEmo(h.emocion).replace(/\s*\(.*\)/, '')} · {new Date(h.ts).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="sticky bottom-0 left-0 right-0 w-full mt-2 -mx-6 px-6 pt-4 pb-6 bg-white/95 backdrop-blur border-t-4 border-slate-200">
+          <button
+            type="button"
+            onClick={guardar}
+            onMouseEnter={() => announceMenuOption('Guardar')}
+            className="w-full py-7 bg-emerald-700 text-white rounded-[30px] font-black text-2xl shadow-xl border-b-8 border-emerald-900 active:translate-y-1 flex items-center justify-center gap-3"
+          >
+            <CheckCircle2 size={30} /> GUARDAR
+          </button>
+        </div>
+
+        <div className="absolute bottom-1 left-0 right-0 text-center text-[10px] text-black font-bold">P-41</div>
+      </div>
+    );
+  };
+
   const RenderConfigurarEntrada = () => {
     const metodosEntrada = [
       { key: 'rostro',            nombre: 'Reconocer mi rostro',   emoji: '👤' },
@@ -4496,6 +4694,7 @@ const App = () => {
       case 'comentarios': return <RenderComentarios />;
       case 'demo_app': return <RenderDemoApp />;
       case 'configurar_entrada': return <RenderConfigurarEntrada />;
+      case 'estado_animo': return <RenderEstadoAnimo />;
       default: return <RenderDashboard />;
     }
   };
@@ -5037,6 +5236,50 @@ const App = () => {
             </div>
           )}
 
+          {/* P-42 · ENCUESTA DE ESTADO DE ÁNIMO — aparece sobre cualquier pantalla */}
+          {animoPopupVisible && !showPedirAyudaModal && !callingContact && (() => {
+            const cerrarAnimo = (emocionId) => {
+              if (emocionId) setAnimoHistorial((h) => [...h, { ts: Date.now(), emocion: emocionId }]);
+              setAnimoUltimo(Date.now());
+              setAnimoPopupVisible(false);
+              const eraSalida = animoContexto === 'salida';
+              setAnimoContexto(null);
+              if (eraSalida) { setIsMenuOpen(false); setStep('inicio'); }
+            };
+            return (
+            <div role="dialog" aria-modal="true" aria-label="¿Cómo te sientes?" className="absolute inset-0 bg-indigo-950/97 z-[80] p-6 flex flex-col items-center justify-center overflow-y-auto animate-in fade-in duration-200">
+              <span className="text-6xl mb-3">🙂</span>
+              <h2 className="text-3xl font-black text-white text-center leading-tight mb-1">¿Cómo te sientes ahora?</h2>
+              <p className="text-base font-bold text-indigo-200 mb-6 text-center">
+                {animoContexto === 'salida' ? 'Antes de salir, cuéntanos cómo te sientes.' : 'Toca la cara que mejor te describe.'}
+              </p>
+              <div className="w-full max-w-sm space-y-3">
+                {EMOCIONES_ANIMO.filter((e) => animoEmocionesSel[e.id]).map((e) => (
+                  <button
+                    key={e.id}
+                    type="button"
+                    onClick={() => { speak(`Has marcado ${e.nombre}.`); cerrarAnimo(e.id); }}
+                    onMouseEnter={() => announceMenuOption(e.nombre)}
+                    className="w-full py-4 px-4 rounded-2xl bg-white text-slate-900 font-black text-xl border-b-8 border-slate-300 active:translate-y-1 flex items-center gap-3"
+                  >
+                    <span className="text-3xl shrink-0">{e.emojis}</span>
+                    <span className="text-left flex-grow">{e.nombre}</span>
+                  </button>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={() => cerrarAnimo(null)}
+                onMouseEnter={() => announceMenuOption(animoContexto === 'salida' ? 'Salir sin responder' : 'Ahora no')}
+                className="w-full max-w-sm mt-5 py-4 bg-white/10 border-2 border-white/40 text-white rounded-2xl font-black text-lg active:scale-95"
+              >
+                {animoContexto === 'salida' ? 'SALIR SIN RESPONDER' : 'AHORA NO'}
+              </button>
+              <div className="absolute bottom-2 left-0 right-0 text-center text-[10px] text-white/40 font-bold">P-42</div>
+            </div>
+            );
+          })()}
+
           {isExitModalOpen && (
             <div role="dialog" aria-modal="true" aria-label="¿Quieres salir de la aplicación?" className="absolute inset-0 bg-blue-950 z-[100] p-8 flex flex-col items-center justify-center text-center animate-in zoom-in duration-300 overflow-y-auto">
               {/* Encabezado igual que P-28 (foto "Ayudas"), pero con VOLVER activo:
@@ -5060,7 +5303,17 @@ const App = () => {
                 <p className="text-2xl font-bold text-blue-200">Tendrás que volver a ingresar tu nombre para entrar.</p>
               </div>
               <div className="w-full space-y-4 mb-10">
-                <button onClick={() => { setIsExitModalOpen(false); setIsMenuOpen(false); setStep('inicio'); }} className="w-full py-6 bg-red-600 text-white rounded-[30px] font-black text-2xl shadow-xl active:scale-95 transition-colors border-4 border-red-800">
+                <button onClick={() => {
+                    setIsExitModalOpen(false);
+                    if (animoActivo && animoAlSalir) {
+                      // Antes de salir, la encuesta de ánimo (P-42). Al responderla
+                      // o saltarla, se completa la salida.
+                      setAnimoContexto('salida');
+                      setAnimoPopupVisible(true);
+                    } else {
+                      setIsMenuOpen(false); setStep('inicio');
+                    }
+                  }} className="w-full py-6 bg-red-600 text-white rounded-[30px] font-black text-2xl shadow-xl active:scale-95 transition-colors border-4 border-red-800">
                   SÍ, SALIR AHORA
                 </button>
               </div>
@@ -5111,6 +5364,10 @@ const App = () => {
                 <button onClick={() => { setContactoEditandoId(null); setContactoAEliminar(null); setContactosTab('lista'); setCurrentView('crear_contactos'); setIsMenuOpen(false); setEnteredFromMenu(true); }} onMouseEnter={() => announceMenuOption('Crear Actores')} className="flex flex-col items-center justify-center text-center gap-2 p-4 bg-white/10 rounded-2xl hover:bg-white/15 active:scale-95 transition-transform">
                   <UserPlus size={32} className="text-amber-400" />
                   <span className="text-lg font-bold leading-tight">Crear Actores</span>
+                </button>
+                <button onClick={() => { setCurrentView('estado_animo'); setIsMenuOpen(false); setEnteredFromMenu(true); }} onMouseEnter={() => announceMenuOption('Estado de Ánimo')} className="flex flex-col items-center justify-center text-center gap-2 p-4 bg-white/10 rounded-2xl hover:bg-white/15 active:scale-95 transition-transform">
+                  <Smile size={32} className="text-amber-400" />
+                  <span className="text-lg font-bold leading-tight">Estado de Ánimo</span>
                 </button>
                 {/* "Salir de la App" siempre sola y a todo el ancho al final:
                     acción destructiva, separada del resto de opciones. */}
