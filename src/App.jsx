@@ -23,7 +23,7 @@ const fotoUsuarioPorDefecto = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3
 // nueva actualización. Formato solicitado: DÍA(2 dígitos)+MES(2 dígitos)+AÑO(4 dígitos) - HORA:MINUTO
 // Ejemplo: "27072026-19:05" = 27 de julio de 2026, 19:05. Se muestra, sin
 // ninguna acción asociada, en la esquina superior izquierda de P-01.
-const APP_VERSION = "08092026-09:59";
+const APP_VERSION = "09092026-09:12";
 
 /**
  * APP SÉNIOR - SUITE MÓVIL ACCESIBLE (SIMULADOR DE TELÉFONO)
@@ -435,31 +435,37 @@ const App = () => {
     MODULOS_VITALIDAD.reduce((acc, m) => { m.items.forEach((it) => { acc[it.id] = true; }); return acc; }, {})
   );
   // --- ENCUESTA DE ESTADO DE ÁNIMO (P-41 config / P-42 popup) ---
-  const [animoActivo, setAnimoActivo] = useState(false);
-  const [animoFrecuenciaHoras, setAnimoFrecuenciaHoras] = useState(2);
-  // Disparadores extra (configurables): al entrar tras el acceso y al salir.
+  // Valores por defecto al reiniciar la app (no hay persistencia): encuesta
+  // activada, sale al entrar y al salir, cada 1 h, con todas las emociones
+  // menos "Asco".
+  const [animoActivo, setAnimoActivo] = useState(true);
+  const [animoFrecuenciaHoras, setAnimoFrecuenciaHoras] = useState(1);
   const [animoAlEntrar, setAnimoAlEntrar] = useState(true);
   const [animoAlSalir, setAnimoAlSalir] = useState(true);
   const [animoContexto, setAnimoContexto] = useState(null); // null | 'salida'
   const animoEntradaRef = useRef(false);
   const [animoEmocionesSel, setAnimoEmocionesSel] = useState(() =>
-    EMOCIONES_ANIMO.reduce((acc, e) => { acc[e.id] = true; return acc; }, {})
+    EMOCIONES_ANIMO.reduce((acc, e) => { acc[e.id] = e.id !== 'asco'; return acc; }, {})
   );
   const [animoHistorial, setAnimoHistorial] = useState([]); // [{ ts, emocion }]
   const [animoPopupVisible, setAnimoPopupVisible] = useState(false);
-  const [animoUltimo, setAnimoUltimo] = useState(0); // ts de la última vez que se preguntó
-  // --- VISIBILIDAD DE OPCIONES DEL PANEL PRINCIPAL (Configurar el Menú Principal) ---
+  // La cuenta periódica arranca desde que se abre la app; el primer aviso lo
+  // dispara "al entrar".
+  const [animoUltimo, setAnimoUltimo] = useState(() => Date.now());
+  // --- VISIBILIDAD DE OPCIONES DEL PANEL PRINCIPAL (Configura el Menú VES, P-21) ---
+  // Valores por defecto al reiniciar la app (no hay persistencia): reflejan la
+  // configuración deseada en P-21.
   const [menuVisible, setMenuVisible] = useState({
     compania: true,
     rutas: true,
     comercio: true,
     talento: true,
-    centro_vitalidad: true,
-    cultura: true,
+    centro_vitalidad: false,
+    cultura: false,
     guia_digital: true,
-    buzon: true,
+    buzon: false,
     contactos: true,
-    fotos_videos: true,
+    fotos_videos: false,
     comentarios: true,
     iayuda: true,
     centro_tratamiento: true,
@@ -470,7 +476,9 @@ const App = () => {
   // --- VISIBILIDAD DE LAS 2 OPCIONES DEL SELECTOR P-06 ("Configura Menú Principal") ---
   // Si el usuario solo deja activa una, tras el acceso se salta P-06 y entra
   // directo a P-08 (VES) o P-40 (TAM). Nunca se permite dejar las dos apagadas.
-  const [selectorVisible, setSelectorVisible] = useState({ ves: true, tam: true });
+  // Valor por defecto al reiniciar la app (Configura Menú Principal, P-29):
+  // solo "Usar VES" activo, así al entrar se va directo al Panel Principal.
+  const [selectorVisible, setSelectorVisible] = useState({ ves: true, tam: false });
   // Nombres de las opciones del menú (P-21): ya NO se editan; se leen siempre de
   // MENU_ITEMS. Se conserva el estado (vacío) por si hubiera nombres antiguos
   // guardados de una versión previa.
@@ -490,10 +498,11 @@ const App = () => {
   // Qué contenedor (Vitalidad/Energía/Salud Digital) se está viendo en la
   // pantalla de detalle (P-35), a la que P-08 navega al tocar un contenedor.
   const [categoriaAbiertaId, setCategoriaAbiertaId] = useState(null);
-  // --- VISIBILIDAD DE MÉTODOS DE ENTRADA ---
+  // --- VISIBILIDAD DE MÉTODOS DE ENTRADA (Acceso a la App, P-22) ---
+  // Valores por defecto al reiniciar la app: solo "Entrada por S.O." activa.
   const [entradaVisible, setEntradaVisible] = useState({
-    rostro: true, huella: true, voz: true, usuario: true, certificado: true,
-    escrito: true, sistema_operativo: false,
+    rostro: false, huella: false, voz: false, usuario: true, certificado: true,
+    escrito: false, sistema_operativo: true,
   });
   // --- CONTACTOS INCLUIDOS EN MENSAJES MASIVOS ---
   const [mensajesMasivosVisible, setMensajesMasivosVisible] = useState({
@@ -4450,9 +4459,9 @@ const App = () => {
           ))}
         </div>
 
-        {/* EMOCIONES CON CHECKLIST */}
+        {/* EMOCIONES CON CHECKLIST — 2 columnas */}
         <h3 className="text-xl font-black text-slate-800 mb-3">Emociones de la encuesta</h3>
-        <div className="space-y-3 mb-6">
+        <div className="grid grid-cols-2 gap-3 mb-6">
           {EMOCIONES_ANIMO.map((e) => {
             const on = !!animoEmocionesSel[e.id];
             return (
@@ -4463,13 +4472,13 @@ const App = () => {
                 aria-checked={on}
                 onClick={() => toggleEmo(e.id)}
                 onMouseEnter={() => announceMenuOption(e.nombre)}
-                className="w-full flex items-center gap-3 p-4 rounded-2xl border-4 border-slate-200 bg-slate-50 text-left active:scale-[0.98] transition-transform"
+                className={`relative flex flex-col items-center justify-center gap-1 p-3 rounded-2xl border-4 text-center active:scale-[0.98] transition-transform ${on ? `${e.chkOn} text-white` : `${e.chkBox} bg-slate-50`}`}
               >
-                <span className={`shrink-0 w-9 h-9 rounded-lg border-4 flex items-center justify-center ${on ? `${e.chkOn} text-white` : e.chkBox}`}>
-                  {on && <Check size={22} strokeWidth={3} />}
+                <span className="absolute top-1.5 right-1.5 w-6 h-6 rounded-md border-2 border-white/70 flex items-center justify-center">
+                  {on && <Check size={16} strokeWidth={4} />}
                 </span>
-                <span className="text-3xl shrink-0">{e.emojis}</span>
-                <span className="text-lg font-black text-slate-800 flex-grow">{e.nombre}</span>
+                <span className="text-3xl">{e.emojis}</span>
+                <span className={`text-sm font-black leading-tight ${on ? 'text-white' : 'text-slate-800'}`}>{e.nombre}</span>
               </button>
             );
           })}
@@ -5253,17 +5262,17 @@ const App = () => {
               <p className="text-base font-bold text-indigo-200 mb-6 text-center">
                 {animoContexto === 'salida' ? 'Antes de salir, cuéntanos cómo te sientes.' : 'Toca la cara que mejor te describe.'}
               </p>
-              <div className="w-full max-w-sm space-y-3">
+              <div className="w-full max-w-sm grid grid-cols-2 gap-3">
                 {EMOCIONES_ANIMO.filter((e) => animoEmocionesSel[e.id]).map((e) => (
                   <button
                     key={e.id}
                     type="button"
                     onClick={() => { speak(`Has marcado ${e.nombre}.`); cerrarAnimo(e.id); }}
                     onMouseEnter={() => announceMenuOption(e.nombre)}
-                    className="w-full py-4 px-4 rounded-2xl bg-white text-slate-900 font-black text-xl border-b-8 border-slate-300 active:translate-y-1 flex items-center gap-3"
+                    className="py-4 px-2 rounded-2xl bg-white text-slate-900 font-black border-b-8 border-slate-300 active:translate-y-1 flex flex-col items-center justify-center gap-1 text-center"
                   >
-                    <span className="text-3xl shrink-0">{e.emojis}</span>
-                    <span className="text-left flex-grow">{e.nombre}</span>
+                    <span className="text-4xl">{e.emojis}</span>
+                    <span className="text-sm leading-tight">{e.nombre}</span>
                   </button>
                 ))}
               </div>
