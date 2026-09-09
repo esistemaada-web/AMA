@@ -84,6 +84,19 @@ sesión trabaja sobre una rama propia (no directo en `main`):
 
 ## Bitácora (lo más reciente arriba)
 
+### 2026-09-09 — commit 620c8aa · APP_VERSION 09092026-09:12
+- Encuesta de ánimo: emociones en **2 columnas** en P-41 y P-42.
+- **Valores predeterminados al reiniciar** (la app no persiste; se editan los
+  `useState` iniciales):
+  - Encuesta de ánimo: activada, al entrar + al salir, cada 1 h, todas las
+    emociones menos "Asco".
+  - **P-21** `menuVisible`: visibles = Compañía, Ruta Segura, Comercios, Mis
+    Talentos, Llamar a Contactos, Mi Guía Digital, Comentarios, Citas y
+    Tratamientos, Demo; ocultas = Buzón, Centro de Vitalidad, Cultura y Ocio,
+    Fotos y Videos; 3 por fila.
+  - **P-22** `entradaVisible`: solo "Entrada por S.O." activa.
+  - **P-29** `selectorVisible`: `{ ves:true, tam:false }` (entra directo a VES).
+
 ### 2026-09-08 — commit 03e6e98 · APP_VERSION 08092026-09:59
 - Nueva **encuesta de Estado de Ánimo**. Opción nueva en P-28.
   - **P-41** config: on/off, disparadores "al entrar tras el acceso" y "al salir
