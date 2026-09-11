@@ -1,10 +1,12 @@
 # Mundo AMA
 
-Puente de confianza entre el mundo digital y la vida real para personas adultas mayores. Ver [SOUL.md](./SOUL.md) (propósito y principios) y [NORTE.md](./NORTE.md) (estado, roadmap y arquitectura objetivo).
+Puente de confianza entre el mundo digital y la vida real para personas adultas mayores. Ver [SOUL.md](./SOUL.md) (propósito y principios), [NORTE.md](./NORTE.md) (roadmap y arquitectura objetivo) y [RESUMEN-STACK.md](./RESUMEN-STACK.md) (estado técnico actual, deuda y pipeline).
 
 ## Estado actual
 
-Prototipo clicable en React (simulador de teléfono), sin backend todavía. Es el punto de partida del Sprint 1 descrito en NORTE.md: recuperar el MVP, auditarlo y desplegarlo en staging antes de construir el slice "¿Qué puedo hacer este fin de semana en La Laguna?".
+Prototipo clicable en React: todos los flujos de pantalla están implementados y se recorren en vivo, pero **sin backend** (ni base de datos, ni login real, ni datos de recursos). Es la base del Sprint 1 de NORTE.md: recuperar el MVP, auditarlo y desplegarlo en staging antes de construir el slice "¿Qué puedo hacer este fin de semana en La Laguna?".
+
+Staging: https://ama-eta-black.vercel.app/
 
 ## Stack
 

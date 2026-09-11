@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import {
   MapPin, Users, ShoppingBag, ArrowLeft, PhoneCall,
-  ShieldCheck, Loader2, Mic, MessageSquare,
+  ShieldCheck, Mic, MessageSquare,
   Send, X, Sparkles, CheckCircle2, Navigation, Info,
   AlertTriangle, Fingerprint, ScanFace, Lock,
   Star, Ticket, Volume2, Filter, Menu, HelpCircle, Check,
@@ -23,7 +23,7 @@ const fotoUsuarioPorDefecto = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3
 // nueva actualización. Formato solicitado: DÍA(2 dígitos)+MES(2 dígitos)+AÑO(4 dígitos) - HORA:MINUTO
 // Ejemplo: "27072026-19:05" = 27 de julio de 2026, 19:05. Se muestra, sin
 // ninguna acción asociada, en la esquina superior izquierda de P-01.
-const APP_VERSION = "09092026-09:12";
+const APP_VERSION = "10092026-19:32";
 
 /**
  * APP SÉNIOR - SUITE MÓVIL ACCESIBLE (SIMULADOR DE TELÉFONO)
@@ -33,16 +33,6 @@ const APP_VERSION = "09092026-09:12";
  */
 
 // --- NUEVO COMPONENTE DE LOGO INTEGRADO ---
-const AppLogo = ({ className = "w-32" }) => (
-  <div className={`flex flex-col items-center justify-center ${className}`}>
-    <div className="bg-gradient-to-br from-blue-900 to-emerald-600 p-5 rounded-[30px] shadow-lg border-4 border-white flex items-center justify-center relative overflow-hidden">
-      <Heart size={48} className="text-amber-400 absolute animate-pulse opacity-50" />
-      <Users size={56} className="text-white relative z-10" />
-    </div>
-  </div>
-);
-
-// --- LOGO DE MARCA VITAlidad (Árbol con raíces) ---
 
 // Prefijo fijo del mensaje de emergencia (P-39 / P-33): siempre va al principio.
 const PREFIJO_MENSAJE_EMERGENCIA = 'Necesito Ayuda. ';
@@ -372,7 +362,6 @@ const App = () => {
   const [aiSelectedTopic, setAiSelectedTopic] = useState('Todos los temas'); // Estado para almacenar el tema seleccionado en Modo IA
 
   // --- ESTADOS DE FUNCIONALIDAD ---
-  const [isValidating, setIsValidating] = useState(false);
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
@@ -385,7 +374,6 @@ const App = () => {
   const [isRouteModalOpen, setIsRouteModalOpen] = useState(false);
   const [isListeningOrigen, setIsListeningOrigen] = useState(false);
   const [isListeningDestino, setIsListeningDestino] = useState(false);
-  const [isListeningName, setIsListeningName] = useState(false);
   const [isListeningFilter, setIsListeningFilter] = useState(false);
   const [callingContact, setCallingContact] = useState(null);
   const [isExitModalOpen, setIsExitModalOpen] = useState(false);
@@ -505,10 +493,6 @@ const App = () => {
     escrito: false, sistema_operativo: true,
   });
   // --- CONTACTOS INCLUIDOS EN MENSAJES MASIVOS ---
-  const [mensajesMasivosVisible, setMensajesMasivosVisible] = useState({
-    contact1: true, contact2: true, contact3: true,
-  });
-
   // --- ESTADOS DE MODOS DE ASISTENCIA REESTRUCTURADOS ---
   const [valorVista, setValorVista] = useState(10);
   const [dispositivoVista, setDispositivoVista] = useState(false);
@@ -553,10 +537,10 @@ const App = () => {
   // --- ESTADOS DE NUEVOS CONTACTOS DE EMERGENCIA MODIFICABLES ---
   const [contact1Name, setContact1Name] = useState('112 (URGENCIA)');
   const [contact1Phone, setContact1Phone] = useState('112');
-  const [contact2Name, setContact2Name] = useState('HIJO (CARLOS)');
-  const [contact2Phone, setContact2Phone] = useState('600000000');
-  const [contact3Name, setContact3Name] = useState('HIJA (ANA)');
-  const [contact3Phone, setContact3Phone] = useState('600000001');
+  const [contact2Name] = useState('HIJO (CARLOS)');
+  const [contact2Phone] = useState('600000000');
+  const [contact3Name] = useState('HIJA (ANA)');
+  const [contact3Phone] = useState('600000001');
   const [isEditingEmergencia, setIsEditingEmergencia] = useState(false);
   // Configuración de qué se activa al pulsar "Pedir Ayuda"
   const [emergencia112Activa, setEmergencia112Activa] = useState(true);
@@ -590,6 +574,13 @@ const App = () => {
     const t = setTimeout(() => setContactosAviso(null), 4000);
     return () => clearTimeout(t);
   }, [contactosAviso]);
+  // Formulario de "Crear Actores" (P-39) — a nivel de App e INPUTS CONTROLADOS para
+  // que lo tecleado no se pierda cuando cualquier temporizador de fondo (aviso,
+  // encuesta de ánimo…) provoque un re-render que remonta el componente.
+  const CAMPOS_ACTOR_VACIOS = { nombre: '', apellido: '', edad: '', telefono: '', correo: '', direccion: '' };
+  const [nuevoActorCampos, setNuevoActorCampos] = useState(CAMPOS_ACTOR_VACIOS);
+  const [nuevoActorFoto, setNuevoActorFoto] = useState('');
+  const [nuevoActorErrores, setNuevoActorErrores] = useState({});
   // Mensaje que reciben los contactos de emergencia al pulsar PEDIR AYUDA (pestaña 2).
   const [mensajeEmergencia, setMensajeEmergencia] = useState('Necesito Ayuda. Por favor, contáctame o ven a mi casa lo antes posible.');
   // Canales por los que se envía ese mensaje: se pueden activar varios a la vez.
@@ -604,32 +595,6 @@ const App = () => {
     if (l.length === 1) return l[0];
     return `${l.slice(0, -1).join(', ')} y ${l[l.length - 1]}`;
   };
-  // Devuelve los datos de emergencia efectivos: si el usuario marcó contactos de
-  // emergencia en su lista, se usan esos; si no, se cae a los 3 contactos fijos.
-  const getEmergenciaEfectiva = () => {
-    const marcados = listaContactos.filter((c) => c.esEmergencia && c.telefono);
-    if (marcados.length > 0) {
-      return {
-        nombres: marcados.map((c) => `${c.nombre} ${c.apellido}`.trim()),
-        primero: { name: `${marcados[0].nombre} ${marcados[0].apellido}`.trim(), phone: marcados[0].telefono },
-        canalesTexto: textoCanales(canalesEmergencia),
-        mensaje: mensajeEmergencia,
-        personalizada: true,
-      };
-    }
-    const nombres = [
-      mensajesMasivosVisible.contact1 && contact1Name,
-      mensajesMasivosVisible.contact2 && contact2Name,
-      mensajesMasivosVisible.contact3 && contact3Name,
-    ].filter(Boolean);
-    return {
-      nombres,
-      primero: { name: contact1Name, phone: contact1Phone },
-      canalesTexto: textoCanales(canalesEmergencia),
-      mensaje: mensajeEmergencia,
-      personalizada: false,
-    };
-  };
   // Enlaces reales de envío del aviso de emergencia (Opción A: sms:/wa.me/mailto:).
   // Se usa en P-39 (pestaña Contactos de emergencia) y en P-33 (Mensajes masivos).
   const construirEnviosEmergencia = () => {
@@ -643,7 +608,7 @@ const App = () => {
     marcados.forEach((c) => {
       if (canalesEmergencia.sms && c.telefono) {
         envios.push({ id: `${c.id}-sms`, etiqueta: `💬 SMS a ${c.nombre} ${c.apellido}`, voz: `Enviar SMS a ${c.nombre}`,
-          href: `sms:${soloDigitos(c.telefono)}?body=${msgCod}`, cls: 'bg-blue-900 border-blue-950' });
+          href: `sms:${soloDigitos(c.telefono)}?&body=${msgCod}`, cls: 'bg-blue-900 border-blue-950' });
       }
       if (canalesEmergencia.whatsapp && c.telefono) {
         envios.push({ id: `${c.id}-wa`, etiqueta: `🟢 WhatsApp a ${c.nombre} ${c.apellido}`, voz: `Enviar WhatsApp a ${c.nombre}`,
@@ -664,8 +629,8 @@ const App = () => {
   };
 
   // Contactos habilitados para mostrarse en la pantalla de emergencia (máx. 2)
-  const [emergenciaContacto2Activo, setEmergenciaContacto2Activo] = useState(true);
-  const [emergenciaContacto3Activo, setEmergenciaContacto3Activo] = useState(true);
+  const [emergenciaContacto2Activo] = useState(true);
+  const [emergenciaContacto3Activo] = useState(true);
 
   // --- ESTADOS CENTRO DE VITALIDAD (MEDICIÓN COGNITIVA) ---
   const [valProcesamiento, setValProcesamiento] = useState(5);
@@ -731,16 +696,21 @@ const App = () => {
   // interactuar). El tiempo en sí es configurable de antemano por el usuario
   // en P-10, lo cual atenúa parcialmente el requisito. Se recomienda revisar
   // esta decisión en una auditoría formal de accesibilidad.
+  // Segundos que quedan de la cuenta atrás, persistidos entre re-ejecuciones del
+  // efecto para poder REANUDAR (no reiniciar) cuando se pausa para ver los enlaces.
+  const segsRestantesRef = useRef(null);
   useEffect(() => {
-    if (!showPedirAyudaModal) { setMasivosEnvio(false); return; }
-    if (masivosEnvio) return; // cuenta atrás en pausa mientras se muestran los enlaces
+    if (!showPedirAyudaModal) { setMasivosEnvio(false); segsRestantesRef.current = null; return; }
+    if (masivosEnvio) return; // cuenta atrás EN PAUSA mientras se ven los enlaces; al volver se reanuda desde donde quedó
     const totalSegundos = Math.max(segundosLlamadaAutomatica || 10, 1);
-    setSegundosRestantesAyuda(totalSegundos);
+    if (segsRestantesRef.current == null) segsRestantesRef.current = totalSegundos;
     // Contador local: evita el doble disparo del updater de estado en StrictMode,
     // para que la campana suene exactamente una vez por cada número del contador.
-    let quedan = totalSegundos;
+    let quedan = segsRestantesRef.current;
+    setSegundosRestantesAyuda(quedan);
     const intervalId = setInterval(() => {
       quedan -= 1;
+      segsRestantesRef.current = quedan;
       if (quedan > 0) {
         playCampana(); // una campana por cada segundo que baja el contador
         if (quedan <= 3) speak(String(quedan));
@@ -748,22 +718,26 @@ const App = () => {
         setSegundosRestantesAyuda(quedan);
       } else {
         clearInterval(intervalId);
+        segsRestantesRef.current = null;
         setSegundosRestantesAyuda(0);
-        setShowPedirAyudaModal(false);
         if (emergenciaMasivosActiva) {
-          const emerg = getEmergenciaEfectiva();
-          speak(`Enviando mensaje por ${emerg.canalesTexto} a ${emerg.nombres.join(', ')}, y llamando a Urgencias.`);
-          setCallingContact(emerg.primero);
-        } else {
-          // El 112 es el respaldo universal: si el usuario desactivó los mensajes
-          // masivos (o también el 112 automático), "Pedir Ayuda" debe seguir
-          // desembocando en una llamada real en vez de cerrarse sin hacer nada.
+          // Opción A (sin servidor): no se puede enviar sin un toque del usuario.
+          // En vez de fingir el envío, se abre el sub-paso con los enlaces reales
+          // sms:/wa.me/mailto: (que incluye el botón LLAMAR AL 112).
+          speak('Toca los botones para avisar a tus contactos y llamar a Urgencias.');
+          setMasivosEnvio(true);
+        } else if (emergencia112Activa) {
+          setShowPedirAyudaModal(false);
           setCallingContact({ name: '112 (URGENCIA)', phone: '112' });
+        } else {
+          // 112 automático desactivado y sin mensajes masivos: se llama al contacto principal.
+          setShowPedirAyudaModal(false);
+          setCallingContact({ name: contact1Name, phone: contact1Phone });
         }
       }
     }, 1000);
     return () => clearInterval(intervalId);
-  }, [showPedirAyudaModal, segundosLlamadaAutomatica, masivosEnvio]);
+  }, [showPedirAyudaModal, segundosLlamadaAutomatica, masivosEnvio, emergenciaMasivosActiva, emergencia112Activa, contact1Name, contact1Phone]);
 
   // --- DATOS DE PRUEBA ---
   const centrosMayores = [
@@ -781,12 +755,6 @@ const App = () => {
     { id: 1, nombre: "Recova de África", direccion: "Av. de San Sebastián", tipo: "Frutas y Verduras", zona: "Centro" },
     { id: 2, nombre: "Dulcería El Castillo", direccion: "Calle Castillo", tipo: "Cafetería Accesible", zona: "Centro" },
     { id: 3, nombre: "Farmacia Los Gladiolos", direccion: "Av. de Venezuela", tipo: "Farmacia con acceso llano", zona: "Barrios" }
-  ];
-
-  const talentoSeniors = [
-    { id: 1, nombre: "Taller de Costura Tradicional", direccion: "Asociación San Gerardo", detalle: "Enseña y comparte tus habilidades con el grupo.", zona: "Centro" },
-    { id: 2, nombre: "Ajedrez al aire libre", direccion: "Plaza del Príncipe", detalle: "Partidas amistosas y clases para todos los niveles.", zona: "Centro" },
-    { id: 3, font: "bold", nombre: "Huerto Urbano", direccion: "Barrio de la Salud", detalle: "Cultivo de hortalizas y plantas medicinales.", zona: "Barrios" }
   ];
 
   const culturaOcio = [
@@ -912,13 +880,6 @@ const App = () => {
   };
 
   // --- LÓGICA DE ACCESO ---
-  const handleLogin = (e) => {
-    e.preventDefault();
-    if (username.trim()) {
-      setStep('access_code');
-    }
-  };
-
   // Destino tras un acceso correcto: si en "Configura Menú Principal" solo quedó
   // activo VES o solo TAM, se entra directo a esa app y se salta el selector P-06.
   const getVistaTrasAcceso = () => {
@@ -943,32 +904,6 @@ const App = () => {
   const simulateCheckIn = (item) => {
     setSelectedItem(item);
     setShowSuccess(true);
-  };
-
-  const handleVoiceCommand = () => {
-    setIsListening(true);
-    setTimeout(() => {
-      setIsListening(false);
-      // Navegación inteligente al tema seleccionado tras usar el modo IA
-      if (aiSelectedTopic === 'Buscar Compañía') {
-        setCurrentView('compania');
-      } else if (aiSelectedTopic === 'Ruta Segura') {
-        setCurrentView('rutas');
-      } else if (aiSelectedTopic === 'Comercio') {
-        setCurrentView('comercio');
-      } else if (aiSelectedTopic === 'Mi talento') {
-        setCurrentView('talento');
-      } else if (aiSelectedTopic === 'Centro de Vitalidad') {
-        setCurrentView('centro_vitalidad');
-      } else if (aiSelectedTopic === 'Cultura y ocio') {
-        setCurrentView('cultura');
-      } else {
-        setCurrentView('rutas');
-      }
-      setEnteredFromMenu(false);
-      setSubDesdeDatosCiudadano(false);
-      setIsAssistantOpen(false);
-    }, 2500);
   };
 
   const readInstructions = (title, data) => {
@@ -1002,15 +937,6 @@ const App = () => {
     }
   };
 
-  const handleVoiceInputName = () => {
-    setIsListeningName(true);
-    setTimeout(() => {
-      setUsername('Juan Pérez');
-      setProfileNombre('Juan Pérez');
-      setIsListeningName(false);
-    }, 2500);
-  };
-
   const handleVoiceInputFilter = () => {
     setIsListeningFilter(true);
     setTimeout(() => {
@@ -1042,7 +968,7 @@ const App = () => {
       gainNode.gain.value = 0.06;
       oscillator.start();
       oscillator.stop(audioCtx.currentTime + 0.08);
-    } catch (e) { /* el navegador no soporta audio, se omite el tono */ }
+    } catch { /* el navegador no soporta audio, se omite el tono */ }
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(normalizarVoz(texto));
@@ -1082,8 +1008,8 @@ const App = () => {
         osc.start(now);
         osc.stop(now + 1.8);
       });
-      setTimeout(() => { try { ctx.close(); } catch (e) { /* ya cerrado */ } }, 2100);
-    } catch (e) { /* el navegador no soporta Web Audio: se omite la campana */ }
+      setTimeout(() => { try { ctx.close(); } catch { /* ya cerrado */ } }, 2100);
+    } catch { /* el navegador no soporta Web Audio: se omite la campana */ }
   };
 
   // --- TIMBRE DE TELÉFONO ANTIGUO (pantalla "Llamando a...") ---
@@ -1135,10 +1061,10 @@ const App = () => {
       return () => {
         detenido = true;
         timers.forEach(clearTimeout);
-        try { master.gain.setValueAtTime(0.0001, ctx.currentTime); } catch (e) { /* noop */ }
-        setTimeout(() => { try { ctx.close(); } catch (e) { /* ya cerrado */ } }, 120);
+        try { master.gain.setValueAtTime(0.0001, ctx.currentTime); } catch { /* noop */ }
+        setTimeout(() => { try { ctx.close(); } catch { /* ya cerrado */ } }, 120);
       };
-    } catch (e) {
+    } catch {
       return () => {};
     }
   };
@@ -1324,18 +1250,6 @@ const App = () => {
   );
 
   // --- CABECERA REUTILIZABLE PARA MODALES (Volver + ¿Dónde estoy?) ---
-  const ModalHeaderDondeEstoy = ({ onBack, titulo, texto }) => (
-    <div className="flex items-center justify-between w-full mt-3 mb-4">
-      <button onClick={onBack} onMouseEnter={() => announceMenuOption('Volver')} className="flex items-center text-white font-black text-2xl py-2 w-max">
-        <ArrowLeft size={36} className="mr-2" /> VOLVER
-      </button>
-      <button onClick={() => openWhereAmI(titulo, texto)} onMouseEnter={() => announceMenuOption('¿Dónde estoy?')} className="flex flex-col items-center gap-1 active:scale-95 transition-transform" aria-label="¿Dónde estoy?">
-        <BrandLogo className="w-10" />
-        <span className="text-base font-bold text-amber-200 underline">¿Dónde estoy?</span>
-      </button>
-    </div>
-  );
-
   // ============================================================================
   // FOTO DEL CIUDADANO CON AYUDA — elemento reutilizable.
   //   · Encima de la foto: la palabra "Ayudas" en amarillo, legible en cualquier
@@ -2105,34 +2019,9 @@ const App = () => {
     );
   };
 
-  const RenderModeSelection = () => (
-    <div className="flex flex-col p-6 bg-emerald-50 min-h-full pb-32 animate-in fade-in duration-300 relative">
-      <EncabezadoG onBack={() => setStep('login')} />
-      <p className="text-xl font-bold text-emerald-700 mb-4 flex items-center gap-1">
-        <CheckCircle2 size={20} /> Hola, {username || "Amigo"}
-      </p>
-      <div className="flex flex-col gap-6 flex-grow justify-center py-6 mt-4">
-        <button
-          onClick={() => setCurrentView('dashboard')}
-          onMouseEnter={() => announceMenuOption('Modo Pantalla')}
-          className="flex flex-col items-center justify-center p-8 bg-[#0082c9] hover:bg-[#006ca7] border-4 border-[#006ca7] text-white rounded-[35px] shadow-lg active:bg-[#0070ad] transition-colors active:scale-95"
-        >
-          <Users size={64} className="mb-4 text-white" />
-          <span className="text-3xl font-black uppercase">Modo Pantalla</span>
-          <span className="text-lg font-bold text-blue-100 mt-1">Ver botones grandes y mapas</span>
-        </button>
-      </div>
-      <div className="absolute bottom-2 left-0 right-0 text-center text-[10px] text-black font-bold">P-07</div>
-    </div>
-  );
-
   const RenderDashboard = () => {
     // Clases Tailwind completas (no interpoladas) para el grid dinámico
-    const gridCols   = { 1: 'grid grid-cols-1', 2: 'grid grid-cols-2', 3: 'grid grid-cols-3' }[colsMenuPrincipal] || 'grid grid-cols-3';
-    const btnPadding = colsMenuPrincipal === 1 ? 'p-6' : 'p-4';
     const iconSize   = colsMenuPrincipal === 1 ? 40 : 28;
-    const labelCls   = colsMenuPrincipal === 1 ? 'text-2xl' : 'text-lg';
-    const subCls     = colsMenuPrincipal === 1 ? 'text-base' : 'text-xs';
 
     // Reutiliza MENU_ITEMS (fuente única) aplicando el nombre personalizado
     // guardado por el usuario en P-21, si existe.
@@ -2365,7 +2254,7 @@ const App = () => {
           gainNode.gain.linearRampToValueAtTime(0, now + 0.5);
           oscillator.start(now);
           oscillator.stop(now + 0.5);
-        } catch (e) { /* el navegador no soporta audio, se omite el tono */ }
+        } catch { /* el navegador no soporta audio, se omite el tono */ }
       };
       const speak = (texto) => {
         if ('speechSynthesis' in window) {
@@ -2453,7 +2342,7 @@ const App = () => {
                   <span className="text-xl font-black text-red-700 flex items-center gap-2">🔴 Llamada 112 activa</span>
                   <p className="text-base font-bold text-slate-500 mt-1">Al pulsar "Pedir Ayuda" se llama al 112 automáticamente.</p>
                   {!emergencia112Activa && (
-                    <p className="text-sm font-black text-red-500 mt-1">⚠️ Desactivado: no se llamará al 112 en una emergencia.</p>
+                    <p className="text-sm font-black text-red-500 mt-1">⚠️ Desactivado: al agotarse la cuenta atrás se llamará a tu contacto principal en vez de al 112.</p>
                   )}
                 </div>
                 <button onClick={() => setEmergencia112Activa(v => !v)}
@@ -3009,7 +2898,7 @@ const App = () => {
           </div>
           <input
             type="range"
-            min="P-01"
+            min="0"
             max="10"
             value={valor}
             onChange={(e) => setValor(parseInt(e.target.value))}
@@ -3256,7 +3145,7 @@ const App = () => {
           </div>
           <input
             type="range"
-            min="P-01"
+            min="0"
             max="10"
             value={valor}
             onChange={(e) => setValor(parseInt(e.target.value))}
@@ -3561,22 +3450,14 @@ const App = () => {
     const setTab = setContactosTab;
     const aviso = contactosAviso;
     const editando = listaContactos.find((c) => c.id === contactoEditandoId) || null;
-    const [fotoContacto, setFotoContacto] = useState('');
-    const [errores, setErrores] = useState({});
-    const refsContacto = {
-      nombre: useRef(null),
-      apellido: useRef(null),
-      edad: useRef(null),
-      telefono: useRef(null),
-      correo: useRef(null),
-      direccion: useRef(null),
-      mensaje: useRef(null),
-    };
+    const fotoContacto = nuevoActorFoto;
+    const errores = nuevoActorErrores;
+    const setCampo = (key, val) => setNuevoActorCampos((prev) => ({ ...prev, [key]: val }));
     const handleFotoChange = (e) => {
       const file = e.target.files[0];
       if (file) {
         const reader = new FileReader();
-        reader.onloadend = () => { setFotoContacto(reader.result); };
+        reader.onloadend = () => { setNuevoActorFoto(reader.result); };
         reader.readAsDataURL(file);
       }
     };
@@ -3587,26 +3468,26 @@ const App = () => {
     const handleGuardarContacto = (e) => {
       e.preventDefault();
       const nuevosErrores = {};
-      if (!refsContacto.nombre.current?.value.trim()) nuevosErrores.nombre = 'Falta el nombre. Escribe el nombre del contacto.';
-      if (!refsContacto.apellido.current?.value.trim()) nuevosErrores.apellido = 'Falta el apellido. Escribe el apellido del contacto.';
-      const telVal = (refsContacto.telefono.current?.value || '').trim();
+      if (!nuevoActorCampos.nombre.trim()) nuevosErrores.nombre = 'Falta el nombre. Escribe el nombre del contacto.';
+      if (!nuevoActorCampos.apellido.trim()) nuevosErrores.apellido = 'Falta el apellido. Escribe el apellido del contacto.';
+      const telVal = nuevoActorCampos.telefono.trim();
       if (!telVal) {
         nuevosErrores.telefono = 'Falta el teléfono. Escribe el número con prefijo de país.';
       } else if (!/^\+\d[\d\s]{5,}$/.test(telVal)) {
         nuevosErrores.telefono = 'El teléfono debe empezar por el prefijo de país. Ejemplo: +34 633 704 824';
       }
-      setErrores(nuevosErrores);
+      setNuevoActorErrores(nuevosErrores);
       if (Object.keys(nuevosErrores).length > 0) {
         speak('Faltan datos por completar. Revisa los campos marcados en rojo.');
         return;
       }
       const datos = {
-        nombre: refsContacto.nombre.current.value.trim(),
-        apellido: refsContacto.apellido.current.value.trim(),
-        edad: refsContacto.edad.current?.value || '',
-        telefono: refsContacto.telefono.current.value.trim(),
-        correo: refsContacto.correo.current?.value || '',
-        direccion: refsContacto.direccion.current?.value || '',
+        nombre: nuevoActorCampos.nombre.trim(),
+        apellido: nuevoActorCampos.apellido.trim(),
+        edad: nuevoActorCampos.edad,
+        telefono: telVal,
+        correo: nuevoActorCampos.correo,
+        direccion: nuevoActorCampos.direccion,
       };
       if (contactoEditandoId) {
         // MODIFICAR un actor ya creado
@@ -3614,29 +3495,35 @@ const App = () => {
           c.id === contactoEditandoId ? { ...c, ...datos, foto: fotoContacto || c.foto } : c
         )));
         setContactoEditandoId(null);
-        setFotoContacto('');
-        setErrores({});
+        setNuevoActorCampos(CAMPOS_ACTOR_VACIOS);
+        setNuevoActorFoto('');
+        setNuevoActorErrores({});
         mostrarAviso(`Actor ${datos.nombre} actualizado.`);
         return;
       }
       const nuevo = { id: Date.now(), ...datos, foto: fotoContacto || fotoUsuarioPorDefecto, esEmergencia: false };
       setListaContactos((prev) => [...prev, nuevo]);
-      Object.values(refsContacto).forEach((r) => { if (r.current) r.current.value = ''; });
-      setFotoContacto('');
-      setErrores({});
+      setNuevoActorCampos(CAMPOS_ACTOR_VACIOS);
+      setNuevoActorFoto('');
+      setNuevoActorErrores({});
       mostrarAviso(`Contacto ${nuevo.nombre} guardado en tu lista.`);
     };
     const empezarEdicion = (c) => {
       setContactoEditandoId(c.id);
-      setFotoContacto('');
-      setErrores({});
+      setNuevoActorCampos({
+        nombre: c.nombre || '', apellido: c.apellido || '', edad: c.edad || '',
+        telefono: c.telefono || '', correo: c.correo || '', direccion: c.direccion || '',
+      });
+      setNuevoActorFoto('');
+      setNuevoActorErrores({});
       setTab('lista');
       setContactosAviso(null);
     };
     const cancelarEdicion = () => {
       setContactoEditandoId(null);
-      setFotoContacto('');
-      setErrores({});
+      setNuevoActorCampos(CAMPOS_ACTOR_VACIOS);
+      setNuevoActorFoto('');
+      setNuevoActorErrores({});
     };
     const toggleEmergencia = (id) => {
       setListaContactos((prev) => prev.map((c) => (c.id === id ? { ...c, esEmergencia: !c.esEmergencia } : c)));
@@ -3661,8 +3548,8 @@ const App = () => {
         <label htmlFor={id} className="text-xl font-bold text-slate-700">{label}</label>
         <input
           id={id}
-          ref={refsContacto[refKey]}
-          defaultValue={editando ? (editando[refKey] || '') : ''}
+          value={nuevoActorCampos[refKey] ?? ''}
+          onChange={(e) => setCampo(refKey, e.target.value)}
           type={type}
           required={requerido}
           aria-invalid={!!errores[refKey]}
@@ -3811,7 +3698,6 @@ const App = () => {
                     <div className="px-4 pt-3 text-lg font-black text-red-700 select-none">Necesito Ayuda.</div>
                     <textarea
                       id="msg-emergencia"
-                      ref={refsContacto.mensaje}
                       defaultValue={mensajeEmergencia.startsWith(PREFIJO_MENSAJE_EMERGENCIA) ? mensajeEmergencia.slice(PREFIJO_MENSAJE_EMERGENCIA.length) : mensajeEmergencia}
                       onBlur={(e) => setMensajeEmergencia(PREFIJO_MENSAJE_EMERGENCIA + e.target.value.replace(/^\s*necesito ayuda[.,]?\s*/i, ''))}
                       rows={3}
@@ -4381,7 +4267,6 @@ const App = () => {
 
   // --- P-41: CONFIGURAR LA ENCUESTA DE ESTADO DE ÁNIMO ---
   const RenderEstadoAnimo = () => {
-    const seleccionadas = EMOCIONES_ANIMO.filter((e) => animoEmocionesSel[e.id]);
     const toggleEmo = (id) => {
       const activas = EMOCIONES_ANIMO.filter((e) => animoEmocionesSel[e.id]).length;
       if (animoEmocionesSel[id] && activas <= 1) { speak('Debes dejar al menos una emoción marcada.'); return; }
@@ -4916,7 +4801,7 @@ const App = () => {
             <div role="alert" aria-live="assertive" className="absolute inset-0 bg-white z-50 flex flex-col items-center justify-center p-8 text-center animate-in zoom-in duration-300 overflow-y-auto">
               <div className="bg-emerald-100 p-10 rounded-full mb-8 mt-10"><CheckCircle2 size={120} className="text-emerald-600" /></div>
               <h2 className="text-5xl font-black text-emerald-900 mb-4 leading-none">
-                {volverADatosCiudadano ? "Se grabó perfectamente" : currentView === 'talento' ? "¡Felicitaciones!" : currentView === 'perfil' ? "¡Felicitaciones!" : currentView === 'configurar_menu' ? "¡Guardado!" : currentView === 'centro_vitalidad' ? "¡Guardado!" : "¡Llegaste Bien!"}
+                {volverADatosCiudadano ? "Se grabó perfectamente" : currentView === 'talento' ? "¡Felicitaciones!" : currentView === 'perfil' ? "¡Felicitaciones!" : currentView === 'configurar_menu' ? "¡Guardado!" : currentView === 'centro_vitalidad' ? "¡Guardado!" : currentView === 'estado_animo' ? "¡Guardado!" : "¡Llegaste Bien!"}
               </h2>
               {volverADatosCiudadano ? (
                 <div className="bg-emerald-50 p-6 rounded-3xl border-4 border-emerald-200 mb-10 w-full animate-pulse">
@@ -4961,6 +4846,11 @@ const App = () => {
                 <div className="bg-emerald-50 p-6 rounded-3xl border-4 border-emerald-200 mb-10 w-full animate-pulse">
                   <Sparkles size={48} className="text-emerald-600 mx-auto mb-4" />
                   <p className="text-2xl font-bold text-emerald-800 leading-tight">Tu menú de vitalidad ha sido guardado.</p>
+                </div>
+              ) : currentView === 'estado_animo' ? (
+                <div className="bg-emerald-50 p-6 rounded-3xl border-4 border-emerald-200 mb-10 w-full animate-pulse">
+                  <Sparkles size={48} className="text-emerald-600 mx-auto mb-4" />
+                  <p className="text-2xl font-bold text-emerald-800 leading-tight">Tu encuesta de estado de ánimo ha sido guardada.</p>
                 </div>
               ) : (
                 <p className="text-2xl font-bold text-gray-700 mb-10 leading-tight">Hemos avisado a <br/><span className="text-blue-900 text-3xl font-black">{selectedItem?.nombre}</span> <br/>que ya estás aquí.</p>
