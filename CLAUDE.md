@@ -84,6 +84,20 @@ sesión trabaja sobre una rama propia (no directo en `main`):
 
 ## Bitácora (lo más reciente arriba)
 
+### 2026-09-11 — commit 57f0bb2 · APP_VERSION 10092026-19:32
+- Refresco de infraestructura pedido por Viktor: re-auditoría con Claude Code
+  sobre el código actual (creció de 4400 a 5400 líneas desde la última auditoría).
+- 6 bugs de correctitud corregidos: Pedir Ayuda ya no finge enviar mensajes
+  (abre los enlaces reales), `sms:` arreglado para iOS, interruptor "Llamada
+  112" ahora hace algo, pausar-y-ver-enlaces ya no reinicia la cuenta atrás,
+  encuesta de ánimo con su propio mensaje de éxito, `min` inválido en sliders.
+- "Crear Actores" (P-39): formulario reescrito a inputs controlados para que no
+  se pierda lo tecleado si algo re-renderiza de fondo.
+- Lint: 32 variables/funciones muertas eliminadas (48 → 17 avisos; los 17
+  restantes son de estructura, ligados al futuro refactor en módulos).
+- `RESUMEN-STACK.md` nuevo: documento para la mentoría #2 (stack, qué es real
+  vs. simulado, deuda técnica y arquitectónica).
+
 ### 2026-09-09 — commit 620c8aa · APP_VERSION 09092026-09:12
 - Encuesta de ánimo: emociones en **2 columnas** en P-41 y P-42.
 - **Valores predeterminados al reiniciar** (la app no persiste; se editan los
