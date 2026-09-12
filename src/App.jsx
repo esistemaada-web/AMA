@@ -5,16 +5,19 @@ import {
   Send, X, Sparkles, CheckCircle2, Navigation, Info,
   AlertTriangle, Fingerprint, ScanFace, Lock,
   Star, Ticket, Volume2, Filter, Menu, HelpCircle, Check,
-  Activity, Brain, Heart, Moon, Mail, UserPlus, BookOpen, Image, Leaf, ChevronDown, LayoutGrid,
-  Pencil, Trash2, Smile
+  Activity, Brain, Heart, Moon, Mail, UserPlus, BookOpen, Image, ChevronDown, LayoutGrid,
+  Pencil, Trash2, Smile, ClipboardList, CalendarPlus, Route, LogOut
 } from 'lucide-react';
 // Foto del ciudadano por defecto: se deja grabada aquí para no tener que subirla
 // en cada sesión. Para cambiarla, reemplaza src/foto-ciudadano.jpg.
 import fotoCiudadano from './foto-ciudadano.jpg';
-// Logo de AMA (solo en P-01). El resto de la app usa el logo "VES" inline.
-import logoAma from './logo-ama.png';
-// Logo de TAM (selector posterior a P-02 y menú TAM).
-import logoTam from './logo-tam.png';
+// Logos reales de las 3 marcas (medallones VES/AMA/TAM, trazados desde la foto real).
+import logoAma from './logo-ama-badge.svg';
+import logoTam from './logo-tam-badge.svg';
+import logoVes from './logo-ves-badge.svg';
+// Logo del Grupo DAB (trazado desde la foto real del trofeo de madera).
+// Por los momentos solo en P-01, esquina inferior izquierda.
+import logoGrupoDab from './logo-grupo-dab.svg';
 // NOTA: logos reemplazados por componentes inline para no depender de archivos externos.
 const fotoUsuarioPorDefecto = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><rect width='200' height='200' fill='%231e3a8a'/><text x='50%' y='50%' fill='white' font-size='14' text-anchor='middle' dy='.3em'>Foto Usuario</text></svg>";
 
@@ -23,7 +26,7 @@ const fotoUsuarioPorDefecto = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3
 // nueva actualización. Formato solicitado: DÍA(2 dígitos)+MES(2 dígitos)+AÑO(4 dígitos) - HORA:MINUTO
 // Ejemplo: "27072026-19:05" = 27 de julio de 2026, 19:05. Se muestra, sin
 // ninguna acción asociada, en la esquina superior izquierda de P-01.
-const APP_VERSION = "10092026-19:32";
+const APP_VERSION = "12092026-16:59";
 
 /**
  * APP SÉNIOR - SUITE MÓVIL ACCESIBLE (SIMULADOR DE TELÉFONO)
@@ -127,17 +130,13 @@ const DialogoSalirSinGuardar = ({ onGuardarYSalir, onSalirSinGuardar, onVolver, 
   </div>
 );
 
-// --- LOGO DE MARCA --- (texto configurable; "VES" en toda la app salvo P-01, que usa "AMA")
-const BrandLogo = ({ className = "w-40", texto = "VES" }) => (
-  <div
-    className={`${className} aspect-square rounded-full bg-gradient-to-br from-amber-300 to-emerald-700 flex flex-col items-center justify-center mx-auto shadow-md border-2 border-amber-200`}
-    style={{ containerType: "inline-size" }}
-    role="img"
-    aria-label={`Logotipo de la marca ${texto}: un árbol dorado con raíces visibles, con el texto Energía y Salud`}
-  >
-    <Leaf className="text-amber-50" style={{ width: "45%", height: "45%" }} strokeWidth={2.2} />
-    <span className="text-amber-50 font-black leading-none" style={{ fontSize: "22cqw" }} aria-hidden="true">{texto}</span>
-  </div>
+// --- LOGO DE MARCA VES --- (medallón real: nube + "VES", trazado desde la foto real)
+const BrandLogo = ({ className = "w-40" }) => (
+  <img
+    src={logoVes}
+    alt="Logotipo de VES: medallón plateado con una nube y el texto VES"
+    className={`${className} aspect-square mx-auto block`}
+  />
 );
 
 // --- LOGO DE LA EMPRESA (Pantalla de Inicio) ---
@@ -401,10 +400,23 @@ const App = () => {
   // reales de envío (SMS/WhatsApp/Correo), igual que en P-39. Pausa la cuenta atrás.
   const [masivosEnvio, setMasivosEnvio] = useState(false);
   const [segundosRestantesAyuda, setSegundosRestantesAyuda] = useState(10);
-  // --- NUEVA CONTRASEÑA EXCLUSIVA PARA ENTRAR A PERFIL ---
+  // --- P-43: ELEGIR PERFIL (Perfil del Ciudadano / Perfil Mundo AMA) ---
+  // Pantalla intermedia entre "Usuario Administrador" (P-01) y el acceso real.
+  // "Perfil del Ciudadano" (P-44) pide el usuario y clave registrados en Datos
+  // Ciudadano o en Usuarios Invitados (+ cuenta de prueba fija "viktor"/"123");
+  // al acertar entra a la configuración (P-28).
+  // "Perfil Mundo AMA" (P-25) pide solo una clave, por ahora fija: 123456; al
+  // acertar entra al panel Mundo AMA (P-45: Empadronar / Crear Eventos / Red de
+  // Movilidad), cuyo "Salir" regresa directo a P-01.
+  const [isAccesoAdminOpen, setIsAccesoAdminOpen] = useState(false);
+  const CLAVE_MUNDO_AMA = '123456';
+  const [isPerfilPasswordOpen, setIsPerfilPasswordOpen] = useState(false); // P-25
+  const [mundoAmaClaveInput, setMundoAmaClaveInput] = useState('');
+  const [mundoAmaClaveError, setMundoAmaClaveError] = useState(false);
+  const [isPerfilCiudadanoOpen, setIsPerfilCiudadanoOpen] = useState(false); // P-44
+  const [isMundoAmaMenuOpen, setIsMundoAmaMenuOpen] = useState(false); // P-45
+  // --- CONTRASEÑA DE PERFIL DEL CIUDADANO (configurable en Datos Ciudadano → Seguridad) ---
   const [perfilPassword, setPerfilPassword] = useState('1234');
-  const [isPerfilPasswordOpen, setIsPerfilPasswordOpen] = useState(false);
-  const [origenPerfil, setOrigenPerfil] = useState('inicio');
   const [perfilPasswordInput, setPerfilPasswordInput] = useState('');
   const [perfilNombreInput, setPerfilNombreInput] = useState('');
   const [perfilPasswordError, setPerfilPasswordError] = useState(false);
@@ -851,29 +863,53 @@ const App = () => {
     setIsExitModalOpen(true);
   };
 
-  // --- ACCESO PROTEGIDO A PERFIL (requiere contraseña exclusiva) ---
-  const requestPerfilAccess = () => {
+  // --- P-25: ACCESO A "PERFIL MUNDO AMA" (una sola clave, por ahora fija) ---
+  const abrirPerfilMundoAma = () => {
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
-    setOrigenPerfil(step);
-    setPerfilPasswordInput('');
-    setPerfilNombreInput('');
-    setPerfilPasswordError(false);
+    setMundoAmaClaveInput('');
+    setMundoAmaClaveError(false);
     setIsPerfilPasswordOpen(true);
   };
-  const handleValidatePerfilPassword = (e) => {
+  const handleValidarPerfilMundoAma = (e) => {
     e.preventDefault();
-    const claveIntroducida = perfilPasswordInput.trim();
-    const claveInvitada = profileInvitadoClave.trim();
-    // Acepta la contraseña del perfil principal o, si existe, la del invitado
-    // (esta pantalla sirve para ambos, ver subtítulo "Usuario principal o invitado").
-    const claveValida = claveIntroducida.length > 0 && (
-      claveIntroducida === perfilPassword.trim() ||
-      (claveInvitada.length > 0 && claveIntroducida === claveInvitada)
-    );
-    if (perfilNombreInput.trim() && claveValida) {
+    if (mundoAmaClaveInput.trim() === CLAVE_MUNDO_AMA) {
       setIsPerfilPasswordOpen(false);
+      setIsAccesoAdminOpen(false);
+      setIsMundoAmaMenuOpen(true); // P-45: Empadronar / Crear Eventos / Red de Movilidad
+    } else {
+      setMundoAmaClaveError(true);
+    }
+  };
+
+  // --- P-44: ACCESO A "PERFIL DEL CIUDADANO" (usuario + clave) ---
+  // Acepta: el usuario registrado en Datos Ciudadano (username + perfilPassword),
+  // el Usuario Invitado (Datos Ciudadano → Usuarios Invitados), o, por los
+  // momentos, la cuenta de prueba fija "viktor" / "123".
+  const abrirPerfilCiudadano = () => {
+    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    setPerfilNombreInput('');
+    setPerfilPasswordInput('');
+    setPerfilPasswordError(false);
+    setIsPerfilCiudadanoOpen(true);
+  };
+  const handleValidarPerfilCiudadano = (e) => {
+    e.preventDefault();
+    const nombreIngresado = perfilNombreInput.trim().toLowerCase();
+    const claveIngresada = perfilPasswordInput.trim();
+    const coincideCiudadano = nombreIngresado.length > 0 && claveIngresada.length > 0 &&
+      nombreIngresado === (username || '').trim().toLowerCase() &&
+      claveIngresada === perfilPassword.trim();
+    const coincideInvitado = nombreIngresado.length > 0 && claveIngresada.length > 0 &&
+      profileInvitadoNombre.trim().length > 0 &&
+      nombreIngresado === profileInvitadoNombre.trim().toLowerCase() &&
+      claveIngresada === profileInvitadoClave.trim();
+    // Cuenta de prueba temporal, mientras no hay más usuarios cargados.
+    const coincidePrueba = nombreIngresado === 'viktor' && claveIngresada === '123';
+    if (coincideCiudadano || coincideInvitado || coincidePrueba) {
+      setIsPerfilCiudadanoOpen(false);
+      setIsAccesoAdminOpen(false);
       setStep('dashboard');
-      setIsMenuOpen(true);
+      setIsMenuOpen(true); // entra a la configuración (P-28)
     } else {
       setPerfilPasswordError(true);
     }
@@ -1200,8 +1236,14 @@ const App = () => {
       infoBase = { titulo: "Menú Rápido", texto: "estás en el menú rápido. Puedes hablar con iAyuda, Pedir Ayuda si es una emergencia, tocar Volver para regresar, o Cerrar para irme para salir de la aplicación." };
     } else if (step === 'login') {
       infoBase = { titulo: "Mi Acceso", texto: "estás en la pantalla de acceso a VES. En Mi Acceso, toca la forma con la que quieres entrar: reconocer tu rostro, tu huella, tu voz o el acceso escrito. También puedes tocar Pedir Ayuda si tienes una emergencia." };
+    } else if (isMundoAmaMenuOpen) {
+      infoBase = { titulo: "Mundo AMA", texto: "estás en el panel de Mundo AMA. Puedes tocar Empadronar, Crear Eventos, o Red de Movilidad. Toca Salir para volver a la pantalla de inicio." };
     } else if (isPerfilPasswordOpen) {
-      infoBase = { titulo: "Acceso a Perfil", texto: "estás en la pantalla de acceso protegido al Perfil. Introduce tu nombre y tu contraseña, y toca Entrar, o toca Volver para regresar." };
+      infoBase = { titulo: "Perfil Mundo AMA", texto: "estás en la pantalla de acceso protegido al Perfil Mundo AMA. Escribe la clave y toca Entrar, o toca Volver para regresar." };
+    } else if (isPerfilCiudadanoOpen) {
+      infoBase = { titulo: "Perfil del Ciudadano", texto: "estás en la pantalla de acceso al Perfil del Ciudadano. Escribe el usuario y la clave registrados, y toca Entrar, o toca Volver para regresar." };
+    } else if (isAccesoAdminOpen) {
+      infoBase = { titulo: "Elige un Perfil", texto: "estás eligiendo qué perfil abrir. Perfil del Ciudadano pide el usuario y la clave registrados y entra a la configuración de la aplicación. Perfil Mundo AMA pide una clave y entra al panel de Mundo AMA." };
     } else if (isExitModalOpen) {
       infoBase = { titulo: "Salir de la App", texto: "estás en la pantalla de confirmación para salir. Toca Sí, Salir Ahora para cerrar la aplicación, o Volver para quedarte." };
     } else if (isAssistantOpen) {
@@ -1383,7 +1425,7 @@ const App = () => {
                 className="w-full flex flex-col items-center p-6 bg-[#f6e3d4] border-4 border-[#d9a884] rounded-[35px] shadow-md active:scale-95 transition-transform"
                 aria-label="Abrir TAM, programas de ayuda al adulto mayor"
               >
-                <img src={logoTam} alt="Logotipo de TAM" className="w-44 rounded-full" />
+                <img src={logoTam} alt="Logotipo de TAM: medallón con una hoja y el texto TAM" className="w-44" />
               </button>
               )}
             </div>
@@ -1683,7 +1725,7 @@ const App = () => {
               className="cursor-pointer active:scale-95 transition-transform focus:outline-none focus:ring-4 focus:ring-blue-300 rounded-3xl"
               aria-label="Entrar a la App"
             >
-              <img src={logoAma} alt="Logotipo de AMA: una paloma con una rama de olivo sobre un círculo verde y amarillo" className="w-64 mb-1 mx-auto" />
+              <img src={logoAma} alt="Logotipo de AMA: medallón con una gota de agua y el texto AMA" className="w-64 mb-1 mx-auto" />
             </button>
             <button onClick={() => openWhereAmI("Pantalla de Bienvenida", "estás en la pantalla de bienvenida de AMA. Toca el logo para entrar a la aplicación, o Usuario Administrador para ajustar tus datos y preferencias.")}
               onMouseEnter={() => announceMenuOption('¿Dónde estoy?')}
@@ -1691,7 +1733,7 @@ const App = () => {
               aria-label="¿Dónde estoy? Explicación de esta pantalla">
               ¿Dónde estoy?
             </button>
-            <button onClick={() => requestPerfilAccess()}
+            <button onClick={() => { if ('speechSynthesis' in window) window.speechSynthesis.cancel(); setIsAccesoAdminOpen(true); }}
               onMouseEnter={() => announceMenuOption('Usuario Administrador')}
               className="w-full py-1.5 text-slate-400 hover:text-slate-600 font-bold text-xs uppercase tracking-wide active:scale-95 transition-colors flex items-center justify-center gap-1">
               <ShieldCheck size={14} /> Usuario Administrador (Configurar La App)
@@ -1705,6 +1747,12 @@ const App = () => {
           <br />
           Hola@amaves.com
         </span>
+        {/* Logo Grupo DAB — por los momentos solo aquí, esquina inferior izquierda */}
+        <img
+          src={logoGrupoDab}
+          alt="Logotipo de Grupo DAB"
+          className="absolute bottom-3 left-3 w-[115px] h-auto pointer-events-none select-none drop-shadow-sm"
+        />
         <ScreenFooter n="P-01" />
       </div>
     );
@@ -4675,7 +4723,7 @@ const App = () => {
               >
                 <div className="flex items-center gap-1.5">
                   {esTam
-                    ? <img src={logoTam} alt="" className="w-6 h-6 rounded-full shrink-0" />
+                    ? <img src={logoTam} alt="" className="w-6 h-6 shrink-0" />
                     : <BrandLogo className="w-6 shrink-0" />}
                   <span className="text-xs font-black text-slate-700 leading-none" aria-hidden="true">{continente}</span>
                 </div>
@@ -4945,31 +4993,107 @@ const App = () => {
             </div>
           )}
 
-          {isPerfilPasswordOpen && (
+          {/* P-43: elegir Perfil del Ciudadano (usuario + clave, P-44) o Perfil Mundo AMA (clave única, P-25). */}
+          {isAccesoAdminOpen && !isPerfilPasswordOpen && !isPerfilCiudadanoOpen && (
             <div className="absolute inset-0 bg-blue-950 z-[150] p-8 flex flex-col items-center justify-center text-center animate-in zoom-in duration-300 overflow-y-auto">
-              {/* Encabezado igual que P-14 (submenús de Perfil): VOLVER + foto "Ayudas". */}
               <div className="flex items-center justify-between w-full mb-6">
-                <button onClick={() => { setIsPerfilPasswordOpen(false); setStep(origenPerfil); }} onMouseEnter={() => announceMenuOption('Volver')}
+                <button onClick={() => setIsAccesoAdminOpen(false)} onMouseEnter={() => announceMenuOption('Volver')}
                   className="flex items-center text-white font-black text-2xl py-2 w-max active:scale-95 transition-transform"
                   aria-label="Volver a la pantalla anterior">
                   <ArrowLeft size={36} className="mr-2" /> VOLVER
                 </button>
                 <FotoAyudaCiudadano
-                  onAyudaEscrita={() => openWhereAmI("Acceso a Perfil", "estás en la pantalla de acceso protegido al Perfil. Introduce tu nombre y tu contraseña, y toca Entrar, o toca Volver para regresar.")}
+                  onAyudaEscrita={() => openWhereAmI("Elige un Perfil", "estás eligiendo qué perfil abrir. Perfil del Ciudadano pide el usuario y la clave registrados y entra a la configuración de la aplicación. Perfil Mundo AMA pide una clave y entra al panel de Mundo AMA.")}
+                />
+              </div>
+              <div className="bg-white/10 p-6 rounded-full mb-4">
+                <ShieldCheck size={56} className="text-amber-400" />
+              </div>
+              <h2 className="text-3xl font-black text-white mb-2 leading-tight">Elige un Perfil</h2>
+              <p className="text-base font-bold text-blue-200 mb-6 px-2">¿Qué perfil quieres abrir?</p>
+              <div className="w-full max-w-sm space-y-4">
+                <button
+                  onClick={abrirPerfilCiudadano}
+                  onMouseEnter={() => announceMenuOption('Perfil del Ciudadano')}
+                  className="w-full py-6 bg-emerald-600 text-white rounded-[30px] font-black text-2xl shadow-xl border-b-8 border-emerald-800 active:translate-y-1 flex items-center justify-center gap-3"
+                >
+                  <Users size={30} /> PERFIL DEL CIUDADANO
+                </button>
+                <button
+                  onClick={abrirPerfilMundoAma}
+                  onMouseEnter={() => announceMenuOption('Perfil Mundo AMA')}
+                  className="w-full py-6 bg-amber-500 text-blue-950 rounded-[30px] font-black text-2xl shadow-xl border-b-8 border-amber-700 active:translate-y-1 flex items-center justify-center gap-3"
+                >
+                  <ShieldCheck size={30} /> PERFIL MUNDO AMA
+                </button>
+              </div>
+              <div className="absolute bottom-2 left-0 right-0 text-center text-[10px] text-white/40 font-bold">P-43</div>
+            </div>
+          )}
+
+          {/* P-25: Perfil Mundo AMA — una sola clave, por ahora fija (123456). */}
+          {isPerfilPasswordOpen && (
+            <div className="absolute inset-0 bg-blue-950 z-[150] p-8 flex flex-col items-center justify-center text-center animate-in zoom-in duration-300 overflow-y-auto">
+              <div className="flex items-center justify-between w-full mb-6">
+                <button onClick={() => setIsPerfilPasswordOpen(false)} onMouseEnter={() => announceMenuOption('Volver')}
+                  className="flex items-center text-white font-black text-2xl py-2 w-max active:scale-95 transition-transform"
+                  aria-label="Volver a la pantalla anterior">
+                  <ArrowLeft size={36} className="mr-2" /> VOLVER
+                </button>
+                <FotoAyudaCiudadano
+                  onAyudaEscrita={() => openWhereAmI("Perfil Mundo AMA", "estás en la pantalla de acceso protegido al Perfil Mundo AMA. Escribe la clave y toca Entrar, o toca Volver para regresar.")}
                 />
               </div>
               <div className="bg-white/10 p-6 rounded-full mb-4">
                 <Lock size={56} className="text-amber-400" />
               </div>
-              <h2 className="text-3xl font-black text-white mb-2 leading-tight">Acceso a Perfil</h2>
-              <p className="text-base font-bold text-amber-300 mb-1 px-2">Usuario principal o invitado</p>
-              <p className="text-base font-bold text-blue-200 mb-5 px-2">Usa el nombre y contraseña que ya tienes guardados.</p>
-              <form onSubmit={handleValidatePerfilPassword} className="w-full max-w-sm flex flex-col gap-4">
+              <h2 className="text-3xl font-black text-white mb-2 leading-tight">Perfil Mundo AMA</h2>
+              <p className="text-base font-bold text-blue-200 mb-5 px-2">Escribe la clave para entrar al panel Mundo AMA.</p>
+              <form onSubmit={handleValidarPerfilMundoAma} className="w-full max-w-sm flex flex-col gap-4">
+                <input
+                  type="password"
+                  value={mundoAmaClaveInput}
+                  onChange={(e) => { setMundoAmaClaveInput(e.target.value); setMundoAmaClaveError(false); }}
+                  placeholder="Clave"
+                  autoFocus
+                  className="w-full p-5 text-3xl border-4 border-amber-400 rounded-[25px] focus:border-amber-300 outline-none font-black bg-white text-blue-950 text-center tracking-[0.3em]"
+                />
+                {mundoAmaClaveError && (
+                  <p className="text-lg font-bold text-red-300">Clave incorrecta.</p>
+                )}
+                <button type="submit" className="w-full py-5 bg-amber-400 text-blue-950 rounded-[30px] font-black text-2xl shadow-xl active:scale-95 transition-transform">
+                  ENTRAR
+                </button>
+              </form>
+              <div className="absolute bottom-2 left-0 right-0 text-center text-[10px] text-white/40 font-bold">P-25</div>
+            </div>
+          )}
+
+          {/* P-44: Perfil del Ciudadano — usuario y clave registrados en Datos
+              Ciudadano o en Usuarios Invitados (+ cuenta de prueba "viktor"/"123"). */}
+          {isPerfilCiudadanoOpen && (
+            <div className="absolute inset-0 bg-blue-950 z-[150] p-8 flex flex-col items-center justify-center text-center animate-in zoom-in duration-300 overflow-y-auto">
+              <div className="flex items-center justify-between w-full mb-6">
+                <button onClick={() => setIsPerfilCiudadanoOpen(false)} onMouseEnter={() => announceMenuOption('Volver')}
+                  className="flex items-center text-white font-black text-2xl py-2 w-max active:scale-95 transition-transform"
+                  aria-label="Volver a la pantalla anterior">
+                  <ArrowLeft size={36} className="mr-2" /> VOLVER
+                </button>
+                <FotoAyudaCiudadano
+                  onAyudaEscrita={() => openWhereAmI("Perfil del Ciudadano", "estás en la pantalla de acceso al Perfil del Ciudadano. Escribe el usuario y la clave registrados en Datos Ciudadano o en Usuarios Invitados, y toca Entrar, o toca Volver para regresar.")}
+                />
+              </div>
+              <div className="bg-white/10 p-6 rounded-full mb-4">
+                <Lock size={56} className="text-amber-400" />
+              </div>
+              <h2 className="text-3xl font-black text-white mb-2 leading-tight">Perfil del Ciudadano</h2>
+              <p className="text-base font-bold text-blue-200 mb-5 px-2">Usuario y clave registrados en Datos Ciudadano o en Usuarios Invitados.</p>
+              <form onSubmit={handleValidarPerfilCiudadano} className="w-full max-w-sm flex flex-col gap-4">
                 <input
                   type="text"
                   value={perfilNombreInput}
                   onChange={(e) => { setPerfilNombreInput(e.target.value); setPerfilPasswordError(false); }}
-                  placeholder="Tu nombre"
+                  placeholder="Usuario"
                   autoComplete="off"
                   autoFocus
                   className="w-full p-5 text-2xl border-4 border-amber-400 rounded-[25px] focus:border-amber-300 outline-none font-black bg-white text-blue-950 text-center"
@@ -4982,13 +5106,67 @@ const App = () => {
                   className="w-full p-5 text-3xl border-4 border-amber-400 rounded-[25px] focus:border-amber-300 outline-none font-black bg-white text-blue-950 text-center tracking-[0.3em]"
                 />
                 {perfilPasswordError && (
-                  <p className="text-lg font-bold text-red-300">Nombre o contraseña incorrectos.</p>
+                  <p className="text-lg font-bold text-red-300">Usuario o contraseña incorrectos.</p>
                 )}
                 <button type="submit" className="w-full py-5 bg-amber-400 text-blue-950 rounded-[30px] font-black text-2xl shadow-xl active:scale-95 transition-transform">
                   ENTRAR
                 </button>
               </form>
-              <div className="absolute bottom-2 left-0 right-0 text-center text-[10px] text-white/40 font-bold">P-25</div>
+              <div className="absolute bottom-2 left-0 right-0 text-center text-[10px] text-white/40 font-bold">P-44</div>
+            </div>
+          )}
+
+          {/* P-45: PANEL MUNDO AMA — a donde entra "Perfil Mundo AMA" (P-25) tras
+              acertar la clave. Tres opciones (aún sin desarrollar); "Salir" es el
+              único camino de vuelta y va directo a P-01. */}
+          {isMundoAmaMenuOpen && (
+            <div role="dialog" aria-modal="true" aria-label="Mundo AMA" className="absolute inset-0 bg-blue-950 z-[150] p-8 flex flex-col items-center justify-center text-center animate-in zoom-in duration-300 overflow-y-auto">
+              <div className="flex items-center justify-end w-full mb-6">
+                <FotoAyudaCiudadano
+                  onAyudaEscrita={() => openWhereAmI("Mundo AMA", "estás en el panel de Mundo AMA. Puedes tocar Empadronar, Crear Eventos, o Red de Movilidad. Toca Salir para volver a la pantalla de inicio.")}
+                />
+              </div>
+              <div className="bg-white/10 p-6 rounded-full mb-4">
+                <ShieldCheck size={56} className="text-amber-400" />
+              </div>
+              <h2 className="text-3xl font-black text-white mb-6 leading-tight">Mundo AMA</h2>
+              <div className="w-full max-w-sm space-y-4">
+                <button
+                  onClick={() => speak('Empadronar. Próximamente disponible.')}
+                  onMouseEnter={() => announceMenuOption('1. Empadronar')}
+                  className="w-full py-6 bg-white/10 border-4 border-amber-400 text-white rounded-[30px] font-black text-2xl active:scale-95 transition-transform flex items-center gap-3"
+                >
+                  <ClipboardList size={30} className="shrink-0 text-amber-400" /> <span className="text-left">1. Empadronar</span>
+                </button>
+                <button
+                  onClick={() => speak('Crear Eventos. Próximamente disponible.')}
+                  onMouseEnter={() => announceMenuOption('2. Crear Eventos')}
+                  className="w-full py-6 bg-white/10 border-4 border-amber-400 text-white rounded-[30px] font-black text-2xl active:scale-95 transition-transform flex items-center gap-3"
+                >
+                  <CalendarPlus size={30} className="shrink-0 text-amber-400" /> <span className="text-left">2. Crear Eventos</span>
+                </button>
+                <button
+                  onClick={() => speak('Red de Movilidad. Próximamente disponible.')}
+                  onMouseEnter={() => announceMenuOption('3. Red de Movilidad')}
+                  className="w-full py-6 bg-white/10 border-4 border-amber-400 text-white rounded-[30px] font-black text-2xl active:scale-95 transition-transform flex items-center gap-3"
+                >
+                  <Route size={30} className="shrink-0 text-amber-400" /> <span className="text-left">3. Red de Movilidad</span>
+                </button>
+              </div>
+              <button
+                onClick={() => {
+                  setIsMundoAmaMenuOpen(false);
+                  setIsAccesoAdminOpen(false);
+                  setIsPerfilPasswordOpen(false);
+                  setIsPerfilCiudadanoOpen(false);
+                  setStep('inicio');
+                }}
+                onMouseEnter={() => announceMenuOption('Salir')}
+                className="w-full max-w-sm mt-8 py-5 bg-red-900/40 border-2 border-red-500 text-red-200 rounded-2xl font-black text-xl active:scale-95 transition-transform flex items-center justify-center gap-3"
+              >
+                <LogOut size={26} /> SALIR
+              </button>
+              <div className="absolute bottom-2 left-0 right-0 text-center text-[10px] text-white/40 font-bold">P-45</div>
             </div>
           )}
 
