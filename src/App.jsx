@@ -27,7 +27,7 @@ const fotoUsuarioPorDefecto = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3
 // nueva actualización. Formato solicitado: DÍA(2 dígitos)+MES(2 dígitos)+AÑO(4 dígitos) - HORA:MINUTO
 // Ejemplo: "27072026-19:05" = 27 de julio de 2026, 19:05. Se muestra, sin
 // ninguna acción asociada, en la esquina superior izquierda de P-01.
-const APP_VERSION = "14092026-20:37";
+const APP_VERSION = "14092026-20:54";
 
 /**
  * APP SÉNIOR - SUITE MÓVIL ACCESIBLE (SIMULADOR DE TELÉFONO)
@@ -2188,15 +2188,6 @@ const App = () => {
                     aquí: se muestran esa cantidad de pastillas por línea y se pasa a la
                     siguiente, en vez de una fila que se desplaza horizontalmente. */}
                 <div className={`grid gap-2 mt-2 ${{ 1: 'grid-cols-1', 2: 'grid-cols-2', 3: 'grid-cols-3', 4: 'grid-cols-4' }[colsMenuPrincipal] || 'grid-cols-3'}`}>
-                  <button
-                    type="button"
-                    onClick={() => setFiltroEventos((f) => (f === 'mis_talentos' ? 'todos' : 'mis_talentos'))}
-                    onMouseEnter={() => announceMenuOption('Mis Talentos')}
-                    aria-pressed={filtroEventos === 'mis_talentos'}
-                    className={`w-full px-3 py-2 rounded-full font-black text-sm border-2 transition-colors truncate ${filtroEventos === 'mis_talentos' ? 'bg-emerald-600 border-emerald-800 text-white' : 'bg-slate-50 border-slate-200 text-slate-700'}`}
-                  >
-                    MIS TALENTOS
-                  </button>
                   {/* Opciones marcadas como visibles en "Configura el Menú VES" (P-21):
                       una pastilla por cada una, que lleva directo a esa función. iAyuda
                       queda fuera (categoria centinela 'menu_rapido'), igual que en P-08/P-35. */}
