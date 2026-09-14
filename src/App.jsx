@@ -27,7 +27,7 @@ const fotoUsuarioPorDefecto = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3
 // nueva actualización. Formato solicitado: DÍA(2 dígitos)+MES(2 dígitos)+AÑO(4 dígitos) - HORA:MINUTO
 // Ejemplo: "27072026-19:05" = 27 de julio de 2026, 19:05. Se muestra, sin
 // ninguna acción asociada, en la esquina superior izquierda de P-01.
-const APP_VERSION = "14092026-18:34";
+const APP_VERSION = "14092026-19:20";
 
 /**
  * APP SÉNIOR - SUITE MÓVIL ACCESIBLE (SIMULADOR DE TELÉFONO)
@@ -2735,13 +2735,29 @@ const App = () => {
               </div>
               <div className="flex flex-col gap-1">
                 <label htmlFor="perfil-nacionalidad" className="text-xl font-bold text-slate-700">Nacionalidad:</label>
-                <input id="perfil-nacionalidad" type="text" defaultValue={profileNacionalidad} ref={refs.nacionalidad} onChange={marcarPendiente} autoComplete="off"
-                  className="w-full p-4 text-xl border-4 border-slate-300 rounded-2xl font-bold bg-white focus:border-blue-900 outline-none" />
+                <select id="perfil-nacionalidad" defaultValue={profileNacionalidad} ref={refs.nacionalidad} onChange={marcarPendiente}
+                  className="w-full p-4 text-xl border-4 border-slate-300 rounded-2xl font-bold bg-white focus:border-blue-900 outline-none">
+                  <option value="Española">Española</option>
+                  <option value="Mexicana">Mexicana</option>
+                  <option value="Colombiana">Colombiana</option>
+                  <option value="Argentina">Argentina</option>
+                  <option value="Venezolana">Venezolana</option>
+                  <option value="Cubana">Cubana</option>
+                  <option value="Peruana">Peruana</option>
+                  <option value="Chilena">Chilena</option>
+                  <option value="Otra">Otra...</option>
+                </select>
               </div>
               <div className="flex flex-col gap-1">
                 <label htmlFor="perfil-idioma" className="text-xl font-bold text-slate-700">Idioma:</label>
-                <input id="perfil-idioma" type="text" defaultValue={profileIdioma} ref={refs.idioma} onChange={marcarPendiente} autoComplete="off"
-                  className="w-full p-4 text-xl border-4 border-slate-300 rounded-2xl font-bold bg-white focus:border-blue-900 outline-none" />
+                <select id="perfil-idioma" defaultValue={profileIdioma} ref={refs.idioma} onChange={marcarPendiente}
+                  className="w-full p-4 text-xl border-4 border-slate-300 rounded-2xl font-bold bg-white focus:border-blue-900 outline-none">
+                  <option value="Español">Español</option>
+                  <option value="Inglés">Inglés</option>
+                  <option value="Francés">Francés</option>
+                  <option value="Alemán">Alemán</option>
+                  <option value="Otro">Otro...</option>
+                </select>
               </div>
               <div className="flex flex-col gap-1">
                 <label htmlFor="perfil-genero" className="text-xl font-bold text-slate-700">Género:</label>
