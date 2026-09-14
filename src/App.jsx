@@ -27,7 +27,7 @@ const fotoUsuarioPorDefecto = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3
 // nueva actualización. Formato solicitado: DÍA(2 dígitos)+MES(2 dígitos)+AÑO(4 dígitos) - HORA:MINUTO
 // Ejemplo: "27072026-19:05" = 27 de julio de 2026, 19:05. Se muestra, sin
 // ninguna acción asociada, en la esquina superior izquierda de P-01.
-const APP_VERSION = "14092026-16:30";
+const APP_VERSION = "14092026-16:55";
 
 /**
  * APP SÉNIOR - SUITE MÓVIL ACCESIBLE (SIMULADOR DE TELÉFONO)
@@ -436,7 +436,9 @@ const App = () => {
   // cupo, categoria (una de CATEGORIAS_TALENTO), zona ('Centro'|'Barrios') }.
   const [listaEventos, setListaEventos] = useState([]);
   const [isCrearEventoOpen, setIsCrearEventoOpen] = useState(false); // P-46
-  const CAMPOS_EVENTO_VACIOS = { titulo: '', nombre: '', capacidad: '', caracteristicas: '', fecha: '', cupo: '', categoria: CATEGORIAS_TALENTO[0].nombre, zona: 'Centro' };
+  // `titulo` y `categoria` van siempre de la mano: el título del evento ES la
+  // categoría de talento elegida (misma tarjeta, ver P-46), no texto libre.
+  const CAMPOS_EVENTO_VACIOS = { titulo: '', nombre: '', capacidad: '', caracteristicas: '', fecha: '', cupo: '', categoria: '', zona: 'Centro' };
   const [nuevoEventoCampos, setNuevoEventoCampos] = useState(CAMPOS_EVENTO_VACIOS);
   const [nuevoEventoFoto, setNuevoEventoFoto] = useState('');
   const [nuevoEventoErrores, setNuevoEventoErrores] = useState({});
@@ -5348,28 +5350,35 @@ const App = () => {
                       <input id="evento-foto" type="file" accept="image/*" onChange={handleFotoEventoChange} className="hidden" />
                     </label>
                   </div>
-                  {campoEvento('evento-titulo', 'Título del evento:', 'titulo', { placeholder: 'Ej. Tardes de Baile' })}
+                  <div>
+                    <span className="block text-lg font-bold text-blue-100 mb-2">Título del evento (elige una categoría):</span>
+                    <div className="grid grid-cols-1 gap-3">
+                      {CATEGORIAS_TALENTO.map((cat) => {
+                        const isSelected = nuevoEventoCampos.titulo === cat.nombre;
+                        return (
+                          <button
+                            key={cat.id}
+                            type="button"
+                            onClick={() => { setCampoEvento('titulo', cat.nombre); setCampoEvento('categoria', cat.nombre); }}
+                            aria-pressed={isSelected}
+                            className={`p-4 rounded-[20px] border-4 shadow-md transition-all active:scale-95 text-left flex items-center gap-3 ${isSelected ? 'bg-amber-400 border-amber-600 text-blue-950' : 'bg-white/10 border-white/30 text-white'}`}
+                          >
+                            {isSelected && <Check size={22} className="shrink-0" />}
+                            <div>
+                              <span className="block text-lg font-black leading-tight">{cat.nombre}</span>
+                              <span className={`block text-sm font-bold leading-tight ${isSelected ? 'text-blue-900' : 'text-blue-200'}`}>{cat.detalle}</span>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {nuevoEventoErrores.titulo && <p role="alert" className="text-red-300 font-bold text-sm mt-2">⚠️ {nuevoEventoErrores.titulo}</p>}
+                  </div>
                   {campoEvento('evento-nombre', 'Nombre / organiza:', 'nombre', { placeholder: 'Ej. Asociación San Gerardo' })}
                   {campoEvento('evento-fecha', 'Fecha:', 'fecha', { placeholder: 'Ej. 11/9/2026' })}
                   {campoEvento('evento-capacidad', 'Capacidad:', 'capacidad', { placeholder: 'Ej. 20 personas' })}
                   {campoEvento('evento-cupo', 'Cupo (inscritos/capacidad):', 'cupo', { placeholder: 'Ej. 8/20' })}
                   {campoEvento('evento-caracteristicas', 'Características:', 'caracteristicas', { textarea: true, placeholder: 'Accesibilidad, requisitos, qué llevar…' })}
-                  <div>
-                    <span className="block text-lg font-bold text-blue-100 mb-2">Categoría (talento relacionado):</span>
-                    <div className="flex flex-wrap gap-2">
-                      {CATEGORIAS_TALENTO.map((cat) => (
-                        <button
-                          key={cat.id}
-                          type="button"
-                          onClick={() => setCampoEvento('categoria', cat.nombre)}
-                          aria-pressed={nuevoEventoCampos.categoria === cat.nombre}
-                          className={`px-4 py-2 rounded-full font-black text-sm border-2 transition-colors ${nuevoEventoCampos.categoria === cat.nombre ? 'bg-amber-400 border-amber-500 text-blue-950' : 'bg-white/10 border-white/30 text-white'}`}
-                        >
-                          {cat.nombre}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
                   <div>
                     <span className="block text-lg font-bold text-blue-100 mb-2">Zona:</span>
                     <div className="flex gap-2">
@@ -5405,7 +5414,7 @@ const App = () => {
                           <img src={ev.foto} alt="" className="w-12 h-12 rounded-full object-cover border-2 border-white/40 shrink-0" />
                           <div className="flex-grow overflow-hidden">
                             <span className="block text-base font-black text-white truncate">{ev.titulo}</span>
-                            <span className="block text-sm font-bold text-blue-200 truncate">{ev.fecha} · {ev.categoria}</span>
+                            <span className="block text-sm font-bold text-blue-200 truncate">{ev.fecha}</span>
                           </div>
                           <button type="button" onClick={() => empezarEdicionEvento(ev)} onMouseEnter={() => announceMenuOption(`Editar ${ev.titulo}`)} aria-label={`Editar ${ev.titulo}`} className="shrink-0 p-2 rounded-xl bg-white/10 text-amber-300 border-2 border-white/30 active:scale-90">
                             <Pencil size={18} />

@@ -84,7 +84,11 @@ sesión trabaja sobre una rama propia (no directo en `main`):
 
 ## Bitácora (lo más reciente arriba)
 
-### 2026-09-14 — APP_VERSION 14092026-16:30 (pendiente de commit)
+### 2026-09-14 — APP_VERSION 14092026-16:55 (pendiente de commit)
+- **"Título del evento" (P-46) ya no es texto libre**: se elige entre las
+  mismas 7 categorías de Mis Talentos, con el mismo estilo de tarjeta clicable
+  (título + descripción). `titulo` y `categoria` quedan siempre iguales; se
+  quitó la sección separada de pastillas "Categoría" por quedar redundante.
 - **Nuevo bloque "EVENTOS" en P-08**, sustituye por completo a los 3 módulos
   Soledad/Movilidad/Tecnología (decisión explícita del usuario). Estilo lista
   de chats de WhatsApp: foto circular, título/nombre+capacidad/características,
