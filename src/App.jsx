@@ -27,7 +27,7 @@ const fotoUsuarioPorDefecto = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3
 // nueva actualización. Formato solicitado: DÍA(2 dígitos)+MES(2 dígitos)+AÑO(4 dígitos) - HORA:MINUTO
 // Ejemplo: "27072026-19:05" = 27 de julio de 2026, 19:05. Se muestra, sin
 // ninguna acción asociada, en la esquina superior izquierda de P-01.
-const APP_VERSION = "14092026-20:19";
+const APP_VERSION = "14092026-20:37";
 
 /**
  * APP SÉNIOR - SUITE MÓVIL ACCESIBLE (SIMULADOR DE TELÉFONO)
@@ -2184,13 +2184,16 @@ const App = () => {
             <div className="bg-white border-4 border-slate-200 rounded-[25px] overflow-hidden shadow-sm">
               <div className="px-5 pt-4 pb-3 border-b-2 border-slate-100">
                 <span className="text-xs font-black text-slate-500 uppercase tracking-widest">Eventos</span>
-                <div className="flex gap-2 mt-2 overflow-x-auto pb-1 -mx-1 px-1">
+                {/* "Opciones por fila en el menú" (P-21, colsMenuPrincipal) también manda
+                    aquí: se muestran esa cantidad de pastillas por línea y se pasa a la
+                    siguiente, en vez de una fila que se desplaza horizontalmente. */}
+                <div className={`grid gap-2 mt-2 ${{ 1: 'grid-cols-1', 2: 'grid-cols-2', 3: 'grid-cols-3', 4: 'grid-cols-4' }[colsMenuPrincipal] || 'grid-cols-3'}`}>
                   <button
                     type="button"
                     onClick={() => setFiltroEventos((f) => (f === 'mis_talentos' ? 'todos' : 'mis_talentos'))}
                     onMouseEnter={() => announceMenuOption('Mis Talentos')}
                     aria-pressed={filtroEventos === 'mis_talentos'}
-                    className={`shrink-0 px-4 py-2 rounded-full font-black text-sm border-2 transition-colors ${filtroEventos === 'mis_talentos' ? 'bg-emerald-600 border-emerald-800 text-white' : 'bg-slate-50 border-slate-200 text-slate-700'}`}
+                    className={`w-full px-3 py-2 rounded-full font-black text-sm border-2 transition-colors truncate ${filtroEventos === 'mis_talentos' ? 'bg-emerald-600 border-emerald-800 text-white' : 'bg-slate-50 border-slate-200 text-slate-700'}`}
                   >
                     MIS TALENTOS
                   </button>
@@ -2203,7 +2206,7 @@ const App = () => {
                       type="button"
                       onClick={() => { setCurrentView(item.view); setEnteredFromMenu(false); setSubDesdeDatosCiudadano(false); }}
                       onMouseEnter={() => announceMenuOption(item.label)}
-                      className={`shrink-0 px-4 py-2 rounded-full font-black text-sm border-2 transition-colors bg-slate-50 ${item.border} ${item.text}`}
+                      className={`w-full px-3 py-2 rounded-full font-black text-sm border-2 transition-colors truncate bg-slate-50 ${item.border} ${item.text}`}
                     >
                       {item.label}
                     </button>
