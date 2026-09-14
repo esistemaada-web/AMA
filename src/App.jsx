@@ -27,7 +27,7 @@ const fotoUsuarioPorDefecto = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3
 // nueva actualización. Formato solicitado: DÍA(2 dígitos)+MES(2 dígitos)+AÑO(4 dígitos) - HORA:MINUTO
 // Ejemplo: "27072026-19:05" = 27 de julio de 2026, 19:05. Se muestra, sin
 // ninguna acción asociada, en la esquina superior izquierda de P-01.
-const APP_VERSION = "14092026-20:08";
+const APP_VERSION = "14092026-20:14";
 
 /**
  * APP SÉNIOR - SUITE MÓVIL ACCESIBLE (SIMULADOR DE TELÉFONO)
@@ -2193,15 +2193,6 @@ const App = () => {
                     className={`shrink-0 px-4 py-2 rounded-full font-black text-sm border-2 transition-colors ${filtroEventos === 'mis_talentos' ? 'bg-emerald-600 border-emerald-800 text-white' : 'bg-slate-50 border-slate-200 text-slate-700'}`}
                   >
                     MIS TALENTOS
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFiltroEventos('todos')}
-                    onMouseEnter={() => announceMenuOption('Todos')}
-                    aria-pressed={filtroEventos === 'todos'}
-                    className={`shrink-0 px-4 py-2 rounded-full font-black text-sm border-2 transition-colors ${filtroEventos === 'todos' ? 'bg-emerald-600 border-emerald-800 text-white' : 'bg-slate-50 border-slate-200 text-slate-700'}`}
-                  >
-                    TODOS
                   </button>
                   {/* Opciones marcadas como visibles en "Configura el Menú VES" (P-21):
                       una pastilla por cada una, que lleva directo a esa función. iAyuda
