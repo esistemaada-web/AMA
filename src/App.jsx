@@ -27,7 +27,7 @@ const fotoUsuarioPorDefecto = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3
 // nueva actualización. Formato solicitado: DÍA(2 dígitos)+MES(2 dígitos)+AÑO(4 dígitos) - HORA:MINUTO
 // Ejemplo: "27072026-19:05" = 27 de julio de 2026, 19:05. Se muestra, sin
 // ninguna acción asociada, en la esquina superior izquierda de P-01.
-const APP_VERSION = "14092026-16:55";
+const APP_VERSION = "14092026-17:01";
 
 /**
  * APP SÉNIOR - SUITE MÓVIL ACCESIBLE (SIMULADOR DE TELÉFONO)
@@ -5350,29 +5350,21 @@ const App = () => {
                       <input id="evento-foto" type="file" accept="image/*" onChange={handleFotoEventoChange} className="hidden" />
                     </label>
                   </div>
-                  <div>
-                    <span className="block text-lg font-bold text-blue-100 mb-2">Título del evento (elige una categoría):</span>
-                    <div className="grid grid-cols-1 gap-3">
-                      {CATEGORIAS_TALENTO.map((cat) => {
-                        const isSelected = nuevoEventoCampos.titulo === cat.nombre;
-                        return (
-                          <button
-                            key={cat.id}
-                            type="button"
-                            onClick={() => { setCampoEvento('titulo', cat.nombre); setCampoEvento('categoria', cat.nombre); }}
-                            aria-pressed={isSelected}
-                            className={`p-4 rounded-[20px] border-4 shadow-md transition-all active:scale-95 text-left flex items-center gap-3 ${isSelected ? 'bg-amber-400 border-amber-600 text-blue-950' : 'bg-white/10 border-white/30 text-white'}`}
-                          >
-                            {isSelected && <Check size={22} className="shrink-0" />}
-                            <div>
-                              <span className="block text-lg font-black leading-tight">{cat.nombre}</span>
-                              <span className={`block text-sm font-bold leading-tight ${isSelected ? 'text-blue-900' : 'text-blue-200'}`}>{cat.detalle}</span>
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                    {nuevoEventoErrores.titulo && <p role="alert" className="text-red-300 font-bold text-sm mt-2">⚠️ {nuevoEventoErrores.titulo}</p>}
+                  <div className="flex flex-col gap-1">
+                    <label htmlFor="evento-titulo" className="text-lg font-bold text-blue-100">Título del evento:</label>
+                    <select
+                      id="evento-titulo"
+                      value={nuevoEventoCampos.titulo}
+                      onChange={(e) => { setCampoEvento('titulo', e.target.value); setCampoEvento('categoria', e.target.value); }}
+                      aria-invalid={!!nuevoEventoErrores.titulo}
+                      className={`w-full p-4 text-lg border-4 rounded-2xl font-bold bg-white text-blue-950 outline-none ${nuevoEventoErrores.titulo ? 'border-red-500' : 'border-amber-400'}`}
+                    >
+                      <option value="" disabled>Elige una categoría…</option>
+                      {CATEGORIAS_TALENTO.map((cat) => (
+                        <option key={cat.id} value={cat.nombre}>{cat.nombre} — {cat.detalle}</option>
+                      ))}
+                    </select>
+                    {nuevoEventoErrores.titulo && <p role="alert" className="text-red-300 font-bold text-sm">⚠️ {nuevoEventoErrores.titulo}</p>}
                   </div>
                   {campoEvento('evento-nombre', 'Nombre / organiza:', 'nombre', { placeholder: 'Ej. Asociación San Gerardo' })}
                   {campoEvento('evento-fecha', 'Fecha:', 'fecha', { placeholder: 'Ej. 11/9/2026' })}
