@@ -27,7 +27,7 @@ const fotoUsuarioPorDefecto = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3
 // nueva actualización. Formato solicitado: DÍA(2 dígitos)+MES(2 dígitos)+AÑO(4 dígitos) - HORA:MINUTO
 // Ejemplo: "27072026-19:05" = 27 de julio de 2026, 19:05. Se muestra, sin
 // ninguna acción asociada, en la esquina superior izquierda de P-01.
-const APP_VERSION = "14092026-13:08";
+const APP_VERSION = "14092026-13:15";
 
 /**
  * APP SÉNIOR - SUITE MÓVIL ACCESIBLE (SIMULADOR DE TELÉFONO)
@@ -1748,11 +1748,11 @@ const App = () => {
           <br />
           Hola@amaves.com
         </span>
-        {/* Logo Innovación DAM — por los momentos solo aquí, esquina inferior izquierda */}
+        {/* Logo Innovación DAM — por los momentos solo aquí, esquina inferior derecha */}
         <img
           src={logoGrupoDab}
           alt="Trofeo Innovación DAM"
-          className="absolute bottom-3 left-3 w-[115px] h-auto pointer-events-none select-none drop-shadow-sm"
+          className="absolute bottom-3 right-3 w-[127px] h-auto pointer-events-none select-none drop-shadow-sm"
         />
         <ScreenFooter n="P-01" />
       </div>
