@@ -27,7 +27,7 @@ const fotoUsuarioPorDefecto = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3
 // nueva actualización. Formato solicitado: DÍA(2 dígitos)+MES(2 dígitos)+AÑO(4 dígitos) - HORA:MINUTO
 // Ejemplo: "27072026-19:05" = 27 de julio de 2026, 19:05. Se muestra, sin
 // ninguna acción asociada, en la esquina superior izquierda de P-01.
-const APP_VERSION = "14092026-19:20";
+const APP_VERSION = "14092026-19:51";
 
 /**
  * APP SÉNIOR - SUITE MÓVIL ACCESIBLE (SIMULADOR DE TELÉFONO)
@@ -282,13 +282,31 @@ const CONTENEDORES = [
 // que el filtro "MIS TALENTOS" del listado de Eventos (P-08) pueda comparar
 // selectedTalents (nombres elegidos por el ciudadano) contra evento.categoria.
 const CATEGORIAS_TALENTO = [
-  { id: 'manuales', nombre: "Manuales", detalle: "Costura, carpintería, jardinería" },
+  { id: 'manuales', nombre: "Manuales", detalle: "Costura, carpintería, jardinería, cestería, alfarería" },
   { id: 'intelectuales', nombre: "Intelectuales", detalle: "Idiomas, matemáticas, historia" },
   { id: 'artisticas', nombre: "Artísticas", detalle: "Pintura, música, baile" },
   { id: 'culinarias', nombre: "Culinarias", detalle: "Cocina, repostería" },
   { id: 'sociales', nombre: "Sociales", detalle: "Organizar eventos, narrar historias" },
   { id: 'recreativas', nombre: "Recreativas", detalle: "Ajedrez, juegos, paseos guiados" },
   { id: 'bienestar', nombre: "Bienestar y Sabiduría de Vida", detalle: "Meditación, consejería, mentoría" },
+  { id: 'oficios_mar', nombre: "Oficios del Mar", detalle: "Pesca artesanal, redes, patrones, salazón", nota: "Vinculado a las fiestas del Carmen, patrona de los pescadores." },
+  { id: 'oficios_campo', nombre: "Oficios del Campo y Ganadería", detalle: "Papas, viña, injertos, pastoreo, trashumancia" },
+  { id: 'religiosidad', nombre: "Religiosidad Popular y Tradiciones Festivas", detalle: "Romerías, cofradías, parrandas, ofrendas" },
+  { id: 'emigracion', nombre: "Saberes de la Emigración y el Retorno", detalle: "Gastronomía, oficios e idioma de Venezuela, Cuba, Argentina" },
+  { id: 'oficios_urbanos', nombre: "Oficios Urbanos de Casco Histórico", detalle: "Sastrería, relojería, comercio tradicional, imaginería" },
+];
+
+// --- PROFUNDIZACIÓN DE "MANUALES" (Mis Habilidades, P-15) ---
+// Al marcar una habilidad manual específica, se muestra el oficio concreto en
+// el que se traduce, con su descripción. Varios están declarados en riesgo de
+// desaparición por el Decreto 84/2025 (Catálogo de Oficios Tradicionales de
+// Canarias en Riesgo), y así se señala en pantalla.
+const PROFUNDIZACION_MANUALES = [
+  { skill: 'Jardinería', titulo: 'Floricultura y Jardinería Ornamental', descripcion: 'Cultivo de flor cortada, injerto, vivero.', riesgo: false },
+  { skill: 'Costura', titulo: 'Calado, Bordado y Confección de Vestimenta Canaria', descripcion: 'Puntadas de calado y bordado, indumentaria tradicional.', riesgo: true },
+  { skill: 'Cestería', titulo: 'Cestería Canaria', descripcion: 'Caña, mimbre, palma, pírgano.', riesgo: true },
+  { skill: 'Alfarería', titulo: 'Alfarería Canaria', descripcion: 'Barro del país trabajado a mano, sin torno.', riesgo: true },
+  { skill: 'Carpintería', titulo: 'Carpintería de Ribera', descripcion: 'Construcción de embarcaciones de madera de pequeña eslora. Enlaza con Oficios del Mar.', riesgo: true },
 ];
 
 // --- AJUSTE AUTOMÁTICO SIN SCROLL (P-01, P-06, P-08, P-40) ---
@@ -564,6 +582,8 @@ const App = () => {
 
   // --- ESTADOS PARA LA NUEVA SECCIÓN DE TALENTOS (Modificado para selección múltiple) ---
   const [selectedTalents, setSelectedTalents] = useState(['Habilidades Manuales']);
+  // Profundización de "Manuales" (P-15): qué oficios manuales concretos marca el ciudadano.
+  const [manualSkillsSeleccionadas, setManualSkillsSeleccionadas] = useState([]);
   const [customExplanation, setCustomExplanation] = useState('');
   const [isListeningExplanation, setIsListeningExplanation] = useState(false);
 
@@ -3236,6 +3256,12 @@ const App = () => {
         setSelectedTalents([...selectedTalents, nombre]);
       }
     };
+    const manualesElegido = selectedTalents.includes('Manuales');
+    const toggleManualSkill = (skill) => {
+      setManualSkillsSeleccionadas((prev) =>
+        prev.includes(skill) ? prev.filter((s) => s !== skill) : [...prev, skill]
+      );
+    };
     return (
       <div className="flex flex-col p-6 bg-emerald-50 min-h-full pb-36 animate-in fade-in duration-300 relative">
         <EncabezadoG onBack={handleBackNavigation} />
@@ -3243,7 +3269,7 @@ const App = () => {
           <div className="p-4 rounded-full bg-emerald-600 text-white shadow-lg">
             <Star size={36} />
           </div>
-          <h2 className="text-4xl font-black text-emerald-600">Mis Talentos</h2>
+          <h2 className="text-4xl font-black text-emerald-600">Mis Habilidades</h2>
         </div>
         <p className="text-2xl font-black text-slate-800 text-left mb-2">¿Qué habilidad tienes?</p>
         <p className="text-lg font-bold text-slate-700 text-left mb-6 leading-tight">Puedes elegir varias categorías de talentos:</p>
@@ -3260,11 +3286,50 @@ const App = () => {
                 <div>
                   <span className="block text-xl font-black leading-tight">{opcion.nombre}</span>
                   <span className={`block text-sm font-bold leading-tight ${isSelected ? 'text-emerald-100' : 'text-slate-600'}`}>{opcion.detalle}</span>
+                  {opcion.nota && (
+                    <span className={`block text-xs font-bold leading-tight mt-1 italic ${isSelected ? 'text-emerald-100' : 'text-slate-500'}`}>{opcion.nota}</span>
+                  )}
                 </div>
               </button>
             );
           })}
         </div>
+
+        {manualesElegido && (
+          <div className="bg-white border-4 border-emerald-200 rounded-[25px] p-5 mb-6 text-left">
+            <p className="text-xl font-black text-emerald-900 mb-1">Profundiza en tus Habilidades Manuales</p>
+            <p className="text-base font-bold text-slate-600 mb-4 leading-tight">Marca el oficio concreto que sabes hacer:</p>
+            <div className="grid grid-cols-1 gap-3">
+              {PROFUNDIZACION_MANUALES.map((prof) => {
+                const marcado = manualSkillsSeleccionadas.includes(prof.skill);
+                return (
+                  <div key={prof.skill}>
+                    <button
+                      onClick={() => toggleManualSkill(prof.skill)}
+                      className={`w-full p-4 rounded-2xl border-4 shadow-sm transition-all active:scale-95 text-left flex items-center gap-3 ${marcado ? 'bg-emerald-600 border-emerald-800 text-white' : 'bg-slate-50 border-slate-200 text-slate-800 hover:bg-slate-100'}`}
+                    >
+                      {marcado && <Check size={20} className="shrink-0" />}
+                      <span className="text-lg font-black">{prof.skill}</span>
+                    </button>
+                    {marcado && (
+                      <div className="mt-2 ml-2 p-4 bg-emerald-50 border-4 border-emerald-200 rounded-2xl">
+                        <p className="text-lg font-black text-emerald-900 leading-tight">{prof.titulo}</p>
+                        <p className="text-base font-bold text-slate-700 leading-snug mt-1">{prof.descripcion}</p>
+                        {prof.riesgo && (
+                          <p className="text-sm font-black text-amber-700 leading-tight mt-2 flex items-start gap-1.5">
+                            <AlertTriangle size={18} className="shrink-0 mt-0.5" />
+                            Oficio en riesgo de desaparición (Decreto 84/2025).
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         <div className="flex flex-col gap-2 text-left mt-4">
           <label className="text-2xl font-black text-slate-800 ml-2">Explica con tus palabras qué te gustaría enseñar:</label>
           <div className="flex gap-3 items-end">
