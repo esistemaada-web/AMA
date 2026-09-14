@@ -18,7 +18,7 @@ import logoTam from './logo-tam-badge.png';
 import logoVes from './logo-ves-badge.png';
 // Logo "Innovación DAM" (foto real del trofeo de madera, recorte nativo, sin SVG).
 // Por los momentos solo en P-01, esquina inferior izquierda.
-import logoGrupoDab from './logo-grupo-dab.jpg';
+import logoGrupoDAM from './logo-grupo-dab.jpg';
 // NOTA: logos reemplazados por componentes inline para no depender de archivos externos.
 const fotoUsuarioPorDefecto = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><rect width='200' height='200' fill='%231e3a8a'/><text x='50%' y='50%' fill='white' font-size='14' text-anchor='middle' dy='.3em'>Foto Usuario</text></svg>";
 
@@ -27,7 +27,7 @@ const fotoUsuarioPorDefecto = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3
 // nueva actualización. Formato solicitado: DÍA(2 dígitos)+MES(2 dígitos)+AÑO(4 dígitos) - HORA:MINUTO
 // Ejemplo: "27072026-19:05" = 27 de julio de 2026, 19:05. Se muestra, sin
 // ninguna acción asociada, en la esquina superior izquierda de P-01.
-const APP_VERSION = "14092026-13:15";
+const APP_VERSION = "14092026-14:55";
 
 /**
  * APP SÉNIOR - SUITE MÓVIL ACCESIBLE (SIMULADOR DE TELÉFONO)
@@ -796,6 +796,9 @@ const App = () => {
   // = abre este mismo panel escrito). Una sola constante para que el texto en
   // pantalla y lo que se lee en voz alta digan siempre lo mismo.
   const NOTA_GESTOS_AYUDA = 'Toca 1 vez el botón "Ayudas" o tu foto para escucharlo; tócalo 2 veces para volver a leerlo aquí.';
+
+  // Texto que se muestra al tocar el logo/trofeo "Innovación DAM" en P-01.
+  const TEXTO_INNOVACION_DAM = 'Somos Innovación DAM, una firma consultora tecnológica con raíces profundas en Tenerife. Nuestra identidad está definida por nuestro nombre, que marca la hoja de ruta de cada uno de nuestros proyectos: Decir (asesorar con claridad), Activar (implementar soluciones reales) y Mostrar (hacer tangibles los resultados).\nNacemos con un propósito claro y firme: servir al público canario. Creemos que el Archipiélago tiene un potencial inmenso para liderar en la era digital, y estamos aquí para ser el puente entre los desafíos locales y las soluciones tecnológicas más avanzadas.\nComo consultores de proximidad, entendemos la idiosincrasia de nuestro mercado. Trabajamos codo con codo con empresas e instituciones de las islas para modernizar sus procesos, mejorar su competitividad y acercar la innovación a la ciudadanía. En Innovación DAM, no solo vendemos tecnología; activamos el motor del cambio para construir un futuro más digital, eficiente y próspero para toda Canarias.';
 
   // --- ABRE EL PANEL "¿DÓNDE ESTOY?" Y LO ANUNCIA POR VOZ ---
   const openWhereAmI = (titulo, texto) => {
@@ -1748,12 +1751,20 @@ const App = () => {
           <br />
           Hola@amaves.com
         </span>
-        {/* Logo Innovación DAM — por los momentos solo aquí, esquina inferior derecha */}
-        <img
-          src={logoGrupoDab}
-          alt="Trofeo Innovación DAM"
-          className="absolute bottom-3 right-3 w-[127px] h-auto pointer-events-none select-none drop-shadow-sm"
-        />
+        {/* Logo Innovación DAM — por los momentos solo aquí, esquina inferior derecha.
+            Al tocarlo, muestra quiénes somos (mismo panel de "¿Dónde estoy?"). */}
+        <button
+          onClick={() => openWhereAmI('Innovación DAM', TEXTO_INNOVACION_DAM)}
+          onMouseEnter={() => announceMenuOption('Innovación DAM')}
+          className="absolute bottom-3 right-3 active:scale-95 transition-transform focus:outline-none focus:ring-4 focus:ring-blue-300 rounded-2xl"
+          aria-label="Quiénes somos: Innovación DAM"
+        >
+          <img
+            src={logoGrupoDAM}
+            alt="Trofeo Innovación DAM"
+            className="w-[127px] h-auto select-none drop-shadow-sm"
+          />
+        </button>
         <ScreenFooter n="P-01" />
       </div>
     );
@@ -5177,7 +5188,7 @@ const App = () => {
                 <Info size={64} className="text-amber-400" />
               </div>
               <h2 className="text-3xl font-black text-white mb-4 leading-tight">{whereAmIInfo.titulo}</h2>
-              <p className="text-xl font-bold text-amber-100 leading-relaxed mb-4 max-w-sm">{whereAmIInfo.texto}</p>
+              <p className="text-xl font-bold text-amber-100 leading-relaxed mb-4 max-w-sm whitespace-pre-line">{whereAmIInfo.texto}</p>
               <p className="text-base font-bold text-white/70 leading-snug mb-6 max-w-sm flex items-center justify-center gap-2">
                 <Info size={20} className="shrink-0 text-amber-300" />
                 {NOTA_GESTOS_AYUDA}
