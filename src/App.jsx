@@ -27,7 +27,7 @@ const fotoUsuarioPorDefecto = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3
 // nueva actualización. Formato solicitado: DÍA(2 dígitos)+MES(2 dígitos)+AÑO(4 dígitos) - HORA:MINUTO
 // Ejemplo: "27072026-19:05" = 27 de julio de 2026, 19:05. Se muestra, sin
 // ninguna acción asociada, en la esquina superior izquierda de P-01.
-const APP_VERSION = "14092026-20:14";
+const APP_VERSION = "14092026-20:19";
 
 /**
  * APP SÉNIOR - SUITE MÓVIL ACCESIBLE (SIMULADOR DE TELÉFONO)
@@ -2271,7 +2271,7 @@ const App = () => {
   // opciones de esa categoría, con botón Volver que regresa siempre a P-08.
   const RenderCategoriaDetalle = () => {
     const cont = CONTENEDORES.find((c) => c.id === categoriaAbiertaId) || CONTENEDORES[0];
-    const gridCols   = { 1: 'grid grid-cols-1', 2: 'grid grid-cols-2', 3: 'grid grid-cols-3' }[colsMenuPrincipal] || 'grid grid-cols-3';
+    const gridCols   = { 1: 'grid grid-cols-1', 2: 'grid grid-cols-2', 3: 'grid grid-cols-3', 4: 'grid grid-cols-4' }[colsMenuPrincipal] || 'grid grid-cols-3';
     const btnPadding = colsMenuPrincipal === 1 ? 'p-6' : 'p-4';
     const iconSize   = colsMenuPrincipal === 1 ? 40 : 28;
     const labelCls   = colsMenuPrincipal === 1 ? 'text-2xl' : 'text-lg';
@@ -4175,8 +4175,8 @@ const App = () => {
         {/* SELECTOR DE OPCIONES POR FILA */}
         <div className="p-5 bg-blue-50 rounded-[25px] border-4 border-blue-200 mb-6">
           <h3 className="text-xl font-black text-blue-900 mb-3">Opciones por fila en el menú</h3>
-          <div className="grid grid-cols-3 gap-3">
-            {[1, 2, 3].map((n) => (
+          <div className="grid grid-cols-4 gap-3">
+            {[1, 2, 3, 4].map((n) => (
               <button
                 key={n}
                 onClick={() => { setColsMenuPrincipal(n); setHayCambiosSinGuardarMenu(true); }}
@@ -4188,7 +4188,7 @@ const App = () => {
             ))}
           </div>
           <p className="text-sm font-bold text-slate-500 mt-2 text-center">
-            {colsMenuPrincipal === 1 ? '1 por fila — botones grandes (ideal para baja visión)' : colsMenuPrincipal === 2 ? '2 por fila — equilibrado' : '3 por fila — vista compacta'}
+            {colsMenuPrincipal === 1 ? '1 por fila — botones grandes (ideal para baja visión)' : colsMenuPrincipal === 2 ? '2 por fila — equilibrado' : colsMenuPrincipal === 3 ? '3 por fila — vista compacta' : '4 por fila — vista muy compacta'}
           </p>
         </div>
 
