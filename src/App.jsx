@@ -27,7 +27,7 @@ const fotoUsuarioPorDefecto = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3
 // nueva actualización. Formato solicitado: DÍA(2 dígitos)+MES(2 dígitos)+AÑO(4 dígitos) - HORA:MINUTO
 // Ejemplo: "27072026-19:05" = 27 de julio de 2026, 19:05. Se muestra, sin
 // ninguna acción asociada, en la esquina superior izquierda de P-01.
-const APP_VERSION = "14092026-17:01";
+const APP_VERSION = "14092026-18:34";
 
 /**
  * APP SÉNIOR - SUITE MÓVIL ACCESIBLE (SIMULADOR DE TELÉFONO)
@@ -368,6 +368,19 @@ const AutoFit = ({ children, minScale = 0.75, center = false, estatico = false }
   );
 };
 
+// --- ZONAS DE ESTUDIO: DISTRITOS DE SAN CRISTÓBAL DE LA LAGUNA (Empadronar, P-47) ---
+// División oficial en 6 distritos, usada como campo de perfil "Distrito" y
+// como base para tipificar qué categorías tienen más oferta real de talento
+// en cada zona. `barrios` es la lista de barrios/núcleos/entidades del distrito.
+const DISTRITOS_LA_LAGUNA = [
+  { cod: 'D1', nombre: 'Centro Histórico', barrios: ['Casco Antiguo', 'San Roque', 'San Benito', 'La Vega', 'San Lázaro', 'San Diego'] },
+  { cod: 'D2', nombre: 'La Cuesta', barrios: ['La Cuesta', 'Barrio de la Candelaria', 'La Higuerita', 'Finca España', 'El Rocío'] },
+  { cod: 'D3', nombre: 'Taco', barrios: ['San Jerónimo', 'Los Andenes', 'San Matías', 'Las Chumberas', 'El Cardonal'] },
+  { cod: 'D4', nombre: 'Nordeste / Costa', barrios: ['Tejina', 'Valle de Guerra', 'Bajamar', 'Punta del Hidalgo'] },
+  { cod: 'D5', nombre: 'Rural / Anaga', barrios: ['Las Mercedes', 'Camino de Las Mercedes', 'Jardina', 'Las Carboneras', 'Chinamada', 'Los Batanes'] },
+  { cod: 'D6', nombre: 'Geneto - Los Baldíos', barrios: ['San Bartolomé de Geneto', 'Los Baldíos', 'El Ortigal', 'Guamasa'] },
+];
+
 const App = () => {
   // --- ESTADOS DE NAVEGACIÓN ---
   const [step, setStep] = useState('inicio');
@@ -579,6 +592,19 @@ const App = () => {
   const [profileVozIA, setProfileVozIA] = useState('Por defecto');
   const [profileInvitadoNombre, setProfileInvitadoNombre] = useState('');
   const [profileInvitadoClave, setProfileInvitadoClave] = useState('');
+
+  // --- EMPADRONAR (dentro del panel Mundo AMA P-45) ---
+  // País/Comunidad Autónoma/Provincia/Municipio se muestran de solo información
+  // (vienen de "Ubicación" en Datos Ciudadano). Distrito y Barrio son listas
+  // (P-47, ver DISTRITOS_LA_LAGUNA); Calle y Zona Postal, campos de texto
+  // precargados con los de "Ubicación" pero editables aquí para el registro.
+  const [isEmpadronarOpen, setIsEmpadronarOpen] = useState(false); // P-47
+  const [empadronarDistrito, setEmpadronarDistrito] = useState('');
+  const [empadronarBarrio, setEmpadronarBarrio] = useState('');
+  const [empadronarCalle, setEmpadronarCalle] = useState(profileDireccion);
+  const [empadronarZonaPostal, setEmpadronarZonaPostal] = useState(profileZonaPostal);
+  const [empadronarErrores, setEmpadronarErrores] = useState({});
+  const [empadronarGuardado, setEmpadronarGuardado] = useState(false);
 
   // --- ESTADOS DE NUEVOS CONTACTOS DE EMERGENCIA MODIFICABLES ---
   const [contact1Name, setContact1Name] = useState('112 (URGENCIA)');
@@ -5214,7 +5240,7 @@ const App = () => {
               <h2 className="text-3xl font-black text-white mb-6 leading-tight">Mundo AMA</h2>
               <div className="w-full max-w-sm space-y-4">
                 <button
-                  onClick={() => speak('Empadronar. Próximamente disponible.')}
+                  onClick={() => { setIsMundoAmaMenuOpen(false); setIsEmpadronarOpen(true); }}
                   onMouseEnter={() => announceMenuOption('1. Empadronar')}
                   className="w-full py-6 bg-white/10 border-4 border-amber-400 text-white rounded-[30px] font-black text-2xl active:scale-95 transition-transform flex items-center gap-3"
                 >
@@ -5238,6 +5264,7 @@ const App = () => {
               <button
                 onClick={() => {
                   setIsMundoAmaMenuOpen(false);
+                  setIsEmpadronarOpen(false);
                   setIsAccesoAdminOpen(false);
                   setIsPerfilPasswordOpen(false);
                   setIsPerfilCiudadanoOpen(false);
@@ -5433,6 +5460,147 @@ const App = () => {
                 )}
 
                 <div className="absolute bottom-2 left-0 right-0 text-center text-[10px] text-white/40 font-bold">P-46</div>
+              </div>
+            );
+          })()}
+
+          {isEmpadronarOpen && (() => {
+            const distritoInfo = DISTRITOS_LA_LAGUNA.find((d) => d.cod === empadronarDistrito);
+            const volverAMundoAma = () => { setIsEmpadronarOpen(false); setEmpadronarGuardado(false); setIsMundoAmaMenuOpen(true); };
+            const handleGuardarEmpadronamiento = (e) => {
+              e.preventDefault();
+              const errores = {};
+              if (!empadronarDistrito) errores.distrito = 'Falta elegir el Distrito.';
+              if (!empadronarBarrio) errores.barrio = 'Falta elegir el Barrio, núcleo o entidad.';
+              if (!empadronarCalle.trim()) errores.calle = 'Falta la Calle.';
+              if (!empadronarZonaPostal.trim()) errores.zonaPostal = 'Falta la Zona Postal.';
+              setEmpadronarErrores(errores);
+              if (Object.keys(errores).length > 0) {
+                speak('Faltan datos por completar. Revisa los campos marcados en rojo.');
+                return;
+              }
+              setEmpadronarGuardado(true);
+              speak('Empadronamiento guardado.');
+            };
+            return (
+              <div role="dialog" aria-modal="true" aria-label="Empadronar" className="absolute inset-0 bg-blue-950 z-[150] p-6 flex flex-col items-center text-center animate-in zoom-in duration-300 overflow-y-auto">
+                <div className="flex items-center justify-between w-full mt-3 mb-4">
+                  <button onClick={volverAMundoAma} onMouseEnter={() => announceMenuOption('Volver')} className="flex items-center text-white font-black text-xl py-2 w-max">
+                    <ArrowLeft size={32} className="mr-2" /> VOLVER
+                  </button>
+                  <FotoAyudaCiudadano onAyudaEscrita={() => openWhereAmI("Empadronar", "estás empadronándote en Mundo AMA. Revisa tu ubicación, elige tu Distrito y tu Barrio, núcleo o entidad, y completa la Calle y la Zona Postal. Luego toca Guardar Empadronamiento.")} />
+                </div>
+                <div className="flex items-center gap-3 mb-5 w-full">
+                  <div className="p-3 rounded-full bg-white/10 text-amber-400 shadow-lg"><ClipboardList size={30} /></div>
+                  <h2 className="text-3xl font-black text-white leading-tight text-left">Empadronar</h2>
+                </div>
+
+                {empadronarGuardado ? (
+                  <div className="w-full max-w-sm bg-white/10 border-4 border-emerald-400 rounded-3xl p-8 flex flex-col items-center gap-4">
+                    <CheckCircle2 size={56} className="text-emerald-400" />
+                    <p className="text-2xl font-black text-white leading-tight">¡Empadronamiento guardado!</p>
+                    <p className="text-lg font-bold text-blue-100 leading-snug">
+                      {distritoInfo?.cod} — {distritoInfo?.nombre}<br />
+                      {empadronarBarrio}<br />
+                      {empadronarCalle}, {empadronarZonaPostal}
+                    </p>
+                    <button onClick={volverAMundoAma} className="w-full py-5 bg-amber-400 text-blue-950 rounded-[30px] font-black text-xl shadow-xl active:scale-95 transition-transform mt-2">
+                      ENTENDIDO
+                    </button>
+                  </div>
+                ) : (
+                <form onSubmit={handleGuardarEmpadronamiento} className="w-full max-w-sm space-y-5 text-left">
+                  {/* 4 datos fijos, solo información: ya están definidos en Ubicación (Datos Ciudadano) */}
+                  <div className="bg-white/5 p-5 rounded-3xl border-4 border-white/20 space-y-3">
+                    <p className="text-sm font-black text-blue-200 uppercase tracking-wide">Tu ubicación (información)</p>
+                    {[
+                      ['País', profilePais],
+                      ['Comunidad Autónoma', profileComunidadAutonoma],
+                      ['Provincia y Isla', profileProvincia],
+                      ['Municipio', profileMunicipio],
+                    ].map(([label, valor]) => (
+                      <div key={label} className="flex flex-col gap-1">
+                        <span className="text-base font-bold text-blue-200">{label}:</span>
+                        <div className="w-full p-3 text-lg font-bold bg-white/10 text-white rounded-2xl border-2 border-white/20">{valor}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <label htmlFor="empadronar-distrito" className="text-lg font-bold text-blue-100">Distrito:</label>
+                    <select
+                      id="empadronar-distrito"
+                      value={empadronarDistrito}
+                      onChange={(e) => { setEmpadronarDistrito(e.target.value); setEmpadronarBarrio(''); }}
+                      aria-invalid={!!empadronarErrores.distrito}
+                      className={`w-full p-4 text-lg border-4 rounded-2xl font-bold bg-white text-blue-950 outline-none ${empadronarErrores.distrito ? 'border-red-500' : 'border-amber-400'}`}
+                    >
+                      <option value="" disabled>Elige tu distrito…</option>
+                      {DISTRITOS_LA_LAGUNA.map((d) => (
+                        <option key={d.cod} value={d.cod}>{d.cod} — {d.nombre}</option>
+                      ))}
+                    </select>
+                    {empadronarErrores.distrito && <p role="alert" className="text-red-300 font-bold text-sm">⚠️ {empadronarErrores.distrito}</p>}
+                  </div>
+
+                  {distritoInfo && (
+                    <div className="flex flex-col gap-1">
+                      <label htmlFor="empadronar-barrio" className="text-lg font-bold text-blue-100">Barrio, núcleo o entidad:</label>
+                      <select
+                        id="empadronar-barrio"
+                        value={empadronarBarrio}
+                        onChange={(e) => setEmpadronarBarrio(e.target.value)}
+                        aria-invalid={!!empadronarErrores.barrio}
+                        className={`w-full p-4 text-lg border-4 rounded-2xl font-bold bg-white text-blue-950 outline-none ${empadronarErrores.barrio ? 'border-red-500' : 'border-amber-400'}`}
+                      >
+                        <option value="" disabled>Elige tu barrio…</option>
+                        {distritoInfo.barrios.map((b) => (
+                          <option key={b} value={b}>{b}</option>
+                        ))}
+                      </select>
+                      {empadronarErrores.barrio && <p role="alert" className="text-red-300 font-bold text-sm">⚠️ {empadronarErrores.barrio}</p>}
+                    </div>
+                  )}
+
+                  {distritoInfo && empadronarBarrio && (
+                    <>
+                      <div className="flex flex-col gap-1">
+                        <label htmlFor="empadronar-calle" className="text-lg font-bold text-blue-100">Calle:</label>
+                        <input
+                          id="empadronar-calle"
+                          type="text"
+                          value={empadronarCalle}
+                          onChange={(e) => setEmpadronarCalle(e.target.value)}
+                          placeholder="Ej: Camino de Las Mercedes"
+                          aria-invalid={!!empadronarErrores.calle}
+                          className={`w-full p-4 text-lg border-4 rounded-2xl font-bold bg-white text-blue-950 outline-none ${empadronarErrores.calle ? 'border-red-500' : 'border-amber-400'}`}
+                        />
+                        {empadronarErrores.calle && <p role="alert" className="text-red-300 font-bold text-sm">⚠️ {empadronarErrores.calle}</p>}
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <label htmlFor="empadronar-zona-postal" className="text-lg font-bold text-blue-100">Zona Postal:</label>
+                        <input
+                          id="empadronar-zona-postal"
+                          type="text"
+                          inputMode="numeric"
+                          value={empadronarZonaPostal}
+                          onChange={(e) => setEmpadronarZonaPostal(e.target.value)}
+                          placeholder="Ej: 38296"
+                          aria-invalid={!!empadronarErrores.zonaPostal}
+                          className={`w-full p-4 text-lg border-4 rounded-2xl font-bold bg-white text-blue-950 outline-none ${empadronarErrores.zonaPostal ? 'border-red-500' : 'border-amber-400'}`}
+                        />
+                        {empadronarErrores.zonaPostal && <p role="alert" className="text-red-300 font-bold text-sm">⚠️ {empadronarErrores.zonaPostal}</p>}
+                      </div>
+                    </>
+                  )}
+
+                  <button type="submit" className="w-full py-5 bg-amber-400 text-blue-950 rounded-[30px] font-black text-xl shadow-xl active:scale-95 transition-transform mt-2">
+                    GUARDAR EMPADRONAMIENTO
+                  </button>
+                </form>
+                )}
+
+                <div className="absolute bottom-2 left-0 right-0 text-center text-[10px] text-white/40 font-bold">P-47</div>
               </div>
             );
           })()}
