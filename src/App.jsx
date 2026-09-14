@@ -16,9 +16,9 @@ import fotoCiudadano from './foto-ciudadano.jpg';
 import logoAma from './logo-ama-badge.png';
 import logoTam from './logo-tam-badge.png';
 import logoVes from './logo-ves-badge.png';
-// Logo del Grupo DAB (trazado desde la foto real del trofeo de madera).
+// Logo "Innovación DAM" (foto real del trofeo de madera, recorte nativo, sin SVG).
 // Por los momentos solo en P-01, esquina inferior izquierda.
-import logoGrupoDab from './logo-grupo-dab.svg';
+import logoGrupoDab from './logo-grupo-dab.jpg';
 // NOTA: logos reemplazados por componentes inline para no depender de archivos externos.
 const fotoUsuarioPorDefecto = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><rect width='200' height='200' fill='%231e3a8a'/><text x='50%' y='50%' fill='white' font-size='14' text-anchor='middle' dy='.3em'>Foto Usuario</text></svg>";
 
@@ -27,7 +27,7 @@ const fotoUsuarioPorDefecto = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3
 // nueva actualización. Formato solicitado: DÍA(2 dígitos)+MES(2 dígitos)+AÑO(4 dígitos) - HORA:MINUTO
 // Ejemplo: "27072026-19:05" = 27 de julio de 2026, 19:05. Se muestra, sin
 // ninguna acción asociada, en la esquina superior izquierda de P-01.
-const APP_VERSION = "14092026-09:43";
+const APP_VERSION = "14092026-13:08";
 
 /**
  * APP SÉNIOR - SUITE MÓVIL ACCESIBLE (SIMULADOR DE TELÉFONO)
@@ -1748,10 +1748,10 @@ const App = () => {
           <br />
           Hola@amaves.com
         </span>
-        {/* Logo Grupo DAB — por los momentos solo aquí, esquina inferior izquierda */}
+        {/* Logo Innovación DAM — por los momentos solo aquí, esquina inferior izquierda */}
         <img
           src={logoGrupoDab}
-          alt="Logotipo de Grupo DAB"
+          alt="Trofeo Innovación DAM"
           className="absolute bottom-3 left-3 w-[115px] h-auto pointer-events-none select-none drop-shadow-sm"
         />
         <ScreenFooter n="P-01" />
