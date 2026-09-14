@@ -84,6 +84,36 @@ sesión trabaja sobre una rama propia (no directo en `main`):
 
 ## Bitácora (lo más reciente arriba)
 
+### 2026-09-14 — APP_VERSION 14092026-16:30 (pendiente de commit)
+- **Nuevo bloque "EVENTOS" en P-08**, sustituye por completo a los 3 módulos
+  Soledad/Movilidad/Tecnología (decisión explícita del usuario). Estilo lista
+  de chats de WhatsApp: foto circular, título/nombre+capacidad/características,
+  fecha, cupo y pin (📌, el ciudadano lo fija y sube al principio del listado).
+  Pastillas horizontales: **MIS TALENTOS** (filtra por `selectedTalents`, lo
+  elegido en Datos Ciudadano → Mis Talentos), **TODOS**, **FILTRO** (zona
+  Centro/Barrios, panel propio `isFiltroEventosOpen`/`filtroZonaEventos`).
+- **Nuevo "Crear Eventos" real** (P-46, dentro de Mundo AMA / P-45): antes era
+  un botón placeholder ("Próximamente disponible"). Formulario con inputs
+  controlados (mismo patrón que Crear Actores): foto, título, nombre, fecha,
+  capacidad, cupo, características, categoría (una de `CATEGORIAS_TALENTO`,
+  compartida con Mis Talentos para que el filtro funcione) y zona. Lista de
+  eventos creados con editar/eliminar. Estado en App: `listaEventos`,
+  `nuevoEventoCampos`/`nuevoEventoFoto`/`nuevoEventoErrores`,
+  `eventoEditandoId`/`eventoAEliminar`.
+- **⚠️ Regresión de navegación intencional**: al quitar los 3 módulos de P-08,
+  quedaron **inaccesibles** 12 pantallas ya construidas (Buscar Compañía, Ruta
+  Segura, Comercios, Centro de Vitalidad, Citas y Tratamientos, Llamar a
+  Contactos, Comentarios, Buzón de Mensajes, Mi Guía Digital, Fotos y Videos,
+  Cultura y Ocio, Demo de la App) — su único punto de entrada era P-35
+  (`categoria_detalle`), y P-35 solo se abría tocando uno de esos 3 módulos.
+  El usuario confirmó explícitamente que no importa por ahora ("no importa,
+  quédense sin acceso"). El código de esas pantallas sigue intacto por si se
+  reconecta más adelante; `categoriaAbiertaId` quedó fijo en `null`
+  (su setter se eliminó por quedar sin uso).
+- `CATEGORIAS_TALENTO` se hizo constante de módulo (antes vivía duplicada
+  dentro de `RenderTalentoSelection`) para que Mis Talentos y Crear Eventos
+  usen la misma lista de categorías.
+
 ### 2026-09-11 — commit 57f0bb2 · APP_VERSION 10092026-19:32
 - Refresco de infraestructura pedido por Viktor: re-auditoría con Claude Code
   sobre el código actual (creció de 4400 a 5400 líneas desde la última auditoría).

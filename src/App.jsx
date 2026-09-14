@@ -27,7 +27,7 @@ const fotoUsuarioPorDefecto = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3
 // nueva actualización. Formato solicitado: DÍA(2 dígitos)+MES(2 dígitos)+AÑO(4 dígitos) - HORA:MINUTO
 // Ejemplo: "27072026-19:05" = 27 de julio de 2026, 19:05. Se muestra, sin
 // ninguna acción asociada, en la esquina superior izquierda de P-01.
-const APP_VERSION = "14092026-15:06";
+const APP_VERSION = "14092026-16:30";
 
 /**
  * APP SÉNIOR - SUITE MÓVIL ACCESIBLE (SIMULADOR DE TELÉFONO)
@@ -277,6 +277,20 @@ const CONTENEDORES = [
     frase: 'La tecnología, ya explicada y lista para ti',          emoji: '🔵', headerBg: 'bg-blue-50',    headerBorder: 'border-blue-300',    headerText: 'text-blue-900',   activeBg: 'bg-blue-700',    activeBorder: 'border-blue-900' },
 ];
 
+// Categorías de talento — fuente única compartida entre "Mis Talentos" (Datos
+// Ciudadano) y la categoría que se asigna a cada evento en Crear Eventos, para
+// que el filtro "MIS TALENTOS" del listado de Eventos (P-08) pueda comparar
+// selectedTalents (nombres elegidos por el ciudadano) contra evento.categoria.
+const CATEGORIAS_TALENTO = [
+  { id: 'manuales', nombre: "Manuales", detalle: "Costura, carpintería, jardinería" },
+  { id: 'intelectuales', nombre: "Intelectuales", detalle: "Idiomas, matemáticas, historia" },
+  { id: 'artisticas', nombre: "Artísticas", detalle: "Pintura, música, baile" },
+  { id: 'culinarias', nombre: "Culinarias", detalle: "Cocina, repostería" },
+  { id: 'sociales', nombre: "Sociales", detalle: "Organizar eventos, narrar historias" },
+  { id: 'recreativas', nombre: "Recreativas", detalle: "Ajedrez, juegos, paseos guiados" },
+  { id: 'bienestar', nombre: "Bienestar y Sabiduría de Vida", detalle: "Meditación, consejería, mentoría" },
+];
+
 // --- AJUSTE AUTOMÁTICO SIN SCROLL (P-01, P-06, P-08, P-40) ---
 // Mide el contenido real (scrollHeight) contra el alto disponible del dispositivo
 // (clientHeight) y lo encoge con transform:scale() hasta que quepa entero, sin
@@ -416,6 +430,23 @@ const App = () => {
   const [mundoAmaClaveError, setMundoAmaClaveError] = useState(false);
   const [isPerfilCiudadanoOpen, setIsPerfilCiudadanoOpen] = useState(false); // P-44
   const [isMundoAmaMenuOpen, setIsMundoAmaMenuOpen] = useState(false); // P-45
+
+  // --- EVENTOS (Crear Eventos, dentro del panel Mundo AMA P-45) ---
+  // Cada evento: { id, foto, titulo, nombre, capacidad, caracteristicas, fecha,
+  // cupo, categoria (una de CATEGORIAS_TALENTO), zona ('Centro'|'Barrios') }.
+  const [listaEventos, setListaEventos] = useState([]);
+  const [isCrearEventoOpen, setIsCrearEventoOpen] = useState(false); // P-46
+  const CAMPOS_EVENTO_VACIOS = { titulo: '', nombre: '', capacidad: '', caracteristicas: '', fecha: '', cupo: '', categoria: CATEGORIAS_TALENTO[0].nombre, zona: 'Centro' };
+  const [nuevoEventoCampos, setNuevoEventoCampos] = useState(CAMPOS_EVENTO_VACIOS);
+  const [nuevoEventoFoto, setNuevoEventoFoto] = useState('');
+  const [nuevoEventoErrores, setNuevoEventoErrores] = useState({});
+  const [eventoEditandoId, setEventoEditandoId] = useState(null);
+  const [eventoAEliminar, setEventoAEliminar] = useState(null);
+  // Bloque "EVENTOS" de P-08 (sustituye a los 3 módulos Soledad/Movilidad/Tecnología).
+  const [filtroEventos, setFiltroEventos] = useState('todos'); // 'todos' | 'mis_talentos'
+  const [isFiltroEventosOpen, setIsFiltroEventosOpen] = useState(false);
+  const [filtroZonaEventos, setFiltroZonaEventos] = useState('Todos'); // 'Todos' | 'Centro' | 'Barrios'
+  const [eventosGuardados, setEventosGuardados] = useState([]); // ids que el ciudadano fijó (📌) en el listado
   // --- CONTRASEÑA DE PERFIL DEL CIUDADANO (configurable en Datos Ciudadano → Seguridad) ---
   const [perfilPassword, setPerfilPassword] = useState('1234');
   const [perfilPasswordInput, setPerfilPasswordInput] = useState('');
@@ -498,7 +529,7 @@ const App = () => {
   const [contenedorAbiertoConfig, setContenedorAbiertoConfig] = useState(CONTENEDORES[0]?.id || null);
   // Qué contenedor (Vitalidad/Energía/Salud Digital) se está viendo en la
   // pantalla de detalle (P-35), a la que P-08 navega al tocar un contenedor.
-  const [categoriaAbiertaId, setCategoriaAbiertaId] = useState(null);
+  const [categoriaAbiertaId] = useState(null);
   // --- VISIBILIDAD DE MÉTODOS DE ENTRADA (Acceso a la App, P-22) ---
   // Valores por defecto al reiniciar la app: solo "Entrada por S.O." activa.
   const [entradaVisible, setEntradaVisible] = useState({
@@ -2080,57 +2111,102 @@ const App = () => {
   };
 
   const RenderDashboard = () => {
-    // Clases Tailwind completas (no interpoladas) para el grid dinámico
-    const iconSize   = colsMenuPrincipal === 1 ? 40 : 28;
-
-    // Reutiliza MENU_ITEMS (fuente única) aplicando el nombre personalizado
-    // guardado por el usuario en P-21, si existe.
-    const itemsTodos = MENU_ITEMS.map((it) => ({
-      ...it,
-      label: nombresMenuPersonalizados[it.key] || it.label,
-      icon: <it.Icon size={iconSize} color="white" />,
-    }));
-
     // Si en P-29 están marcadas las dos opciones (VES y TAM), se pasa por el selector
     // P-06, que ya lleva el menú de hamburguesa: aquí basta con VOLVER a P-06.
     // Si solo hay una marcada, P-06 se salta, así que P-08 necesita el hamburguesa
     // para poder llegar al Perfil y salir de la app.
     const dosOpcionesSelector = selectorVisible.ves && selectorVisible.tam;
+
+    // --- BLOQUE "EVENTOS" (sustituye a los 3 módulos Soledad/Movilidad/Tecnología) ---
+    // Pastillas "MIS TALENTOS" (filtra por las categorías elegidas en Mis Talentos)
+    // / "TODOS" / "FILTRO" (zona), estilo lista de chats de WhatsApp: foto circular,
+    // título/nombre/características a la izquierda, fecha y pin (📌 fijado) a la derecha.
+    const eventosFiltrados = listaEventos
+      .filter((ev) => filtroEventos !== 'mis_talentos' || selectedTalents.includes(ev.categoria))
+      .filter((ev) => filtroZonaEventos === 'Todos' || ev.zona === filtroZonaEventos)
+      .slice()
+      .sort((a, b) => Number(eventosGuardados.includes(b.id)) - Number(eventosGuardados.includes(a.id)));
+    const toggleGuardadoEvento = (id) => setEventosGuardados((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+
     return (
       <div className="h-full bg-emerald-50 animate-in fade-in duration-300 relative">
         <AutoFit>
           <div className="flex flex-col p-6 pb-8 xl:pb-32 gap-4">
             <EncabezadoG onBack={() => setCurrentView('selector')} conMenu={!dosOpcionesSelector} />
-            <div className="space-y-4">
-              {CONTENEDORES.map((cont) => {
-                const itemsDelContenedor = itemsTodos.filter((item) => item.categoria === cont.id && menuVisible[item.key]);
-                if (itemsDelContenedor.length === 0) return null;
-                return (
+            <div className="bg-white border-4 border-slate-200 rounded-[25px] overflow-hidden shadow-sm">
+              <div className="px-5 pt-4 pb-3 border-b-2 border-slate-100">
+                <span className="text-xs font-black text-slate-500 uppercase tracking-widest">Eventos</span>
+                <div className="flex gap-2 mt-2 overflow-x-auto pb-1 -mx-1 px-1">
                   <button
-                    key={cont.id}
                     type="button"
-                    onClick={() => { setCategoriaAbiertaId(cont.id); setCurrentView('categoria_detalle'); setEnteredFromMenu(false); }}
-                    onMouseEnter={() => announceMenuOption(cont.corto)}
-                    className={`w-full text-left ${cont.headerBg} border-4 ${cont.headerBorder} ${cont.headerText} rounded-[25px] px-5 py-4 transition-colors active:scale-95 flex items-center justify-between gap-3`}
+                    onClick={() => setFiltroEventos((f) => (f === 'mis_talentos' ? 'todos' : 'mis_talentos'))}
+                    onMouseEnter={() => announceMenuOption('Mis Talentos')}
+                    aria-pressed={filtroEventos === 'mis_talentos'}
+                    className={`shrink-0 px-4 py-2 rounded-full font-black text-sm border-2 transition-colors ${filtroEventos === 'mis_talentos' ? 'bg-emerald-600 border-emerald-800 text-white' : 'bg-slate-50 border-slate-200 text-slate-700'}`}
                   >
-                    <span>
-                      <span className="text-xl font-bold leading-snug block">
-                        {cont.fraseP08.pre}
-                        <span className="text-2xl font-black">{cont.fraseP08.highlight}</span>
-                        {cont.fraseP08.post}
-                      </span>
-                      <span className="block text-sm font-bold opacity-70 mt-1">{itemsDelContenedor.length} {itemsDelContenedor.length !== 1 ? 'opciones' : 'opción'}</span>
-                    </span>
-                    <ChevronDown size={32} className="shrink-0 -rotate-90" />
+                    MIS TALENTOS
                   </button>
-                );
-              })}
-            </div>
-            {itemsTodos.every(item => !menuVisible[item.key]) && (
-              <div className="bg-amber-50 border-4 border-amber-300 p-6 rounded-[30px] text-center">
-                <p className="text-xl font-bold text-amber-900 leading-relaxed">No tienes opciones activadas. Ve a Perfil → Configura el Menú VES para activar algunas.</p>
+                  <button
+                    type="button"
+                    onClick={() => setFiltroEventos('todos')}
+                    onMouseEnter={() => announceMenuOption('Todos')}
+                    aria-pressed={filtroEventos === 'todos'}
+                    className={`shrink-0 px-4 py-2 rounded-full font-black text-sm border-2 transition-colors ${filtroEventos === 'todos' ? 'bg-emerald-600 border-emerald-800 text-white' : 'bg-slate-50 border-slate-200 text-slate-700'}`}
+                  >
+                    TODOS
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsFiltroEventosOpen(true)}
+                    onMouseEnter={() => announceMenuOption('Filtro')}
+                    aria-pressed={filtroZonaEventos !== 'Todos'}
+                    className={`shrink-0 px-4 py-2 rounded-full font-black text-sm border-2 flex items-center gap-1 transition-colors ${filtroZonaEventos !== 'Todos' ? 'bg-amber-400 border-amber-500 text-blue-950' : 'bg-slate-50 border-slate-200 text-slate-700'}`}
+                  >
+                    <Filter size={14} /> FILTRO
+                  </button>
+                </div>
               </div>
-            )}
+              <div className="max-h-[360px] overflow-y-auto divide-y-2 divide-slate-100">
+                {eventosFiltrados.length === 0 ? (
+                  <div className="p-6 text-center">
+                    <p className="text-base font-bold text-slate-500 leading-relaxed">
+                      {listaEventos.length === 0 ? 'Todavía no hay eventos publicados.' : 'No hay eventos con este filtro.'}
+                    </p>
+                  </div>
+                ) : (
+                  eventosFiltrados.map((ev) => (
+                    <button
+                      key={ev.id}
+                      type="button"
+                      onClick={() => speak(`${ev.titulo}. ${ev.nombre ? ev.nombre + '. ' : ''}${ev.caracteristicas || ''}`)}
+                      onMouseEnter={() => announceMenuOption(ev.titulo)}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-slate-50 active:bg-slate-100 transition-colors"
+                    >
+                      <img src={ev.foto} alt="" className="w-14 h-14 rounded-full object-cover border-2 border-slate-200 shrink-0" />
+                      <div className="flex-grow min-w-0">
+                        <span className="block text-base font-black text-slate-900 truncate">{ev.titulo}</span>
+                        <span className="block text-sm font-bold text-slate-600 truncate">{[ev.nombre, ev.capacidad].filter(Boolean).join(', ')}</span>
+                        <span className="block text-sm text-slate-500 truncate">{ev.caracteristicas}</span>
+                      </div>
+                      <div className="flex flex-col items-end gap-1 shrink-0">
+                        <span className="text-xs font-bold text-slate-500">{ev.fecha}</span>
+                        {ev.cupo && <span className="text-xs font-bold text-slate-400">CUPO: {ev.cupo}</span>}
+                        <span
+                          role="button"
+                          tabIndex={0}
+                          onClick={(e) => { e.stopPropagation(); toggleGuardadoEvento(ev.id); }}
+                          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); toggleGuardadoEvento(ev.id); } }}
+                          aria-label={eventosGuardados.includes(ev.id) ? 'Quitar de fijados' : 'Fijar evento'}
+                          className={`p-1 text-base ${eventosGuardados.includes(ev.id) ? 'opacity-100' : 'opacity-25 grayscale'}`}
+                        >
+                          📌
+                        </span>
+                      </div>
+                    </button>
+                  ))
+                )}
+              </div>
+            </div>
             <button
               onClick={() => setShowPedirAyudaModal(true)}
               onMouseEnter={() => announceMenuOption('Pedir Ayuda')}
@@ -3108,15 +3184,7 @@ const App = () => {
   };
 
   const RenderTalentoSelection = () => {
-    const opcionesTalentos = [
-      { id: 'manuales', nombre: "Manuales", detalle: "Costura, carpintería, jardinería" },
-      { id: 'intelectuales', nombre: "Intelectuales", detalle: "Idiomas, matemáticas, historia" },
-      { id: 'artisticas', nombre: "Artísticas", detalle: "Pintura, música, baile" },
-      { id: 'culinarias', nombre: "Culinarias", detalle: "Cocina, repostería" },
-      { id: 'sociales', nombre: "Sociales", detalle: "Organizar eventos, narrar historias" },
-      { id: 'recreativas', nombre: "Recreativas", detalle: "Ajedrez, juegos, paseos guiados" },
-      { id: 'bienestar', nombre: "Bienestar y Sabiduría de Vida", detalle: "Meditación, consejería, mentoría" },
-    ];
+    const opcionesTalentos = CATEGORIAS_TALENTO;
     const toggleTalent = (nombre) => {
       if (selectedTalents.includes(nombre)) {
         setSelectedTalents(selectedTalents.filter(t => t !== nombre));
@@ -5151,7 +5219,7 @@ const App = () => {
                   <ClipboardList size={30} className="shrink-0 text-amber-400" /> <span className="text-left">1. Empadronar</span>
                 </button>
                 <button
-                  onClick={() => speak('Crear Eventos. Próximamente disponible.')}
+                  onClick={() => { setIsMundoAmaMenuOpen(false); setIsCrearEventoOpen(true); }}
                   onMouseEnter={() => announceMenuOption('2. Crear Eventos')}
                   className="w-full py-6 bg-white/10 border-4 border-amber-400 text-white rounded-[30px] font-black text-2xl active:scale-95 transition-transform flex items-center gap-3"
                 >
@@ -5181,6 +5249,192 @@ const App = () => {
               <div className="absolute bottom-2 left-0 right-0 text-center text-[10px] text-white/40 font-bold">P-45</div>
             </div>
           )}
+
+          {/* P-46: CREAR EVENTOS — dentro del panel Mundo AMA (P-45). Los eventos
+              creados aquí alimentan el bloque "EVENTOS" de P-08. */}
+          {isCrearEventoOpen && (() => {
+            const editando = eventoEditandoId != null;
+            const setCampoEvento = (key, val) => setNuevoEventoCampos((prev) => ({ ...prev, [key]: val }));
+            const handleFotoEventoChange = (e) => {
+              const file = e.target.files[0];
+              if (file) {
+                const reader = new FileReader();
+                reader.onloadend = () => setNuevoEventoFoto(reader.result);
+                reader.readAsDataURL(file);
+              }
+            };
+            const cancelarEdicionEvento = () => {
+              setEventoEditandoId(null);
+              setNuevoEventoCampos(CAMPOS_EVENTO_VACIOS);
+              setNuevoEventoFoto('');
+              setNuevoEventoErrores({});
+            };
+            const empezarEdicionEvento = (ev) => {
+              setEventoEditandoId(ev.id);
+              setNuevoEventoCampos({ titulo: ev.titulo, nombre: ev.nombre, capacidad: ev.capacidad, caracteristicas: ev.caracteristicas, fecha: ev.fecha, cupo: ev.cupo, categoria: ev.categoria, zona: ev.zona });
+              setNuevoEventoFoto('');
+              setNuevoEventoErrores({});
+            };
+            const handleGuardarEvento = (e) => {
+              e.preventDefault();
+              const errores = {};
+              if (!nuevoEventoCampos.titulo.trim()) errores.titulo = 'Falta el título del evento.';
+              if (!nuevoEventoCampos.fecha.trim()) errores.fecha = 'Falta la fecha del evento.';
+              setNuevoEventoErrores(errores);
+              if (Object.keys(errores).length > 0) {
+                speak('Faltan datos por completar. Revisa los campos marcados en rojo.');
+                return;
+              }
+              const datos = { ...nuevoEventoCampos, titulo: nuevoEventoCampos.titulo.trim() };
+              if (editando) {
+                setListaEventos((prev) => prev.map((ev) => (ev.id === eventoEditandoId ? { ...ev, ...datos, foto: nuevoEventoFoto || ev.foto } : ev)));
+                speak(`Evento ${datos.titulo} actualizado.`);
+              } else {
+                setListaEventos((prev) => [...prev, { id: Date.now(), ...datos, foto: nuevoEventoFoto || fotoUsuarioPorDefecto }]);
+                speak(`Evento ${datos.titulo} creado.`);
+              }
+              cancelarEdicionEvento();
+            };
+            const confirmarEliminarEvento = () => {
+              const ev = listaEventos.find((x) => x.id === eventoAEliminar);
+              setListaEventos((prev) => prev.filter((x) => x.id !== eventoAEliminar));
+              if (eventoEditandoId === eventoAEliminar) cancelarEdicionEvento();
+              setEventoAEliminar(null);
+              if (ev) speak(`Evento ${ev.titulo} eliminado.`);
+            };
+            const campoEvento = (id, label, key, opts = {}) => (
+              <div className="flex flex-col gap-1">
+                <label htmlFor={id} className="text-lg font-bold text-blue-100">{label}</label>
+                {opts.textarea ? (
+                  <textarea
+                    id={id}
+                    value={nuevoEventoCampos[key]}
+                    onChange={(e) => setCampoEvento(key, e.target.value)}
+                    rows={3}
+                    placeholder={opts.placeholder}
+                    className="w-full p-4 text-lg border-4 border-amber-400 rounded-2xl font-bold bg-white text-blue-950 outline-none resize-none"
+                  />
+                ) : (
+                  <input
+                    id={id}
+                    value={nuevoEventoCampos[key]}
+                    onChange={(e) => setCampoEvento(key, e.target.value)}
+                    type={opts.type || 'text'}
+                    placeholder={opts.placeholder}
+                    aria-invalid={!!nuevoEventoErrores[key]}
+                    className={`w-full p-4 text-lg border-4 rounded-2xl font-bold bg-white text-blue-950 outline-none ${nuevoEventoErrores[key] ? 'border-red-500' : 'border-amber-400'}`}
+                  />
+                )}
+                {nuevoEventoErrores[key] && <p role="alert" className="text-red-300 font-bold text-sm">⚠️ {nuevoEventoErrores[key]}</p>}
+              </div>
+            );
+            return (
+              <div role="dialog" aria-modal="true" aria-label="Crear Eventos" className="absolute inset-0 bg-blue-950 z-[150] p-6 flex flex-col items-center text-center animate-in zoom-in duration-300 overflow-y-auto">
+                <div className="flex items-center justify-between w-full mt-3 mb-4">
+                  <button onClick={() => { setIsCrearEventoOpen(false); cancelarEdicionEvento(); setIsMundoAmaMenuOpen(true); }} onMouseEnter={() => announceMenuOption('Volver')} className="flex items-center text-white font-black text-xl py-2 w-max">
+                    <ArrowLeft size={32} className="mr-2" /> VOLVER
+                  </button>
+                  <FotoAyudaCiudadano onAyudaEscrita={() => openWhereAmI("Crear Eventos", "estás creando o editando eventos de Mundo AMA. Rellena el formulario y toca Guardar Evento; los eventos aparecen en el listado de abajo, donde puedes editarlos o eliminarlos.")} />
+                </div>
+                <div className="flex items-center gap-3 mb-5 w-full">
+                  <div className="p-3 rounded-full bg-white/10 text-amber-400 shadow-lg"><CalendarPlus size={30} /></div>
+                  <h2 className="text-3xl font-black text-white leading-tight text-left">{editando ? 'Editar Evento' : 'Crear Eventos'}</h2>
+                </div>
+                <form onSubmit={handleGuardarEvento} className="w-full max-w-sm space-y-5 text-left">
+                  <div className="bg-white/10 p-5 rounded-3xl border-4 border-amber-400 text-center flex flex-col items-center">
+                    <img src={nuevoEventoFoto || (editando && listaEventos.find((e) => e.id === eventoEditandoId)?.foto) || fotoUsuarioPorDefecto} alt="Foto del evento" className="w-28 h-28 rounded-full object-cover border-4 border-white shadow-md mb-3" />
+                    <label htmlFor="evento-foto" className="cursor-pointer bg-amber-400 text-blue-950 px-5 py-2 rounded-2xl font-black text-base shadow-md active:bg-amber-300 inline-block">
+                      SUBIR FOTO 📷
+                      <input id="evento-foto" type="file" accept="image/*" onChange={handleFotoEventoChange} className="hidden" />
+                    </label>
+                  </div>
+                  {campoEvento('evento-titulo', 'Título del evento:', 'titulo', { placeholder: 'Ej. Tardes de Baile' })}
+                  {campoEvento('evento-nombre', 'Nombre / organiza:', 'nombre', { placeholder: 'Ej. Asociación San Gerardo' })}
+                  {campoEvento('evento-fecha', 'Fecha:', 'fecha', { placeholder: 'Ej. 11/9/2026' })}
+                  {campoEvento('evento-capacidad', 'Capacidad:', 'capacidad', { placeholder: 'Ej. 20 personas' })}
+                  {campoEvento('evento-cupo', 'Cupo (inscritos/capacidad):', 'cupo', { placeholder: 'Ej. 8/20' })}
+                  {campoEvento('evento-caracteristicas', 'Características:', 'caracteristicas', { textarea: true, placeholder: 'Accesibilidad, requisitos, qué llevar…' })}
+                  <div>
+                    <span className="block text-lg font-bold text-blue-100 mb-2">Categoría (talento relacionado):</span>
+                    <div className="flex flex-wrap gap-2">
+                      {CATEGORIAS_TALENTO.map((cat) => (
+                        <button
+                          key={cat.id}
+                          type="button"
+                          onClick={() => setCampoEvento('categoria', cat.nombre)}
+                          aria-pressed={nuevoEventoCampos.categoria === cat.nombre}
+                          className={`px-4 py-2 rounded-full font-black text-sm border-2 transition-colors ${nuevoEventoCampos.categoria === cat.nombre ? 'bg-amber-400 border-amber-500 text-blue-950' : 'bg-white/10 border-white/30 text-white'}`}
+                        >
+                          {cat.nombre}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="block text-lg font-bold text-blue-100 mb-2">Zona:</span>
+                    <div className="flex gap-2">
+                      {['Centro', 'Barrios'].map((z) => (
+                        <button
+                          key={z}
+                          type="button"
+                          onClick={() => setCampoEvento('zona', z)}
+                          aria-pressed={nuevoEventoCampos.zona === z}
+                          className={`flex-1 py-3 rounded-2xl font-black text-base border-2 transition-colors ${nuevoEventoCampos.zona === z ? 'bg-amber-400 border-amber-500 text-blue-950' : 'bg-white/10 border-white/30 text-white'}`}
+                        >
+                          {z === 'Centro' ? 'Zona Centro' : 'Otros Barrios'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <button type="submit" className="w-full py-5 bg-amber-400 text-blue-950 rounded-3xl font-black text-xl shadow-lg border-b-8 border-amber-600 active:translate-y-1 flex items-center justify-center gap-3">
+                    <CheckCircle2 size={24} /> {editando ? 'GUARDAR CAMBIOS' : 'GUARDAR EVENTO'}
+                  </button>
+                  {editando && (
+                    <button type="button" onClick={cancelarEdicionEvento} className="w-full py-3 bg-white/10 text-white rounded-2xl font-black text-base border-2 border-white/30 active:scale-95">
+                      CANCELAR EDICIÓN
+                    </button>
+                  )}
+                </form>
+
+                {listaEventos.length > 0 && (
+                  <div className="w-full max-w-sm mt-8 text-left">
+                    <h3 className="text-xl font-black text-white mb-3">Eventos creados ({listaEventos.length})</h3>
+                    <div className="space-y-3">
+                      {listaEventos.map((ev) => (
+                        <div key={ev.id} className={`bg-white/10 p-3 rounded-2xl border-2 flex items-center gap-3 ${eventoEditandoId === ev.id ? 'border-amber-400' : 'border-white/20'}`}>
+                          <img src={ev.foto} alt="" className="w-12 h-12 rounded-full object-cover border-2 border-white/40 shrink-0" />
+                          <div className="flex-grow overflow-hidden">
+                            <span className="block text-base font-black text-white truncate">{ev.titulo}</span>
+                            <span className="block text-sm font-bold text-blue-200 truncate">{ev.fecha} · {ev.categoria}</span>
+                          </div>
+                          <button type="button" onClick={() => empezarEdicionEvento(ev)} onMouseEnter={() => announceMenuOption(`Editar ${ev.titulo}`)} aria-label={`Editar ${ev.titulo}`} className="shrink-0 p-2 rounded-xl bg-white/10 text-amber-300 border-2 border-white/30 active:scale-90">
+                            <Pencil size={18} />
+                          </button>
+                          <button type="button" onClick={() => setEventoAEliminar(ev.id)} onMouseEnter={() => announceMenuOption(`Eliminar ${ev.titulo}`)} aria-label={`Eliminar ${ev.titulo}`} className="shrink-0 p-2 rounded-xl bg-white/10 text-red-300 border-2 border-white/30 active:scale-90">
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {eventoAEliminar != null && (
+                  <div role="alertdialog" aria-modal="true" className="fixed inset-0 bg-black/70 z-[160] flex items-center justify-center p-6">
+                    <div className="bg-white rounded-3xl p-6 max-w-sm w-full text-center">
+                      <p className="text-xl font-black text-slate-800 mb-5">¿Eliminar este evento?</p>
+                      <div className="flex gap-3">
+                        <button onClick={() => setEventoAEliminar(null)} className="flex-1 py-4 bg-slate-100 text-slate-700 rounded-2xl font-black">CANCELAR</button>
+                        <button onClick={confirmarEliminarEvento} className="flex-1 py-4 bg-red-700 text-white rounded-2xl font-black">ELIMINAR</button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="absolute bottom-2 left-0 right-0 text-center text-[10px] text-white/40 font-bold">P-46</div>
+              </div>
+            );
+          })()}
 
           {isWhereAmIOpen && (
             <div className="absolute inset-0 bg-blue-950 z-[200] p-6 flex flex-col items-center justify-center text-center animate-in zoom-in duration-300 overflow-y-auto">
@@ -5278,6 +5532,21 @@ const App = () => {
                 <button onClick={() => { setActiveFilter('Barrios'); setIsFilterModalOpen(false); }} className={`w-full py-8 rounded-[35px] font-black text-3xl shadow-xl active:scale-95 transition-colors ${activeFilter === 'Barrios' ? 'bg-amber-400 text-blue-950 border-4 border-white' : 'bg-white text-blue-900'}`}>Otros Barrios</button>
               </div>
               <button onClick={() => setIsFilterModalOpen(false)} className="mt-10 text-3xl font-bold text-white/50 underline decoration-4 flex items-center justify-center w-full gap-3 mb-10">
+                <ArrowLeft size={36} /> VOLVER
+              </button>
+            </div>
+          )}
+
+          {/* Filtro de zona para el bloque "EVENTOS" de P-08 */}
+          {isFiltroEventosOpen && (
+            <div role="dialog" aria-modal="true" aria-label="Filtrar Eventos" className="absolute inset-0 bg-blue-950 z-50 p-8 flex flex-col items-center justify-center text-center animate-in zoom-in duration-300 overflow-y-auto">
+              <h2 className="text-4xl font-black text-white mb-8 mt-10 leading-tight">¿Qué zona prefieres?</h2>
+              <div className="w-full max-w-sm space-y-6">
+                <button onClick={() => { setFiltroZonaEventos('Todos'); setIsFiltroEventosOpen(false); }} className={`w-full py-8 rounded-[35px] font-black text-3xl shadow-xl active:scale-95 transition-colors ${filtroZonaEventos === 'Todos' ? 'bg-amber-400 text-blue-950 border-4 border-white' : 'bg-white text-blue-900'}`}>Todas las Zonas</button>
+                <button onClick={() => { setFiltroZonaEventos('Centro'); setIsFiltroEventosOpen(false); }} className={`w-full py-8 rounded-[35px] font-black text-3xl shadow-xl active:scale-95 transition-colors ${filtroZonaEventos === 'Centro' ? 'bg-amber-400 text-blue-950 border-4 border-white' : 'bg-white text-blue-900'}`}>Zona Centro</button>
+                <button onClick={() => { setFiltroZonaEventos('Barrios'); setIsFiltroEventosOpen(false); }} className={`w-full py-8 rounded-[35px] font-black text-3xl shadow-xl active:scale-95 transition-colors ${filtroZonaEventos === 'Barrios' ? 'bg-amber-400 text-blue-950 border-4 border-white' : 'bg-white text-blue-900'}`}>Otros Barrios</button>
+              </div>
+              <button onClick={() => setIsFiltroEventosOpen(false)} className="mt-10 text-3xl font-bold text-white/50 underline decoration-4 flex items-center justify-center w-full gap-3 mb-10">
                 <ArrowLeft size={36} /> VOLVER
               </button>
             </div>
