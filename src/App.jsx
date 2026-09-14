@@ -27,7 +27,7 @@ const fotoUsuarioPorDefecto = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3
 // nueva actualización. Formato solicitado: DÍA(2 dígitos)+MES(2 dígitos)+AÑO(4 dígitos) - HORA:MINUTO
 // Ejemplo: "27072026-19:05" = 27 de julio de 2026, 19:05. Se muestra, sin
 // ninguna acción asociada, en la esquina superior izquierda de P-01.
-const APP_VERSION = "14092026-19:51";
+const APP_VERSION = "14092026-20:08";
 
 /**
  * APP SÉNIOR - SUITE MÓVIL ACCESIBLE (SIMULADOR DE TELÉFONO)
@@ -2203,15 +2203,20 @@ const App = () => {
                   >
                     TODOS
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setIsFiltroEventosOpen(true)}
-                    onMouseEnter={() => announceMenuOption('Filtro')}
-                    aria-pressed={filtroZonaEventos !== 'Todos'}
-                    className={`shrink-0 px-4 py-2 rounded-full font-black text-sm border-2 flex items-center gap-1 transition-colors ${filtroZonaEventos !== 'Todos' ? 'bg-amber-400 border-amber-500 text-blue-950' : 'bg-slate-50 border-slate-200 text-slate-700'}`}
-                  >
-                    <Filter size={14} /> FILTRO
-                  </button>
+                  {/* Opciones marcadas como visibles en "Configura el Menú VES" (P-21):
+                      una pastilla por cada una, que lleva directo a esa función. iAyuda
+                      queda fuera (categoria centinela 'menu_rapido'), igual que en P-08/P-35. */}
+                  {MENU_ITEMS.filter((item) => menuVisible[item.key] && item.categoria !== 'menu_rapido').map((item) => (
+                    <button
+                      key={item.key}
+                      type="button"
+                      onClick={() => { setCurrentView(item.view); setEnteredFromMenu(false); setSubDesdeDatosCiudadano(false); }}
+                      onMouseEnter={() => announceMenuOption(item.label)}
+                      className={`shrink-0 px-4 py-2 rounded-full font-black text-sm border-2 transition-colors bg-slate-50 ${item.border} ${item.text}`}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
                 </div>
               </div>
               <div className="max-h-[360px] overflow-y-auto divide-y-2 divide-slate-100">
