@@ -11,10 +11,11 @@ import {
 // Foto del ciudadano por defecto: se deja grabada aquí para no tener que subirla
 // en cada sesión. Para cambiarla, reemplaza src/foto-ciudadano.jpg.
 import fotoCiudadano from './foto-ciudadano.jpg';
-// Logos reales de las 3 marcas (medallones VES/AMA/TAM, trazados desde la foto real).
-import logoAma from './logo-ama-badge.svg';
-import logoTam from './logo-tam-badge.svg';
-import logoVes from './logo-ves-badge.svg';
+// Logos reales de las 3 marcas (medallones VES/AMA/TAM), recortados de la foto
+// original en su resolución nativa (PNG, sin convertir a SVG).
+import logoAma from './logo-ama-badge.png';
+import logoTam from './logo-tam-badge.png';
+import logoVes from './logo-ves-badge.png';
 // Logo del Grupo DAB (trazado desde la foto real del trofeo de madera).
 // Por los momentos solo en P-01, esquina inferior izquierda.
 import logoGrupoDab from './logo-grupo-dab.svg';
@@ -26,7 +27,7 @@ const fotoUsuarioPorDefecto = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3
 // nueva actualización. Formato solicitado: DÍA(2 dígitos)+MES(2 dígitos)+AÑO(4 dígitos) - HORA:MINUTO
 // Ejemplo: "27072026-19:05" = 27 de julio de 2026, 19:05. Se muestra, sin
 // ninguna acción asociada, en la esquina superior izquierda de P-01.
-const APP_VERSION = "12092026-16:59";
+const APP_VERSION = "14092026-09:43";
 
 /**
  * APP SÉNIOR - SUITE MÓVIL ACCESIBLE (SIMULADOR DE TELÉFONO)
